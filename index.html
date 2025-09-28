@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mitra Loyalti Program</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            position: relative;
+            overflow-x: hidden;
+            color: #5a6678; 
+        }
+
+        :root { 
+            --base-bg: #F0F2F5;
+            --neu-bg: rgba(240, 242, 245, 0.6); /* Semi-transparent background for cards */
+            --neu-shadow-dark: #dce1e7; 
+            --neu-shadow-light: #ffffff; 
+            --brand-red: #ef4444;
+            --brand-blue: #4f46e5;
+        }
+
+        .app-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background-color: var(--base-bg);
+            overflow: hidden;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.8;
+            will-change: transform;
+        }
+
+        .blob-1 {
+            width: 400px;
+            height: 400px;
+            top: -150px;
+            left: -150px;
+            background-color: var(--brand-red);
+            opacity: 0.3;
+        }
+
+        .blob-2 {
+            width: 350px;
+            height: 350px;
+            bottom: -150px;
+            right: -100px;
+            background-color: var(--brand-blue);
+            opacity: 0.25;
+        }
+
+        .neu-bg { 
+            background-color: transparent; /* Body background is now handled by .app-background */
+        }
+        
+        /* Updated to a more modern "Glassmorphism" effect */
+        .neu-card, .neu-card-flat, .neu-button, .neu-button-icon, .input-field {
+            background-color: var(--neu-bg);
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .neu-card { 
+            border-radius: 20px; 
+            box-shadow: 6px 6px 12px var(--neu-shadow-dark), -6px -6px 12px var(--neu-shadow-light); 
+        }
+        .neu-card-flat { 
+            border-radius: 20px; 
+            box-shadow: 4px 4px 8px var(--neu-shadow-dark), -4px -4px 8px var(--neu-shadow-light); 
+        }
+        .neu-inset { 
+            background-color: rgba(221, 225, 231, 0.5); /* Semi-transparent inset */
+            border-radius: 12px; 
+            box-shadow: inset 5px 5px 10px var(--neu-shadow-dark), inset -5px -5px 10px var(--neu-shadow-light); 
+            border: none;
+        }
+        .neu-gradient-card { 
+            border-radius: 20px; 
+            box-shadow: 7px 7px 14px #c13535, -7px -7px 14px #ff5353; 
+            /* Gradient card should not be transparent to stand out */
+            background-color: #e53e3e; /* Solid color fallback */
+            background-image: linear-gradient(135deg, #ef4444, #d62828);
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+            border: none;
+        }
+        .neu-button {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 5px 5px 10px var(--neu-shadow-dark), -5px -5px 10px var(--neu-shadow-light);
+            color: inherit;
+            cursor: pointer;
+        }
+        .neu-button:active, .neu-button:disabled:active {
+            box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -4px -4px 8px var(--neu-shadow-light);
+            font-size: 0.98em;
+            transform: translateY(1px);
+        }
+        .neu-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .neu-button-icon {
+            padding: 0.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 3px 3px 6px var(--neu-shadow-dark), -3px -3px 6px var(--neu-shadow-light);
+            cursor: pointer;
+        }
+        .neu-button-icon:active {
+            box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -3px -3px 6px var(--neu-shadow-light);
+        }
+
+        .input-field { 
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: none;
+            transition: all 0.2s ease-in-out;
+            box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -4px -4px 8px var(--neu-shadow-light);
+            color: #5a6678;
+        }
+        .input-field:focus {
+            outline: none;
+            box-shadow: inset 2px 2px 5px var(--neu-shadow-dark), inset -2px -2px 5px var(--neu-shadow-light);
+        }
+        .input-field-disabled, .input-field:disabled { 
+            background-color: rgba(209, 217, 230, 0.7);
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+            opacity: 0.7;
+            cursor: not-allowed;
+         }
+        
+        @keyframes modal-in { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .animate-modal-in { animation: modal-in 0.3s ease-out forwards; }
+        @keyframes fade-in-down { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-down { animation: fade-in-down 0.5s ease-out forwards; }
+        @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1"
+  }
+}
+</script>
+</head>
+<body class="neu-bg">
+    <div class="app-background">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+    <div id="root"></div>
+</body>
+</html>

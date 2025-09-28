@@ -1,0 +1,76 @@
+import React from 'react';
+import { User, Page } from '../../types';
+import { ICONS } from '../../constants';
+import Icon from '../common/Icon';
+
+interface MainLayoutProps {
+    children: React.ReactNode;
+    currentUser: User;
+    currentPage: Page;
+    setCurrentPage: (page: Page) => void;
+    handleLogout: () => void;
+}
+
+const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentPage, setCurrentPage, handleLogout }) => {
+    const MENU_ITEMS = {
+        pelanggan: [
+            { name: 'Program', icon: ICONS.trophy, page: 'pencapaianProgram' as Page },
+            { name: 'Hadiah', icon: ICONS.gift, page: 'tukarPoin' as Page },
+            { name: 'Home', icon: ICONS.dashboard, page: 'pelangganDashboard' as Page },
+            { name: 'History', icon: ICONS.history, page: 'historyPembelian' as Page },
+            { name: 'Logout', icon: ICONS.logout, action: handleLogout }
+        ],
+        admin: [
+            { name: 'Mitra', icon: ICONS.users, page: 'manajemenPelanggan' as Page },
+            { name: 'Tambah', icon: ICONS.plus, page: 'tambahUser' as Page },
+            { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
+            { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
+            { name: 'Poin', icon: ICONS.gift, page: 'manajemenPoin' as Page }
+        ]
+    };
+
+    const navItems = MENU_ITEMS[currentUser.role] || [];
+    const isPelanggan = currentUser.role === 'pelanggan';
+
+    return (
+        <div className="h-screen w-full flex flex-col font-sans neu-bg">
+            <header className="h-20 flex-shrink-0 flex items-center justify-between px-6">
+                <img src="/logo.png" alt="Agrabudi Komunika Logo" className="h-10" />
+                <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-4 group">
+                    <div className="text-right">
+                        <p className="font-semibold text-gray-700 group-hover:text-red-600 transition-colors">{currentUser.profile.nama}</p>
+                        <p className="text-sm text-red-600 capitalize">{isPelanggan ? 'Mitra Outlet' : 'Admin'}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full neu-card flex items-center justify-center font-bold text-xl text-red-500 overflow-hidden">
+                       {currentUser.profile.photo ? <img src={currentUser.profile.photo} alt="profile" className="w-full h-full object-cover"/> : currentUser.profile.nama.charAt(0)}
+                    </div>
+                </button>
+            </header>
+            <main className="flex-1 overflow-y-auto p-6 pb-24 animate-fade-in-up">{children}</main>
+            <nav className="fixed bottom-0 left-0 right-0 h-20 bg-transparent flex justify-around items-center z-50">
+                <div className="neu-card-flat w-full h-full flex justify-around items-center rounded-t-2xl md:rounded-none">
+                    {navItems.map(item => {
+                        const page = (item as { page: Page }).page;
+                        const action = (item as { action: () => void }).action;
+                        const isActive = currentPage === page;
+
+                        return (
+                            <button 
+                                key={item.name} 
+                                onClick={() => action ? action() : setCurrentPage(page)} 
+                                className={`flex flex-col items-center justify-center transition-colors duration-200 w-full h-full ${isActive ? 'text-red-600' : 'text-gray-500'}`}
+                            >
+                                <div className={`p-3 rounded-full transition-all duration-200 ${isActive ? 'neu-inset' : ''}`}>
+                                    <Icon path={item.icon} className="w-7 h-7" />
+                                </div>
+                                <span className="text-xs font-semibold mt-1">{item.name}</span>
+                            </button>
+                        )
+                    })}
+                </div>
+            </nav>
+        </div>
+    );
+};
+
+export default MainLayout;

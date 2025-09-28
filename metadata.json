@@ -1,0 +1,5 @@
+{
+  "name": "Mitra Loyalti Program",
+  "description": "A loyalty program application for partner outlets, allowing them to track points, redeem rewards, and monitor program progress. Includes an admin dashboard for user management.",
+  "requestFramePermissions": []
+}
