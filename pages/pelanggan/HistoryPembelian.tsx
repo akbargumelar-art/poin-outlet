@@ -1,6 +1,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { User, Transaction, Redemption, HistoryItem } from '../../types';
+import Icon from '../../components/common/Icon';
+import { ICONS } from '../../constants';
 
 interface HistoryPembelianProps {
     currentUser: User;
@@ -17,8 +19,8 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
             .map(t => ({
                 date: t.date,
                 type: 'Pembelian',
-                description: `Transaksi Penjualan`,
-                amount: t.amount,
+                description: t.produk,
+                amount: t.totalPembelian,
                 points: t.points,
             }));
 
@@ -55,6 +57,41 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
+    
+    const handleResetFilters = () => {
+        setFilter({ from: '', to: '' });
+    };
+
+    const chartData = useMemo(() => {
+        const historyAsc = [...filteredHistory].reverse();
+        if (historyAsc.length < 2) return null;
+
+        let runningPoints = 0;
+        const dataPoints = historyAsc.map(item => {
+            runningPoints += item.points;
+            return {
+                date: new Date(item.date),
+                points: runningPoints
+            };
+        });
+
+        const maxPoints = Math.max(...dataPoints.map(d => d.points));
+        const minPoints = Math.min(...dataPoints.map(d => d.points));
+        const pointRange = maxPoints - minPoints;
+
+        const startDate = dataPoints[0].date.getTime();
+        const endDate = dataPoints[dataPoints.length - 1].date.getTime();
+        const timeRange = endDate - startDate;
+
+        const points = dataPoints.map(dp => {
+            const x = timeRange > 0 ? ((dp.date.getTime() - startDate) / timeRange) * 100 : 50;
+            const y = pointRange > 0 ? 100 - ((dp.points - minPoints) / pointRange) * 90 - 5 : 50; // Use 90% of height with 5% margin
+            return `${x},${y}`;
+        }).join(' ');
+
+        return { points, minPoints, maxPoints, startDate: dataPoints[0].date, endDate: dataPoints[dataPoints.length - 1].date };
+    }, [filteredHistory]);
+
 
     return (
         <div>
@@ -64,8 +101,37 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                     <input type="date" name="from" value={filter.from} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
                     <span className="text-gray-500">-</span>
                     <input type="date" name="to" value={filter.to} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
+                    <button onClick={handleResetFilters} className="neu-button-icon !p-2" title="Clear Filter">
+                        <Icon path={ICONS.close} className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
+
+            {chartData && (
+                 <div className="neu-card p-6 mb-6">
+                    <h2 className="text-xl font-bold text-gray-700 mb-4">Tren Poin</h2>
+                    <div className="h-48 w-full">
+                         <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                             <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style={{stopColor: 'rgba(239, 68, 68, 0.4)'}} />
+                                <stop offset="100%" style={{stopColor: 'rgba(239, 68, 68, 0)'}} />
+                                </linearGradient>
+                            </defs>
+                            <polyline
+                                fill="url(#gradient)"
+                                stroke="#ef4444"
+                                strokeWidth="1"
+                                points={`0,100 ${chartData.points} 100,100`}
+                            />
+                        </svg>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1 font-semibold">
+                        <span>{chartData.startDate.toLocaleDateString('id-ID')}</span>
+                        <span>{chartData.endDate.toLocaleDateString('id-ID')}</span>
+                    </div>
+                </div>
+            )}
             
             <div className="neu-card-flat overflow-x-auto">
                 <table className="w-full text-left min-w-[600px]">

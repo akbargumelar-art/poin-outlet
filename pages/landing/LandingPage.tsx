@@ -1,16 +1,19 @@
 
+
 import React, { useRef } from 'react';
-import { Page, Reward, RunningProgram } from '../../types';
+import { Page, Reward, RunningProgram, RaffleWinner } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
+import PemenangUndian from '../../components/PemenangUndian';
 
 interface LandingPageProps {
     setCurrentPage: (page: Page) => void;
     rewards: Reward[];
     runningPrograms: RunningProgram[];
+    raffleWinners: RaffleWinner[];
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms, raffleWinners }) => {
     const rewardsScrollContainer = useRef<HTMLDivElement>(null);
     const programsScrollContainer = useRef<HTMLDivElement>(null);
 
@@ -50,7 +53,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 <section className="my-16 md:my-20">
                     <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
                     <div className="relative max-w-6xl mx-auto">
-                        <button onClick={() => handleNav('left', 'rewards')} className="absolute left-2 md:-left-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full p-3" aria-label="Previous slide">
+                        <button onClick={() => handleNav('left', 'rewards')} className="absolute left-2 md:-left-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3" aria-label="Previous slide">
                             <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                         </button>
                         <div ref={rewardsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -66,7 +69,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                 </div>
                             ))}
                         </div>
-                        <button onClick={() => handleNav('right', 'rewards')} className="absolute right-2 md:-right-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full p-3" aria-label="Next slide">
+                        <button onClick={() => handleNav('right', 'rewards')} className="absolute right-2 md:-right-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3" aria-label="Next slide">
                            <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
                         </button>
                     </div>
@@ -78,7 +81,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                     <section className="my-16 md:my-20">
                         <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Program Berjalan</h3>
                          <div className="relative max-w-6xl mx-auto">
-                            <button onClick={() => handleNav('left', 'programs')} className="absolute left-2 md:-left-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full p-3" aria-label="Previous program">
+                            <button onClick={() => handleNav('left', 'programs')} className="absolute left-2 md:-left-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3" aria-label="Previous program">
                                 <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                             </button>
                             <div ref={programsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -105,12 +108,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                     </div>
                                 ))}
                             </div>
-                             <button onClick={() => handleNav('right', 'programs')} className="absolute right-2 md:-right-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full p-3" aria-label="Next program">
+                             <button onClick={() => handleNav('right', 'programs')} className="absolute right-2 md:-right-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3" aria-label="Next program">
                                <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
                             </button>
                         </div>
                     </section>
                 )}
+
+                <PemenangUndian winners={raffleWinners} />
 
                 {/* About Section */}
                 <section className="my-16 md:my-20 max-w-5xl mx-auto">
@@ -124,12 +129,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                             <div>
                                 <h5 className="font-bold text-gray-700 flex items-center gap-2"><Icon path={ICONS.location} className="w-5 h-5"/>Kantor Cirebon</h5>
                                 <p className="text-gray-600 mt-1 pl-7">Jl. Pemuda Raya No.21B, Sunyaragi, Kec. Kesambi, Kota Cirebon, Jawa Barat 45132</p>
-                                <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.33602167812!2d108.5305983153673!3d-6.729125995135111!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f1d88a1b5731b%3A0x622cde8718e00318!2sPT.%20Agrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524312891!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
+                                <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.33602167812!2d108.5305983153673!3d-6.729125995135111!2m3!1f0!2f0!3f0!3m2!i1024!i768!4f13.1!3m3!1m2!1s0x2e6f1d88a1b5731b%3A0x622cde8718e00318!2sPT.%20Agrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524312891!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
                             </div>
                             <div>
                                 <h5 className="font-bold text-gray-700 flex items-center gap-2"><Icon path={ICONS.location} className="w-5 h-5"/>Kantor Kuningan</h5>
                                 <p className="text-gray-600 mt-1 pl-7">Jl. Siliwangi No.45, Purwawinangun, Kec. Kuningan, Kabupaten Kuningan, Jawa Barat 45512</p>
-                                <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.916823521369!2d108.4811198153683!3d-6.90028349501348!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f173775b69a6b%3A0x86842586b0a17349!2sAgrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524412803!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
+                                <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.916823521369!2d108.4811198153683!3d-6.90028349501348!2m3!1f0!2f0!3f0!3m2!i1024!i768!4f13.1!3m3!1m2!1s0x2e6f173775b69a6b%3A0x86842586b0a17349!2sAgrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524412803!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
                             </div>
                         </div>
                      </div>

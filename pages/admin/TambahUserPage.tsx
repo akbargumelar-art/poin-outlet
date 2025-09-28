@@ -53,13 +53,14 @@ const TambahUserPage: React.FC<TambahUserPageProps> = ({ adminAddUser }) => {
                         <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className="input-field">
                             <option value="pelanggan">Mitra Outlet</option>
                             <option value="admin">Admin</option>
+                            <option value="supervisor">Supervisor</option>
                         </select>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
                         <input type="text" name="id" value={common.id} onChange={handleCommonChange} placeholder={role === 'pelanggan' ? 'ID Digipos' : 'Username'} className="input-field" required />
                         <input type="password" name="password" value={common.password} onChange={handleCommonChange} placeholder="Password" className="input-field" required />
-                        <input type="text" name="nama" value={common.nama} onChange={handleCommonChange} placeholder={role === 'pelanggan' ? 'Nama Outlet' : 'Nama Lengkap Admin'} className="input-field" required />
+                        <input type="text" name="nama" value={common.nama} onChange={handleCommonChange} placeholder={role === 'pelanggan' ? 'Nama Outlet' : 'Nama Lengkap'} className="input-field" required />
                         <input type="email" name="email" value={common.email} onChange={handleCommonChange} placeholder="Email" className="input-field" required />
                         <input type="tel" name="phone" value={common.phone} onChange={handleCommonChange} placeholder="Nomor HP / WhatsApp" className="input-field" required />
 
@@ -74,7 +75,7 @@ const TambahUserPage: React.FC<TambahUserPageProps> = ({ adminAddUser }) => {
                             </>
                          )}
 
-                         {role === 'admin' && (
+                         {(role === 'admin' || role === 'supervisor') && (
                              <input type="text" name="tap" value={admin.tap} onChange={handleAdminChange} placeholder="TAP" className="input-field" />
                          )}
                     </div>

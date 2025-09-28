@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { User, Reward } from '../../types';
+import { User, Reward, RaffleProgram } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 
@@ -8,12 +8,14 @@ interface TukarPoinProps {
     currentUser: User;
     rewards: Reward[];
     handleTukarClick: (reward: Reward) => void;
+    rafflePrograms: RaffleProgram[];
 }
 
-const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukarClick }) => {
+const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukarClick, rafflePrograms }) => {
     const userPoints = currentUser.points || 0;
     const kuponUndianReward = rewards.find(r => r.name.includes('Kupon Undian'));
     const otherRewards = rewards.filter(r => !r.name.includes('Kupon Undian'));
+    const activeProgram = rafflePrograms.find(p => p.isActive);
 
     return (
          <div className="relative">
@@ -26,16 +28,20 @@ const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukar
                 <div className="neu-card p-6 my-8 bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex flex-col md:flex-row items-center justify-between gap-6">
                     <div>
                         <h2 className="text-2xl font-bold">Tukar Poin Jadi Kesempatan!</h2>
-                        <p className="opacity-80 mt-1">Dapatkan kupon undian dan menangkan hadiah utama di akhir periode!</p>
+                        {activeProgram ? (
+                            <p className="opacity-80 mt-1">Dapatkan kupon undian & menangkan <b>{activeProgram.prize}</b>! Program: <b>{activeProgram.name}</b> ({activeProgram.period}).</p>
+                        ) : (
+                             <p className="opacity-80 mt-1">Dapatkan kupon undian dan menangkan hadiah utama di akhir periode!</p>
+                        )}
                     </div>
                     <div className="text-center">
                         <p className="text-3xl font-bold">{kuponUndianReward.points} Poin</p>
                         <button 
                             onClick={() => handleTukarClick(kuponUndianReward)} 
-                            disabled={userPoints < kuponUndianReward.points}
+                            disabled={userPoints < kuponUndianReward.points || !activeProgram}
                             className="mt-2 w-full neu-button !bg-white !text-purple-600 disabled:!bg-white/50 disabled:!text-purple-400"
                         >
-                            Tukar 1 Kupon
+                            {activeProgram ? 'Tukar 1 Kupon' : 'Program Tidak Aktif'}
                         </button>
                     </div>
                 </div>

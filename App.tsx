@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
-import { Page, User, UserProfile, Reward, Redemption } from './types';
-import { initialUsers, initialTransactions, initialRewards, initialRedemptionHistory, initialLoyaltyPrograms, initialRunningPrograms, MOCK_DIGIPOS_DATA, MOCK_LOCATION_DATA } from './data/mockData';
+import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgramTarget, RaffleProgram, CouponRedemption, RaffleWinner } from './types';
+import { initialUsers, initialTransactions, initialRewards, initialRedemptionHistory, initialLoyaltyPrograms, initialRunningPrograms, MOCK_DIGIPOS_DATA, MOCK_LOCATION_DATA, initialRafflePrograms, initialCouponRedemptions, initialRaffleWinners } from './data/mockData';
 
 import Modal from './components/common/Modal';
 import MainLayout from './components/layout/MainLayout';
@@ -18,6 +17,8 @@ import ManajemenPelanggan from './pages/admin/ManajemenPelanggan';
 import TambahUserPage from './pages/admin/TambahUserPage';
 import ManajemenProgram from './pages/admin/ManajemenProgram';
 import ManajemenPoin from './pages/admin/ManajemenPoin';
+import ManajemenHadiah from './pages/admin/ManajemenHadiah';
+import ManajemenUndian from './pages/admin/ManajemenUndian';
 
 function App() {
     const [currentPage, setCurrentPage] = useState<Page>('landing');
@@ -28,14 +29,17 @@ function App() {
     const [transactions, setTransactions] = useState(initialTransactions);
     const [rewards, setRewards] = useState(initialRewards);
     const [redemptionHistory, setRedemptionHistory] = useState(initialRedemptionHistory);
-    const [loyaltyPrograms] = useState(initialLoyaltyPrograms);
+    const [loyaltyPrograms, setLoyaltyPrograms] = useState(initialLoyaltyPrograms);
     const [runningPrograms, setRunningPrograms] = useState(initialRunningPrograms);
+    const [rafflePrograms, setRafflePrograms] = useState(initialRafflePrograms);
+    const [couponRedemptions, setCouponRedemptions] = useState(initialCouponRedemptions);
+    const [raffleWinners, setRaffleWinners] = useState(initialRaffleWinners);
 
     const handleLogin = (id: string, password: string): boolean => {
         const user = users.find(u => u.id === id && u.password === password);
         if (user) {
             setCurrentUser(user);
-            setCurrentPage(user.role === 'admin' ? 'adminDashboard' : 'pelangganDashboard');
+            setCurrentPage(user.role === 'pelanggan' ? 'pelangganDashboard' : 'adminDashboard');
             return true;
         }
         return false;
@@ -68,8 +72,19 @@ function App() {
         setCurrentUser(updatedUser);
         setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
         
-        if (!isKupon) {
-            const updatedRewards = rewards.map(r => r.id === reward.id ? {...r, stock: r.stock -1 } : r);
+        if (isKupon) {
+            const activeProgram = rafflePrograms.find(p => p.isActive);
+            if (activeProgram) {
+                const newRedemption: CouponRedemption = {
+                    id: couponRedemptions.length + 1,
+                    userId: currentUser.id,
+                    raffleProgramId: activeProgram.id,
+                    redeemedAt: new Date().toISOString(),
+                };
+                setCouponRedemptions(prev => [...prev, newRedemption]);
+            }
+        } else {
+            const updatedRewards = rewards.map(r => r.id === reward.id ? {...r, stock: r.stock - 1 } : r);
             setRewards(updatedRewards);
         }
 
@@ -100,8 +115,94 @@ function App() {
         setUsers([...users, newUser]);
         setModal({show: true, title: "Sukses", content: <p className="text-center text-green-600">User baru berhasil ditambahkan.</p>});
     };
+
+    const adminAddReward = (newReward: Reward) => {
+        setRewards(prev => [...prev, newReward]);
+        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Hadiah baru berhasil ditambahkan.</p> });
+    };
+
+    const adminUpdateReward = (updatedReward: Reward) => {
+        setRewards(prev => prev.map(r => r.id === updatedReward.id ? updatedReward : r));
+        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Data hadiah berhasil diperbarui.</p> });
+    };
+
+    const adminDeleteReward = (rewardId: number) => {
+        setRewards(prev => prev.filter(r => r.id !== rewardId));
+        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Hadiah berhasil dihapus.</p> });
+    };
+
+    const adminUpdateLoyaltyProgram = (updatedProgram: LoyaltyProgram) => {
+        setLoyaltyPrograms(prev => prev.map(p => p.level === updatedProgram.level ? updatedProgram : p));
+        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Aturan level berhasil diperbarui.</p> });
+    };
+
+    const adminAddTransaction = (data: Omit<Transaction, 'id' | 'points' >) => {
+        const user = users.find(u => u.id === data.userId);
+        if (!user) {
+            setModal({ show: true, title: "Error", content: <p>User dengan ID {data.userId} tidak ditemukan.</p>});
+            return;
+        }
+        const loyaltyLevel = loyaltyPrograms.find(p => p.level === user.level);
+        const multiplier = loyaltyLevel ? loyaltyLevel.multiplier : 1;
+        const pointsGained = Math.floor((data.totalPembelian / 1000) * multiplier);
+
+        const newTransaction: Transaction = { ...data, id: Date.now(), points: pointsGained };
+        const updatedUser: User = { ...user, points: (user.points || 0) + pointsGained };
+
+        setTransactions(prev => [...prev, newTransaction]);
+        setUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Transaksi berhasil ditambahkan. Mitra <b className='text-gray-800'>{user.profile.nama}</b> mendapat <b className='text-gray-800'>{pointsGained}</b> poin.</p> });
+    };
     
-    const adminDeleteUser = (userId: string) => setUsers(users.filter(u => u.id !== userId));
+    const adminBulkAddTransactions = (bulkData: Omit<Transaction, 'id' | 'points' | 'totalPembelian'>[]) => {
+        const newTransactions: Transaction[] = [];
+        const userPointUpdates: { [userId: string]: number } = {};
+        let processedCount = 0;
+
+        bulkData.forEach((data, index) => {
+            const user = users.find(u => u.id === data.userId);
+            if (!user) return; // Skip if user not found
+
+            const totalPembelian = data.harga * data.kuantiti;
+            const loyaltyLevel = loyaltyPrograms.find(p => p.level === user.level);
+            const multiplier = loyaltyLevel ? loyaltyLevel.multiplier : 1;
+            const pointsGained = Math.floor((totalPembelian / 1000) * multiplier);
+            
+            newTransactions.push({ ...data, totalPembelian, id: Date.now() + index, points: pointsGained });
+            userPointUpdates[data.userId] = (userPointUpdates[data.userId] || 0) + pointsGained;
+            processedCount++;
+        });
+
+        if(processedCount === 0) {
+            setModal({ show: true, title: "Gagal", content: <p>Tidak ada data valid yang dapat diproses.</p> });
+            return;
+        }
+
+        setTransactions(prev => [...prev, ...newTransactions]);
+        setUsers(prev => prev.map(u => {
+            if (userPointUpdates[u.id]) {
+                return { ...u, points: (u.points || 0) + userPointUpdates[u.id] };
+            }
+            return u;
+        }));
+        
+        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600"><b>{processedCount}</b> dari <b>{bulkData.length}</b> transaksi berhasil di-upload dan diproses.</p> });
+    };
+    
+    const adminBulkUpdateProgramProgress = (programId: number, progressData: { userId: string, progress: number }[]) => {
+        setRunningPrograms(prevPrograms => prevPrograms.map(program => {
+            if (program.id === programId) {
+                const progressMap = new Map(progressData.map(item => [item.userId, item.progress]));
+                const updatedTargets = program.targets.map(target => ({
+                    ...target,
+                    progress: progressMap.has(target.userId) ? Math.max(0, Math.min(100, progressMap.get(target.userId)!)) : target.progress
+                }));
+                return { ...program, targets: updatedTargets };
+            }
+            return program;
+        }));
+        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Progres peserta berhasil diperbarui dari simulasi upload.</p> });
+    };
 
     const renderPage = () => {
         if (!currentUser) {
@@ -112,21 +213,30 @@ function App() {
                     return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} users={users} MOCK_LOCATION_DATA={MOCK_LOCATION_DATA} MOCK_DIGIPOS_DATA={MOCK_DIGIPOS_DATA} />;
                 case 'landing':
                 default:
-                    return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} />;
+                    return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} />;
             }
         }
         
+        const isReadOnly = currentUser.role === 'supervisor';
+
+        // Block supervisor from accessing tambahUser page
+        if (isReadOnly && currentPage === 'tambahUser') {
+             setCurrentPage('adminDashboard'); // or 'manajemenPelanggan'
+        }
+
         const pageMap: {[key in Page]?: React.ReactNode} = {
-            pelangganDashboard: <PelangganDashboard currentUser={currentUser} transactions={transactions} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} setCurrentPage={setCurrentPage} />,
+            pelangganDashboard: <PelangganDashboard currentUser={currentUser} transactions={transactions} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} setCurrentPage={setCurrentPage} raffleWinners={raffleWinners} />,
             historyPembelian: <HistoryPembelian currentUser={currentUser} transactions={transactions} redemptionHistory={redemptionHistory} />,
             pencapaianProgram: <PencapaianProgram currentUser={currentUser} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} />,
-            tukarPoin: <TukarPoin currentUser={currentUser} rewards={rewards} handleTukarClick={handleTukarClick} />,
+            tukarPoin: <TukarPoin currentUser={currentUser} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} />,
             editProfile: <EditProfilePage currentUser={currentUser} updateUserProfile={updateUserProfile} handleLogout={handleLogout} />,
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms}/>,
-            manajemenPelanggan: <ManajemenPelanggan users={users} runningPrograms={runningPrograms} adminDeleteUser={adminDeleteUser} />,
+            manajemenPelanggan: <ManajemenPelanggan users={users} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
-            manajemenProgram: <ManajemenProgram programs={runningPrograms} setPrograms={setRunningPrograms} />,
-            manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} setUsers={setUsers}/>
+            manajemenProgram: <ManajemenProgram programs={runningPrograms} setPrograms={setRunningPrograms} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} isReadOnly={isReadOnly} />,
+            manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} setUsers={setUsers} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} isReadOnly={isReadOnly} />,
+            manajemenHadiah: <ManajemenHadiah rewards={rewards} addReward={adminAddReward} updateReward={adminUpdateReward} deleteReward={adminDeleteReward} isReadOnly={isReadOnly} />,
+            manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} setPrograms={setRafflePrograms} redemptions={couponRedemptions} isReadOnly={isReadOnly} />
         };
 
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;

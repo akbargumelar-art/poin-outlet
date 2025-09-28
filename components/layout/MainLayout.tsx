@@ -12,6 +12,15 @@ interface MainLayoutProps {
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentPage, setCurrentPage, handleLogout }) => {
+    const adminMenu = [
+        { name: 'Mitra', icon: ICONS.users, page: 'manajemenPelanggan' as Page },
+        { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
+        { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
+        { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
+        { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
+        { name: 'Transaksi', icon: ICONS.history, page: 'manajemenPoin' as Page }
+    ];
+
     const MENU_ITEMS = {
         pelanggan: [
             { name: 'Program', icon: ICONS.trophy, page: 'pencapaianProgram' as Page },
@@ -20,13 +29,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
             { name: 'History', icon: ICONS.history, page: 'historyPembelian' as Page },
             { name: 'Logout', icon: ICONS.logout, action: handleLogout }
         ],
-        admin: [
-            { name: 'Mitra', icon: ICONS.users, page: 'manajemenPelanggan' as Page },
-            { name: 'Tambah', icon: ICONS.plus, page: 'tambahUser' as Page },
-            { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
-            { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
-            { name: 'Poin', icon: ICONS.gift, page: 'manajemenPoin' as Page }
-        ]
+        admin: adminMenu,
+        supervisor: adminMenu,
     };
 
     const navItems = MENU_ITEMS[currentUser.role] || [];
@@ -39,7 +43,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
                 <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-4 group">
                     <div className="text-right">
                         <p className="font-semibold text-gray-700 group-hover:text-red-600 transition-colors">{currentUser.profile.nama}</p>
-                        <p className="text-sm text-red-600 capitalize">{isPelanggan ? 'Mitra Outlet' : 'Admin'}</p>
+                        <p className="text-sm text-red-600 capitalize">{isPelanggan ? 'Mitra Outlet' : currentUser.role}</p>
                     </div>
                     <div className="w-12 h-12 rounded-full neu-card flex items-center justify-center font-bold text-xl text-red-500 overflow-hidden">
                        {currentUser.profile.photo ? <img src={currentUser.profile.photo} alt="profile" className="w-full h-full object-cover"/> : currentUser.profile.nama.charAt(0)}

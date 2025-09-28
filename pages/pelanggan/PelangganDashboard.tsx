@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { User, Transaction, LoyaltyProgram, RunningProgram, Page } from '../../types';
+import { User, Transaction, LoyaltyProgram, RunningProgram, Page, RaffleWinner } from '../../types';
+import PemenangUndian from '../../components/PemenangUndian';
 
 interface PelangganDashboardProps {
     currentUser: User;
@@ -8,16 +9,16 @@ interface PelangganDashboardProps {
     loyaltyPrograms: LoyaltyProgram[];
     runningPrograms: RunningProgram[];
     setCurrentPage: (page: Page) => void;
+    raffleWinners: RaffleWinner[];
 }
 
-const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, transactions, loyaltyPrograms, runningPrograms, setCurrentPage }) => {
+const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, transactions, loyaltyPrograms, runningPrograms, setCurrentPage, raffleWinners }) => {
     const userTransactions = transactions.filter(t => t.userId === currentUser.id);
     const recentTransaction = [...userTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
     const nextLevel = loyaltyPrograms.find(p => p.pointsNeeded > (currentUser.points || 0));
     const progress = nextLevel ? Math.round(((currentUser.points || 0) / nextLevel.pointsNeeded) * 100) : 100;
     
-    const firstProgram = runningPrograms[0];
-    const userProgressInProgram = firstProgram?.targets.find(t => t.userId === currentUser.id)?.progress || 0;
+    const displayedPrograms = runningPrograms.slice(0, 3);
 
     const levelColors: { [key: string]: string } = {
         Bronze: 'bg-amber-600/80',
@@ -71,7 +72,7 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                     <h2 className="text-md font-semibold text-gray-600">Transaksi Terakhir</h2>
                     {recentTransaction ? (
                         <>
-                            <p className="text-3xl font-bold text-gray-800 mt-1">Rp {recentTransaction.amount.toLocaleString('id-ID')}</p>
+                            <p className="text-3xl font-bold text-gray-800 mt-1">Rp {recentTransaction.totalPembelian.toLocaleString('id-ID')}</p>
                             <div className="flex justify-between items-center mt-1">
                                 <p className="text-xs text-gray-500">{new Date(recentTransaction.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                                 <p className="text-sm font-bold text-green-600">+ {recentTransaction.points} Poin</p>
@@ -83,26 +84,34 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                 </div>
             </div>
 
-            {firstProgram && (
-                 <div className="neu-card p-6">
+            {displayedPrograms.length > 0 && (
+                <div className="neu-card p-6">
                     <div className="flex justify-between items-center mb-4">
-                         <h2 className="text-xl font-bold text-gray-700">Program Sedang Berjalan</h2>
-                         <button onClick={() => setCurrentPage('pencapaianProgram')} className="text-sm font-semibold text-red-600">Lihat Semua</button>
+                        <h2 className="text-xl font-bold text-gray-700">Program Sedang Berjalan</h2>
+                        <button onClick={() => setCurrentPage('pencapaianProgram')} className="text-sm font-semibold text-red-600">Lihat Semua</button>
                     </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-800">{firstProgram.name}</h3>
-                        <p className="text-sm text-gray-500 mt-1">Hadiah Utama: <span className="font-semibold text-red-500">{firstProgram.prize}</span></p>
-                         <div className="mt-4">
-                            <h4 className="font-semibold text-gray-700 text-sm mb-2">Progres Anda:</h4>
-                            <div className="w-full rounded-full h-6 neu-inset p-1">
-                                <div className="bg-gradient-to-r from-yellow-400 to-red-500 h-full rounded-full text-center text-white text-sm font-bold flex items-center justify-center" style={{width: `${userProgressInProgram}%`}}>
-                                    {userProgressInProgram}%
+                    <div className="space-y-6">
+                        {displayedPrograms.map(program => {
+                            const userProgress = program.targets.find(t => t.userId === currentUser.id)?.progress || 0;
+                            return (
+                                <div key={program.id} className="border-t border-gray-200/80 pt-4 first:pt-0 first:border-none">
+                                    <h3 className="text-lg font-bold text-gray-800">{program.name}</h3>
+                                    <p className="text-sm text-gray-500 mt-1">Hadiah: <span className="font-semibold text-red-500">{program.prize}</span></p>
+                                    <div className="mt-2">
+                                        <div className="w-full rounded-full h-6 neu-inset p-1">
+                                            <div className="bg-gradient-to-r from-yellow-400 to-red-500 h-full rounded-full flex items-center justify-center text-white text-sm font-bold" style={{width: `${userProgress}%`}}>
+                                                {userProgress}%
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                            )
+                        })}
                     </div>
-                 </div>
+                </div>
             )}
+
+            <PemenangUndian winners={raffleWinners} />
         </div>
     );
 };

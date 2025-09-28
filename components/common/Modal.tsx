@@ -13,8 +13,8 @@ interface ModalProps {
 const Modal: React.FC<ModalProps> = ({ show, onClose, title, children }) => {
     if (!show) return null;
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="neu-card w-full max-w-md m-4 animate-modal-in">
+        <div onClick={onClose} className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4 cursor-pointer">
+            <div onClick={(e) => e.stopPropagation()} className="neu-card w-full max-w-md m-4 animate-modal-in cursor-default">
                 <div className="flex justify-between items-center p-5">
                     <h3 className="text-xl font-semibold text-gray-700">{title}</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-red-600"><Icon path={ICONS.close} className="w-7 h-7" /></button>

@@ -1,5 +1,6 @@
 
-export type UserRole = 'admin' | 'pelanggan';
+
+export type UserRole = 'admin' | 'pelanggan' | 'supervisor';
 export type Page = 
     | 'landing'
     | 'login' 
@@ -13,7 +14,9 @@ export type Page =
     | 'manajemenPelanggan' 
     | 'tambahUser'
     | 'manajemenProgram'
-    | 'manajemenPoin';
+    | 'manajemenPoin'
+    | 'manajemenHadiah'
+    | 'manajemenUndian';
 
 export interface UserProfile {
     nama: string;
@@ -26,7 +29,7 @@ export interface UserProfile {
     noRs?: string;
     photo?: string;
     alamat?: string;
-    tap?: string; // Tambah TAP untuk Admin
+    tap?: string; // Kantor cabang / area
 }
 
 export interface User {
@@ -43,7 +46,10 @@ export interface Transaction {
     id: number;
     userId: string;
     date: string;
-    amount: number;
+    produk: string;
+    harga: number;
+    kuantiti: number;
+    totalPembelian: number;
     points: number;
 }
 
@@ -68,7 +74,7 @@ export type HistoryItem = {
     date: string;
     type: 'Pembelian' | 'Penukaran';
     description: string;
-    amount: number;
+    amount: number; // Ini akan menjadi totalPembelian untuk pembelian
     points: number; // bisa positif atau negatif
 };
 
@@ -77,6 +83,7 @@ export interface LoyaltyProgram {
     level: string;
     pointsNeeded: number;
     benefit: string;
+    multiplier: number;
 }
 
 export interface RunningProgramTarget {
@@ -104,4 +111,27 @@ export interface LocationData {
     [key: string]: { // Kabupaten
         [key: string]: string[]; // Kecamatan: Salesforce[]
     };
+}
+
+export interface RaffleProgram {
+    id: number;
+    name: string;
+    prize: string;
+    period: string; // e.g., "1 Sep - 30 Sep 2024"
+    isActive: boolean;
+}
+
+export interface CouponRedemption {
+    id: number;
+    userId: string;
+    raffleProgramId: number;
+    redeemedAt: string; // ISO date string
+}
+
+export interface RaffleWinner {
+    id: number;
+    name: string;
+    prize: string;
+    photo: string;
+    period: string;
 }
