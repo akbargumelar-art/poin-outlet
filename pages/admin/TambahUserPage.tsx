@@ -6,9 +6,12 @@ interface TambahUserPageProps {
     adminAddUser: (user: User) => void;
 }
 
+// FIX: Refactored to correctly create a discriminated union.
+// The `role` property is now defined within the conditional blocks
+// to ensure it receives a narrowed literal type, which is necessary
+// for TypeScript's type guards to work correctly.
 const getInitialFormData = (role: UserRole) => {
     const common = {
-        role,
         id: '', // Username or ID Digipos
         password: '',
         nama: '', // Nama Lengkap or Nama Outlet
@@ -19,6 +22,7 @@ const getInitialFormData = (role: UserRole) => {
     if (role === 'pelanggan') {
         return {
             ...common,
+            role, // `role` is narrowed to 'pelanggan' here
             noRs: '',
             salesforce: '',
             kabupaten: '',
@@ -29,9 +33,11 @@ const getInitialFormData = (role: UserRole) => {
     }
     return {
         ...common,
+        role, // `role` is narrowed to 'admin' | 'supervisor' here
         jabatan: '',
     };
 };
+
 
 // FIX: Define a type for the form data state based on the function's return type.
 type FormData = ReturnType<typeof getInitialFormData>;

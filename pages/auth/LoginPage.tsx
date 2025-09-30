@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
@@ -7,7 +6,7 @@ import { Page } from '../../types';
 import Modal from '../../components/common/Modal';
 
 interface LoginPageProps {
-    handleLogin: (id: string, password: string) => boolean;
+    handleLogin: (id: string, password: string) => Promise<boolean>;
     setCurrentPage: (page: Page) => void;
 }
 
@@ -15,15 +14,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ handleLogin, setCurrentPage }) =>
     const [id, setId] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [forgotId, setForgotId] = useState('');
     const [forgotMessage, setForgotMessage] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!handleLogin(id, password)) {
+        setIsLoading(true);
+        setError('');
+        const loginSuccess = await handleLogin(id, password);
+        if (!loginSuccess) {
             setError('ID Digipos atau password salah.');
         }
+        setIsLoading(false);
     };
     
     const handleForgotPassword = (e: React.FormEvent) => {
@@ -76,7 +80,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ handleLogin, setCurrentPage }) =>
                         <Icon path={ICONS.lock} className="absolute top-1/2 left-4 -translate-y-1/2 w-5 h-5 text-gray-400"/>
                         <input className="input-field pl-12" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
                     </div>
-                    <button className="neu-button text-red-600" type="submit">Login</button>
+                    <button className="neu-button text-red-600" type="submit" disabled={isLoading}>
+                        {isLoading ? 'Memproses...' : 'Login'}
+                    </button>
                 </form>
                 <p className="text-center text-sm text-gray-500 my-4">
                     <button onClick={() => setShowForgotPassword(true)} className="font-semibold text-gray-600 hover:text-red-600">

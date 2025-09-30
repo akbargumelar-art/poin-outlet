@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-// FIX: Removed duplicate import of LoyaltyProgram
-import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgramTarget, RaffleProgram, CouponRedemption, RaffleWinner } from './types';
-import { initialUsers, initialTransactions, initialRewards, initialRedemptionHistory, initialLoyaltyPrograms, initialRunningPrograms, MOCK_DIGIPOS_DATA, MOCK_LOCATION_DATA, initialRafflePrograms, initialCouponRedemptions, initialRaffleWinners } from './data/mockData';
+
+import React, { useState, useEffect } from 'react';
+import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner } from './types';
+
+// Mock data imports are removed as we will fetch from backend.
+// We keep the types.
 
 import Modal from './components/common/Modal';
 import MainLayout from './components/layout/MainLayout';
@@ -20,31 +22,118 @@ import ManajemenProgram from './pages/admin/ManajemenProgram';
 import ManajemenPoin from './pages/admin/ManajemenPoin';
 import ManajemenHadiah from './pages/admin/ManajemenHadiah';
 import ManajemenUndian from './pages/admin/ManajemenUndian';
+import { MOCK_DIGIPOS_DATA, MOCK_LOCATION_DATA } from './data/mockData'; // Keep these for registration page logic
+
+// Define the base URL for your backend API.
+// When in development, this will be localhost. In production, it will be your VPS IP/domain.
+const API_URL = 'http://localhost:3001'; 
 
 function App() {
     const [currentPage, setCurrentPage] = useState<Page>('landing');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [modal, setModal] = useState({ show: false, content: <></>, title: '' });
     
-    const [users, setUsers] = useState(initialUsers);
-    const [transactions, setTransactions] = useState(initialTransactions);
-    const [rewards, setRewards] = useState(initialRewards);
-    const [redemptionHistory, setRedemptionHistory] = useState(initialRedemptionHistory);
-    const [loyaltyPrograms, setLoyaltyPrograms] = useState(initialLoyaltyPrograms);
-    const [runningPrograms, setRunningPrograms] = useState(initialRunningPrograms);
-    const [rafflePrograms, setRafflePrograms] = useState(initialRafflePrograms);
-    const [couponRedemptions, setCouponRedemptions] = useState(initialCouponRedemptions);
-    const [raffleWinners, setRaffleWinners] = useState(initialRaffleWinners);
+    // State for all application data
+    const [users, setUsers] = useState<User[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [rewards, setRewards] = useState<Reward[]>([]);
+    const [redemptionHistory, setRedemptionHistory] = useState<Redemption[]>([]);
+    const [loyaltyPrograms, setLoyaltyPrograms] = useState<LoyaltyProgram[]>([]);
+    const [runningPrograms, setRunningPrograms] = useState<RunningProgram[]>([]);
+    const [rafflePrograms, setRafflePrograms] = useState<RaffleProgram[]>([]);
+    const [couponRedemptions, setCouponRedemptions] = useState<CouponRedemption[]>([]);
+    const [raffleWinners, setRaffleWinners] = useState<RaffleWinner[]>([]);
+    
+    // State for loading and error handling
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleLogin = (id: string, password: string): boolean => {
-        const user = users.find(u => u.id === id && u.password === password);
-        if (user) {
-            setCurrentUser(user);
-            setCurrentPage(user.role === 'pelanggan' ? 'pelangganDashboard' : 'adminDashboard');
-            return true;
+    // Fetch all initial data from the backend when the app loads
+    useEffect(() => {
+        const fetchBootstrapData = async () => {
+            try {
+                setIsLoading(true);
+                setError(null); // Reset error on new fetch attempt
+                const response = await fetch(`${API_URL}/api/bootstrap`);
+                
+                if (!response.ok) {
+                    let errorMessage = `Koneksi ke server gagal (status: ${response.status}).`;
+                    try {
+                        // Try to parse a more specific error message from the backend
+                        const errorData = await response.json();
+                        if (errorData.message) {
+                           errorMessage = errorData.message;
+                        }
+                    } catch (jsonError) {
+                       // The response body was not JSON. The browser's dev console will have more details.
+                       console.error("Could not parse error response as JSON.", jsonError);
+                    }
+                    // This error will be caught by the outer catch block
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+                
+                setUsers(data.users || []);
+                setTransactions(data.transactions || []);
+                setRewards(data.rewards || []);
+                setRedemptionHistory(data.redemptionHistory || []);
+                setLoyaltyPrograms(data.loyaltyPrograms || []);
+                setRunningPrograms(data.runningPrograms || []);
+                setRafflePrograms(data.rafflePrograms || []);
+                setCouponRedemptions(data.couponRedemptions || []);
+                setRaffleWinners(data.raffleWinners || []);
+                
+            } catch (e: any) {
+                console.error("Failed to fetch bootstrap data:", e);
+                // The generic "Failed to fetch" from the browser means the server is likely down or unreachable.
+                if (e.message === 'Failed to fetch') {
+                     setError("Gagal terhubung ke server. Pastikan server backend sudah berjalan dan alamat API_URL sudah benar.");
+                } else {
+                    // Otherwise, display the specific error message we constructed or that came from the exception.
+                     setError(`Terjadi kesalahan: ${e.message}`);
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchBootstrapData();
+    }, []);
+
+    const handleLogin = async (id: string, password: string): Promise<boolean> => {
+        try {
+            const response = await fetch(`${API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, password })
+            });
+
+            if (!response.ok) {
+                // The backend should return a specific error message
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'ID atau password salah.');
+            }
+
+            const user = await response.json();
+            
+            // The backend returns the user object on successful login
+            if (user) {
+                setCurrentUser(user);
+                setCurrentPage(user.role === 'pelanggan' ? 'pelangganDashboard' : 'adminDashboard');
+                return true;
+            }
+            return false;
+        } catch (error: any) {
+            console.error("Login failed:", error);
+            // We can display this error to the user in the login form
+            // For now, we'll just return false. The LoginPage component will handle the error message.
+            return false;
         }
-        return false;
     };
+    
+    // --- The following handlers need to be updated to make API calls ---
+    // For now, they will manipulate local state for continued UI functionality.
     
     const handleRegister = (formData: any) => {
         const newUser: User = {
@@ -206,6 +295,13 @@ function App() {
     };
 
     const renderPage = () => {
+        if (isLoading) {
+            return <div className="min-h-screen flex justify-center items-center"><p className="text-xl font-semibold animate-pulse">Memuat Data Aplikasi...</p></div>;
+        }
+        if (error) {
+            return <div className="min-h-screen flex justify-center items-center p-4"><p className="text-xl font-semibold text-red-600 text-center">{error}</p></div>;
+        }
+
         if (!currentUser) {
             switch (currentPage) {
                 case 'login':
@@ -222,7 +318,7 @@ function App() {
 
         // Block supervisor from accessing tambahUser page
         if (isReadOnly && currentPage === 'tambahUser') {
-             setCurrentPage('adminDashboard'); // or 'manajemenPelanggan'
+             setCurrentPage('adminDashboard');
         }
 
         const pageMap: {[key in Page]?: React.ReactNode} = {
