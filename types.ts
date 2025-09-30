@@ -22,14 +22,18 @@ export interface UserProfile {
     nama: string;
     email: string;
     phone: string;
+    // Mitra Outlet specific
     owner?: string;
     kabupaten?: string;
     kecamatan?: string;
     salesforce?: string;
     noRs?: string;
-    photo?: string;
     alamat?: string;
+    // Admin/Supervisor specific
     tap?: string; // Kantor cabang / area
+    jabatan?: string;
+    // Common
+    photo?: string;
 }
 
 export interface User {
@@ -96,7 +100,9 @@ export interface RunningProgram {
     name: string;
     mechanism: string;
     prize: string;
-    period: string;
+    startDate: string; // ISO date string e.g. "2025-09-01"
+    endDate: string;   // ISO date string e.g. "2025-09-30"
+    image: string;     // URL for the program image
     targets: RunningProgramTarget[];
 }
 

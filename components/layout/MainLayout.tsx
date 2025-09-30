@@ -13,12 +13,20 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentPage, setCurrentPage, handleLogout }) => {
     const adminMenu = [
+        { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
         { name: 'Mitra', icon: ICONS.users, page: 'manajemenPelanggan' as Page },
         { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
-        { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
-        { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
         { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
+        { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
         { name: 'Transaksi', icon: ICONS.history, page: 'manajemenPoin' as Page }
+    ];
+
+    const supervisorMenu = [
+        { name: 'Mitra', icon: ICONS.users, page: 'manajemenPelanggan' as Page },
+        { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
+        { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
+        { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
+        { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
     ];
 
     const MENU_ITEMS = {
@@ -30,7 +38,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
             { name: 'Logout', icon: ICONS.logout, action: handleLogout }
         ],
         admin: adminMenu,
-        supervisor: adminMenu,
+        supervisor: supervisorMenu,
     };
 
     const navItems = MENU_ITEMS[currentUser.role] || [];

@@ -63,7 +63,7 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, setP
 
     const activeProgram = programs.find(p => p.isActive);
 
-    const allTaps = useMemo(() => [...new Set(users.map(u => u.profile.tap).filter(Boolean))].sort(), [users]);
+    const allTaps = useMemo(() => [...new Set(users.map(u => u.profile.tap).filter(Boolean))].sort() as string[], [users]);
     const allSalesforce = useMemo(() => [...new Set(users.map(u => u.profile.salesforce).filter(Boolean))].sort(), [users]);
 
     const participantData = useMemo(() => {
@@ -93,6 +93,23 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, setP
             );
         });
     }, [participantData, searchTerm, tapFilter, salesforceFilter]);
+    
+    const tapChartData = useMemo(() => {
+        const data = allTaps.map(tap => {
+            const participantsInTap = participantData.filter(p => p.user?.profile.tap === tap);
+            return {
+                tap,
+                outletCount: new Set(participantsInTap.map(p => p.user!.id)).size,
+                couponCount: participantsInTap.reduce((sum, p) => sum + p.couponCount, 0)
+            };
+        });
+        const maxCount = Math.max(...data.map(d => d.outletCount), 0);
+        return {
+            stats: data.filter(d => d.outletCount > 0),
+            maxCount: maxCount === 0 ? 1 : maxCount
+        };
+    }, [participantData, allTaps]);
+
 
     const handleSaveProgram = (program: Omit<RaffleProgram, 'id'> & { id?: number }) => {
         const newPrograms = programs.map(p => ({ ...p, isActive: program.isActive ? false : p.isActive }));
@@ -190,6 +207,26 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, setP
                         </div>
                         <div className="mt-6 pt-4 border-t">
                              <h4 className="font-bold mb-4">Rekap Kupon Peserta</h4>
+
+                             {tapChartData.stats.length > 0 && (
+                                <div className="mb-6 p-4 neu-card-flat">
+                                     <h5 className="font-semibold text-gray-700 mb-4 text-center">Grafik Partisipasi per TAP</h5>
+                                     <div className="flex justify-around items-end h-48 pt-4 space-x-2 border-b border-gray-200">
+                                        {tapChartData.stats.map(({ tap, outletCount, couponCount }) => (
+                                            <div key={tap} className="flex flex-col items-center justify-end flex-1 h-full">
+                                                <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{outletCount}</div>
+                                                <div 
+                                                    className="w-full bg-gradient-to-t from-red-600 to-red-500 rounded-t-md transition-all duration-500 ease-out"
+                                                    style={{ height: `${(outletCount / tapChartData.maxCount) * 100}%` }}
+                                                    title={`${outletCount} Mitra | ${couponCount.toLocaleString('id-ID')} Kupon`}
+                                                ></div>
+                                                <div className="text-center mt-1 w-full"><p className="font-bold text-gray-600 text-sm truncate">{tap}</p></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                             )}
+
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 neu-card-flat">
                                 <input type="text" placeholder="Cari nama atau ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="input-field md:col-span-2" />
                                 <select value={tapFilter} onChange={e => setTapFilter(e.target.value)} className="input-field"><option value="">Semua TAP</option>{allTaps.map(t => <option key={t} value={t}>{t}</option>)}</select>
@@ -200,7 +237,7 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, setP
                                     <thead className="sticky top-0 bg-slate-200/80 backdrop-blur-sm">
                                         <tr>
                                             <th className="p-3 font-semibold">Nama Mitra</th>
-                                            <th className="p-3 font-semibold">TAP / Salesforce</th>
+                                            <th className="p-3 font-semibold">Salesforce / TAP</th>
                                             <th className="p-3 font-semibold text-right">Jumlah Kupon</th>
                                         </tr>
                                     </thead>
@@ -208,7 +245,7 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, setP
                                         {filteredParticipants.map(({ user, couponCount }) => user && (
                                             <tr key={user.id} className="border-t border-slate-200/80">
                                                 <td className="p-3"><p className="font-semibold">{user.profile.nama}</p><p className="text-xs font-mono text-gray-500">{user.id}</p></td>
-                                                <td className="p-3"><p className="font-semibold">{user.profile.tap}</p><p className="text-xs text-gray-500">{user.profile.salesforce}</p></td>
+                                                <td className="p-3"><p className="font-semibold">{user.profile.salesforce}</p><p className="text-xs text-gray-500">{user.profile.tap}</p></td>
                                                 <td className="p-3 text-right font-bold text-red-600 text-lg">{couponCount}</td>
                                             </tr>
                                         ))}

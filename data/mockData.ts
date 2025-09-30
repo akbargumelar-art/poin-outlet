@@ -53,8 +53,8 @@ export const MOCK_LOCATION_DATA: LocationData = {
 };
 
 export const initialUsers: User[] = [
-    { id: 'admin', password: 'admin', role: 'admin', profile: { nama: 'Admin Utama', email: 'admin@mitra.com', phone: '081234567890', tap: 'CIREBON' }},
-    { id: 'spv', password: 'spv', role: 'supervisor', profile: { nama: 'Supervisor', email: 'spv@mitra.com', phone: '081234567891', tap: 'CIREBON' }},
+    { id: 'admin', password: 'admin', role: 'admin', profile: { nama: 'Admin Utama', email: 'admin@mitra.com', phone: '081234567890', tap: 'CIREBON', jabatan: 'Head Admin' }},
+    { id: 'spv', password: 'spv', role: 'supervisor', profile: { nama: 'Supervisor', email: 'spv@mitra.com', phone: '081234567891', tap: 'CIREBON', jabatan: 'Supervisor Lapangan' }},
     { id: 'DG10001', password: 'password', role: 'pelanggan', points: 12500, kuponUndian: 5, level: 'Gold', profile: { nama: 'Jaya Cell', owner: 'Budi Gunawan', email: 'jayacell@example.com', phone: '081298765432', kabupaten: 'Kabupaten Cirebon', kecamatan: 'Palimanan', salesforce: 'Indra Lesmana', noRs: 'RS-001', alamat: 'Jl. Merdeka No. 10', tap: 'Palimanan' }},
     { id: 'DG10002', password: 'password', role: 'pelanggan', points: 4500, kuponUndian: 1, level: 'Silver', profile: { nama: 'Berkah Pulsa', owner: 'Siti Aminah', email: 'berkahpulsa@example.com', phone: '085611223344', kabupaten: 'Kabupaten Kuningan', kecamatan: 'Kuningan', salesforce: 'Kiki Amelia', noRs: 'RS-002', alamat: 'Jl. Raya Cilimus No. 25', tap: 'Kuningan' }},
     { id: 'DG10003', password: 'password', role: 'pelanggan', points: 1500, kuponUndian: 0, level: 'Bronze', profile: { nama: 'Sinar Pagi', owner: 'Ahmad', email: 'sinarpagi@example.com', phone: '081111111111', kabupaten: 'Kota Cirebon', kecamatan: 'Kesambi', salesforce: 'Euis Komariah', noRs: 'RS-004', alamat: 'Jl. Ciledug No. 1', tap: 'Pemuda' }},
@@ -128,7 +128,9 @@ export const initialRunningPrograms: RunningProgram[] = [
         name: 'Program Poin Extra', 
         mechanism: 'Akumulasi penjualan tertinggi selama bulan September.', 
         prize: '1 Unit Sepeda Motor', 
-        period: '1 Sep - 30 Sep 2025', 
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        image: 'https://placehold.co/400x400/EF4444/FFFFFF?text=Poin+Extra',
         targets: [{ userId: 'DG10001', progress: 75 }, { userId: 'DG10002', progress: 50 }] 
     },
     { 
@@ -136,7 +138,9 @@ export const initialRunningPrograms: RunningProgram[] = [
         name: 'Oktober Ceria', 
         mechanism: 'Raih transaksi terbanyak selama bulan Oktober untuk memenangkan hadiah.', 
         prize: 'Smartphone Terbaru', 
-        period: '1 Okt - 31 Okt 2025', 
+        startDate: '2025-10-01',
+        endDate: '2025-10-31',
+        image: 'https://placehold.co/400x400/4CAF50/FFFFFF?text=Oktober+Ceria',
         targets: [{ userId: 'DG10001', progress: 40 }, { userId: 'DG10002', progress: 65 }] 
     },
     { 
@@ -144,7 +148,9 @@ export const initialRunningPrograms: RunningProgram[] = [
         name: 'Poin Double November', 
         mechanism: 'Dapatkan poin ganda untuk setiap transaksi di bulan November.', 
         prize: 'Bonus Poin 2X Lipat', 
-        period: '1 Nov - 30 Nov 2025', 
+        startDate: '2025-11-01',
+        endDate: '2025-11-30',
+        image: 'https://placehold.co/400x400/03A9F4/FFFFFF?text=Poin+Double',
         targets: [{ userId: 'DG10001', progress: 90 }, { userId: 'DG10002', progress: 80 }] 
     },
     { 
@@ -152,7 +158,9 @@ export const initialRunningPrograms: RunningProgram[] = [
         name: 'Pesta Akhir Tahun', 
         mechanism: 'Kumpulkan poin sebanyak-banyaknya hingga akhir tahun.', 
         prize: 'Liburan ke Bali', 
-        period: '1 Des - 31 Des 2025', 
+        startDate: '2025-12-01',
+        endDate: '2025-12-31',
+        image: 'https://placehold.co/400x400/FFC107/FFFFFF?text=Akhir+Tahun',
         targets: [{ userId: 'DG10001', progress: 25 }, { userId: 'DG10002', progress: 30 }] 
     },
 ];

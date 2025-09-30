@@ -4,53 +4,6 @@ import Modal from '../../components/common/Modal';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 
-// --- Loyalty Level Form Component ---
-interface LevelFormProps {
-    level: LoyaltyProgram;
-    onSave: (level: LoyaltyProgram) => void;
-    onCancel: () => void;
-}
-
-const LevelForm: React.FC<LevelFormProps> = ({ level, onSave, onCancel }) => {
-    const [formData, setFormData] = useState(level);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: name === 'pointsNeeded' || name === 'multiplier' ? parseFloat(value) : value }));
-    };
-    
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave(formData);
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label className="block text-gray-600 text-sm font-semibold mb-1">Level</label>
-                <input value={formData.level} className="input-field-disabled" readOnly />
-            </div>
-            <div>
-                <label className="block text-gray-600 text-sm font-semibold mb-1">Poin Dibutuhkan</label>
-                <input type="number" name="pointsNeeded" value={formData.pointsNeeded} onChange={handleChange} className="input-field" required />
-            </div>
-            <div>
-                <label className="block text-gray-600 text-sm font-semibold mb-1">Pengali Poin (e.g., 1.2 untuk 1.2x)</label>
-                <input type="number" step="0.1" name="multiplier" value={formData.multiplier} onChange={handleChange} className="input-field" required />
-            </div>
-            <div>
-                <label className="block text-gray-600 text-sm font-semibold mb-1">Deskripsi Keuntungan</label>
-                <textarea name="benefit" value={formData.benefit} onChange={handleChange} className="input-field" required />
-            </div>
-             <div className="flex gap-4 pt-4">
-                <button type="button" onClick={onCancel} className="neu-button">Batal</button>
-                <button type="submit" className="neu-button text-red-600">Simpan Perubahan</button>
-            </div>
-        </form>
-    );
-};
-
-
 // --- Main Component ---
 interface ManajemenPoinProps {
     users: User[];
@@ -66,7 +19,6 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, setUsers, loyaltyP
     const [manualUserId, setManualUserId] = useState('');
     const [manualPoints, setManualPoints] = useState(0);
     const [manualAction, setManualAction] = useState<'tambah' | 'kurang'>('tambah');
-    const [editingLevel, setEditingLevel] = useState<LoyaltyProgram | null>(null);
     const [txData, setTxData] = useState({ userId: '', produk: '', harga: 0, kuantiti: 0, date: new Date().toISOString().split('T')[0]});
     const [showUploadModal, setShowUploadModal] = useState(false);
 
@@ -104,11 +56,6 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, setUsers, loyaltyP
         setManualUserId('');
     };
 
-    const handleSaveLevel = (level: LoyaltyProgram) => {
-        updateLoyaltyProgram(level);
-        setEditingLevel(null);
-    };
-
     const handleBulkUpload = () => {
         const MOCK_UPLOAD_DATA = [
             { date: '2024-08-01', userId: 'DG12345', produk: 'Bulk Upload Item A', harga: 50000, kuantiti: 10 }, 
@@ -122,12 +69,6 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, setUsers, loyaltyP
     
     return (
         <div>
-            {editingLevel && (
-                <Modal show={true} onClose={() => setEditingLevel(null)} title={`Edit Level: ${editingLevel.level}`}>
-                    <LevelForm level={editingLevel} onSave={handleSaveLevel} onCancel={() => setEditingLevel(null)} />
-                </Modal>
-            )}
-
             {showUploadModal && (
                  <Modal show={true} onClose={() => setShowUploadModal(false)} title="Upload Transaksi Massal">
                     <div>
@@ -244,26 +185,6 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, setUsers, loyaltyP
                                 </div>
                             </div>
                             <button onClick={handleUpdatePoin} disabled={!manualUserId || manualPoints <= 0 || isReadOnly} className="neu-button text-red-600 w-full">Update Poin</button>
-                        </div>
-                    </div>
-
-                    <div className="neu-card p-6">
-                        <h2 className="text-xl font-bold text-gray-700 mb-4">Aturan Level Loyalitas</h2>
-                        <div className="space-y-4">
-                            {loyaltyPrograms.map(level => (
-                                <div key={level.level} className="neu-card-flat p-4 flex justify-between items-center">
-                                    <div>
-                                        <p className="font-bold text-lg text-gray-800">{level.level}</p>
-                                        <p className="text-sm text-gray-500">Min: {level.pointsNeeded.toLocaleString('id-ID')} Poin | Pengali: {level.multiplier}x</p>
-                                        <p className="text-xs text-gray-600 mt-1">{level.benefit}</p>
-                                    </div>
-                                    {!isReadOnly && (
-                                        <button onClick={() => setEditingLevel(level)} className="neu-button-icon text-blue-600">
-                                            <Icon path={ICONS.edit} className="w-5 h-5"/>
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
                         </div>
                     </div>
                 </div>

@@ -11,7 +11,16 @@ interface ProgramFormProps {
 }
 
 const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) => {
-    const [formData, setFormData] = useState(program || { id: Date.now(), name: '', mechanism: '', prize: '', period: '', targets: [] });
+    const [formData, setFormData] = useState(program || { 
+        id: Date.now(), 
+        name: '', 
+        mechanism: '', 
+        prize: '', 
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: '',
+        image: '',
+        targets: [] 
+    });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -19,14 +28,24 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        onSave(formData as RunningProgram);
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <input name="name" value={formData.name} onChange={handleChange} placeholder="Nama Program" className="input-field" required />
-            <input name="period" value={formData.period} onChange={handleChange} placeholder="Periode (e.g., 1 Jan - 31 Jan 2025)" className="input-field" required />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="text-sm font-semibold text-gray-600 mb-1 block">Tanggal Mulai</label>
+                    <input name="startDate" type="date" value={formData.startDate} onChange={handleChange} className="input-field" required />
+                </div>
+                 <div>
+                    <label className="text-sm font-semibold text-gray-600 mb-1 block">Tanggal Selesai</label>
+                    <input name="endDate" type="date" value={formData.endDate} onChange={handleChange} className="input-field" required />
+                </div>
+            </div>
             <input name="prize" value={formData.prize} onChange={handleChange} placeholder="Hadiah Utama" className="input-field" required />
+            <input name="image" value={formData.image} onChange={handleChange} placeholder="URL Gambar (e.g., https://placehold.co/400x400/...)" className="input-field" required />
             <textarea name="mechanism" value={formData.mechanism} onChange={handleChange} placeholder="Mekanisme Program" className="input-field min-h-[100px]" required />
             <div className="flex gap-4">
                 <button type="button" onClick={onCancel} className="neu-button">Batal</button>
@@ -102,6 +121,13 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, setProgra
         adminBulkUpdateProgramProgress(uploadingProgram.id, MOCK_PROGRESS_DATA);
         setUploadingProgram(null);
     };
+    
+    const formatDateRange = (start: string, end: string) => {
+        const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+        const startDate = new Date(start).toLocaleDateString('id-ID', options);
+        const endDate = new Date(end).toLocaleDateString('id-ID', options);
+        return `${startDate} - ${endDate}`;
+    };
 
 
     return (
@@ -123,23 +149,26 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, setProgra
 
             <div className="space-y-6">
                 {programs.map(p => (
-                    <div key={p.id} className="neu-card p-6">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="text-xl font-bold text-gray-800">{p.name}</h3>
-                                <p className="text-sm text-gray-500 bg-slate-200/50 inline-block px-2 py-1 rounded-md mt-1">{p.period}</p>
-                            </div>
-                            {!isReadOnly && (
-                                <div className="flex gap-2">
-                                    <button title="Upload Pencapaian" onClick={() => setUploadingProgram(p)} className="neu-button-icon text-green-600"><Icon path={ICONS.upload} className="w-5 h-5"/></button>
-                                    <button title="Edit Program" onClick={() => openEditModal(p)} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5"/></button>
-                                    <button title="Hapus Program" onClick={() => handleDelete(p.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5"/></button>
+                    <div key={p.id} className="neu-card p-6 flex flex-col md:flex-row gap-6">
+                        <img src={p.image} alt={p.name} className="w-full md:w-32 h-48 md:h-32 object-cover rounded-lg neu-inset p-1 flex-shrink-0"/>
+                        <div className="flex-grow">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-800">{p.name}</h3>
+                                    <p className="text-sm text-gray-500 bg-slate-200/50 inline-block px-2 py-1 rounded-md mt-1">{formatDateRange(p.startDate, p.endDate)}</p>
                                 </div>
-                            )}
+                                {!isReadOnly && (
+                                    <div className="flex gap-2">
+                                        <button title="Upload Pencapaian" onClick={() => setUploadingProgram(p)} className="neu-button-icon text-green-600"><Icon path={ICONS.upload} className="w-5 h-5"/></button>
+                                        <button title="Edit Program" onClick={() => openEditModal(p)} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5"/></button>
+                                        <button title="Hapus Program" onClick={() => handleDelete(p.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5"/></button>
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-gray-700 mt-2">{p.mechanism}</p>
+                            <p className="text-md font-semibold text-gray-800 mt-2">Hadiah: <span className="font-bold text-red-600">{p.prize}</span></p>
+                             <p className="text-sm font-semibold text-gray-800 mt-1">Peserta: <span className="font-bold text-gray-600">{p.targets.length} Mitra</span></p>
                         </div>
-                        <p className="text-gray-700 mt-4">{p.mechanism}</p>
-                        <p className="text-md font-semibold text-gray-800 mt-4">Hadiah: <span className="font-bold text-red-600">{p.prize}</span></p>
-                         <p className="text-sm font-semibold text-gray-800 mt-2">Peserta: <span className="font-bold text-gray-600">{p.targets.length} Mitra</span></p>
                     </div>
                 ))}
             </div>

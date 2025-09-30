@@ -1,8 +1,36 @@
 import React, { useState } from 'react';
-import { Reward } from '../../types';
+import { Reward, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
+
+// --- Level Form Component ---
+interface LevelFormProps {
+    level: LoyaltyProgram;
+    onSave: (level: LoyaltyProgram) => void;
+    onCancel: () => void;
+}
+const LevelForm: React.FC<LevelFormProps> = ({ level, onSave, onCancel }) => {
+    const [formData, setFormData] = useState(level);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: name === 'pointsNeeded' || name === 'multiplier' ? parseFloat(value) : value }));
+    };
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(formData);
+    };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div><label className="block text-gray-600 text-sm font-semibold mb-1">Level</label><input value={formData.level} className="input-field-disabled" readOnly /></div>
+            <div><label className="block text-gray-600 text-sm font-semibold mb-1">Poin Dibutuhkan</label><input type="number" name="pointsNeeded" value={formData.pointsNeeded} onChange={handleChange} className="input-field" required /></div>
+            <div><label className="block text-gray-600 text-sm font-semibold mb-1">Pengali Poin (e.g., 1.2 untuk 1.2x)</label><input type="number" step="0.1" name="multiplier" value={formData.multiplier} onChange={handleChange} className="input-field" required /></div>
+            <div><label className="block text-gray-600 text-sm font-semibold mb-1">Deskripsi Keuntungan</label><textarea name="benefit" value={formData.benefit} onChange={handleChange} className="input-field" required /></div>
+            <div className="flex gap-4 pt-4"><button type="button" onClick={onCancel} className="neu-button">Batal</button><button type="submit" className="neu-button text-red-600">Simpan Perubahan</button></div>
+        </form>
+    );
+};
+
 
 // --- Reward Form Component ---
 interface RewardFormProps {
@@ -51,12 +79,15 @@ interface ManajemenHadiahProps {
     updateReward: (reward: Reward) => void;
     deleteReward: (rewardId: number) => void;
     isReadOnly?: boolean;
+    loyaltyPrograms: LoyaltyProgram[];
+    updateLoyaltyProgram: (program: LoyaltyProgram) => void;
 }
 
-const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, addReward, updateReward, deleteReward, isReadOnly }) => {
+const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, addReward, updateReward, deleteReward, isReadOnly, loyaltyPrograms, updateLoyaltyProgram }) => {
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingReward, setEditingReward] = useState<Reward | undefined>(undefined);
     const [deletingReward, setDeletingReward] = useState<Reward | null>(null);
+    const [editingLevel, setEditingLevel] = useState<LoyaltyProgram | null>(null);
 
     const handleOpenAdd = () => {
         setEditingReward(undefined);
@@ -85,11 +116,29 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, addReward, u
         }
     };
 
+    const handleSaveLevel = (level: LoyaltyProgram) => {
+        updateLoyaltyProgram(level);
+        setEditingLevel(null);
+    };
+
+    const levelCardStyles: { [key: string]: string } = {
+        Bronze: 'bg-amber-100/50 border-amber-600',
+        Silver: 'bg-slate-200/50 border-slate-500',
+        Gold: 'bg-yellow-100/50 border-yellow-500',
+        Platinum: 'bg-cyan-100/50 border-cyan-500',
+    };
+
     return (
         <div>
             {showFormModal && (
                 <Modal show={true} onClose={() => setShowFormModal(false)} title={editingReward ? 'Edit Hadiah' : 'Tambah Hadiah Baru'}>
                     <RewardForm reward={editingReward} onSave={handleSave} onCancel={() => setShowFormModal(false)} />
+                </Modal>
+            )}
+
+            {editingLevel && (
+                <Modal show={true} onClose={() => setEditingLevel(null)} title={`Edit Level: ${editingLevel.level}`}>
+                    <LevelForm level={editingLevel} onSave={handleSaveLevel} onCancel={() => setEditingLevel(null)} />
                 </Modal>
             )}
 
@@ -106,12 +155,32 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, addReward, u
             )}
 
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-700">Manajemen Hadiah</h1>
+                <h1 className="text-3xl font-bold text-gray-700">Manajemen Hadiah & Level</h1>
                 {!isReadOnly && (
                     <button onClick={handleOpenAdd} className="neu-button !w-auto px-6 flex items-center gap-2">
                         <Icon path={ICONS.plus} className="w-5 h-5"/>Tambah Hadiah
                     </button>
                 )}
+            </div>
+
+            <div className="neu-card p-6 mb-8">
+                <h2 className="text-xl font-bold text-gray-700 mb-4">Aturan Level Loyalitas</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {loyaltyPrograms.map(level => (
+                        <div key={level.level} className={`neu-card-flat p-4 flex justify-between items-center border-l-4 ${levelCardStyles[level.level] || 'border-gray-400'}`}>
+                            <div>
+                                <p className="font-bold text-lg text-gray-800">{level.level}</p>
+                                <p className="text-sm text-gray-500">Min: {level.pointsNeeded.toLocaleString('id-ID')} Poin | Pengali: {level.multiplier}x</p>
+                                <p className="text-xs text-gray-600 mt-1">{level.benefit}</p>
+                            </div>
+                            {!isReadOnly && (
+                                <button onClick={() => setEditingLevel(level)} className="neu-button-icon text-blue-600 flex-shrink-0">
+                                    <Icon path={ICONS.edit} className="w-5 h-5"/>
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
             </div>
             
             <div className="neu-card-flat overflow-x-auto">
@@ -122,7 +191,7 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, addReward, u
                             <th className="p-4 font-semibold">Nama Hadiah</th>
                             <th className="p-4 font-semibold">Poin</th>
                             <th className="p-4 font-semibold">Stok</th>
-                            <th className="p-4 font-semibold">Aksi</th>
+                            {!isReadOnly && <th className="p-4 font-semibold">Aksi</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -132,16 +201,14 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, addReward, u
                                 <td className="p-4 font-semibold">{r.name}</td>
                                 <td className="p-4 font-bold text-red-600">{r.points.toLocaleString('id-ID')}</td>
                                 <td className="p-4">{r.stock}</td>
-                                <td className="p-4">
-                                    {!isReadOnly ? (
+                                {!isReadOnly && (
+                                    <td className="p-4">
                                         <div className="flex gap-2">
                                             <button onClick={() => handleOpenEdit(r)} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5"/></button>
                                             <button onClick={() => setDeletingReward(r)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5"/></button>
                                         </div>
-                                    ) : (
-                                        <span className="text-gray-400 text-sm">N/A</span>
-                                    )}
-                                </td>
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>

@@ -1,19 +1,19 @@
-
-
 import React, { useRef } from 'react';
-import { Page, Reward, RunningProgram, RaffleWinner } from '../../types';
+import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import PemenangUndian from '../../components/PemenangUndian';
+import SimulasiPoin from '../../components/SimulasiPoin';
 
 interface LandingPageProps {
     setCurrentPage: (page: Page) => void;
     rewards: Reward[];
     runningPrograms: RunningProgram[];
     raffleWinners: RaffleWinner[];
+    loyaltyPrograms: LoyaltyProgram[];
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms, raffleWinners }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms, raffleWinners, loyaltyPrograms }) => {
     const rewardsScrollContainer = useRef<HTMLDivElement>(null);
     const programsScrollContainer = useRef<HTMLDivElement>(null);
 
@@ -28,6 +28,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
         }
     };
     
+    const formatDateRange = (start: string, end: string) => {
+        const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+        const startDate = new Date(start).toLocaleDateString('id-ID', options);
+        const endDate = new Date(end).toLocaleDateString('id-ID', options);
+        return `${startDate} - ${endDate}`;
+    };
+
     return (
         <div className="min-h-screen neu-bg font-sans animate-fade-in-down">
             {/* Header */}
@@ -62,7 +69,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                     <div className="neu-card overflow-hidden flex flex-col h-full">
                                         <img src={r.image} alt={r.name} className="w-full h-48 object-cover"/>
                                         <div className="p-6 flex flex-col flex-grow text-center">
-                                            <h4 className="text-lg font-bold flex-grow text-gray-800">{r.name}</h4>
+                                            <h4 className="text-lg font-bold flex-grow text-gray-800 min-h-[56px]">{r.name}</h4>
                                             <p className="text-xl font-bold text-red-600 mt-2">{r.points.toLocaleString('id-ID')} Poin</p>
                                         </div>
                                     </div>
@@ -74,6 +81,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                         </button>
                     </div>
                      <p className="text-center mt-8 text-gray-600">Dan masih banyak lagi hadiah lainnya!</p>
+                </section>
+
+                {/* Simulasi Poin Section */}
+                <section className="my-16 md:my-20 max-w-6xl mx-auto">
+                    <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
                 </section>
 
                 {/* Running Program Section */}
@@ -88,12 +100,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                {runningPrograms.map((p) => (
                                     <div key={p.id} className="snap-center flex-shrink-0 w-10/12 md:w-1/3 lg:w-1/4 p-4">
                                         <div className="neu-card overflow-hidden flex flex-col h-full">
-                                            <div className="bg-red-600 p-4 text-white">
-                                                <h4 className="text-xl font-bold truncate">{p.name}</h4>
-                                                <p className="text-sm opacity-80">{p.period}</p>
-                                            </div>
+                                            <img src={p.image} alt={p.name} className="w-full h-48 object-cover" />
                                             <div className="p-6 flex flex-col flex-grow text-center">
-                                                <p className="text-gray-600 flex-grow">{p.mechanism}</p>
+                                                <h4 className="text-xl font-bold text-gray-800">{p.name}</h4>
+                                                <p className="text-sm text-gray-500 mb-2">{formatDateRange(p.startDate, p.endDate)}</p>
+                                                <p className="text-gray-600 flex-grow min-h-[70px]">{p.mechanism}</p>
                                                 <div className="mt-6">
                                                     <p className="font-semibold text-gray-500 text-sm">Raih Hadiah Utama</p>
                                                     <p className="text-xl font-bold text-red-600 my-1">{p.prize}</p>

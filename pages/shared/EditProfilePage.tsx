@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { User, UserProfile } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
+import { MOCK_LOCATION_DATA } from '../../data/mockData';
 
 interface EditProfilePageProps {
     currentUser: User;
@@ -15,7 +16,23 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
     const [profile, setProfile] = useState<UserProfile>(currentUser.profile);
     const [photoPreview, setPhotoPreview] = useState<string | null>(currentUser.profile.photo || null);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const allTaps = useMemo(() => {
+        const taps = new Set<string>();
+        Object.values(MOCK_LOCATION_DATA).forEach(kabupaten => {
+            Object.values(kabupaten).forEach(salesforceArray => {
+                salesforceArray.forEach(sf => {
+                    // This logic is a placeholder; real logic would map SF to TAP
+                });
+            });
+        });
+        // Add known TAPs from mock data for now
+        return ['CIREBON', 'KUNINGAN', 'MAJALENGKA', 'INDRAMAYU', 'Palimanan', 'Lemahabang', 'Luragung', 'Pemuda'].sort();
+    }, []);
+    
+    const allJabatans = ['Head Admin', 'Admin Staff', 'Supervisor Lapangan', 'Koordinator Supervisor'];
+
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setProfile(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
     
@@ -46,20 +63,27 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
 
     const isPelanggan = currentUser.role === 'pelanggan';
 
-    const renderField = (label: string, value: string | undefined, name: string, type: 'text' | 'email' | 'tel' | 'textarea' = 'text', readOnly = false) => (
-        <div>
-            <label className="block text-gray-600 text-sm font-semibold mb-2">{label}</label>
-            {isEditing ? (
-                type === 'textarea' ? (
-                    <textarea name={name} value={value || ''} onChange={handleChange} className="input-field min-h-[80px]" />
+    const renderField = (label: string, value: string | undefined, name: string, type: 'text' | 'email' | 'tel' | 'textarea' = 'text', readOnly = false, options?: string[]) => {
+        const isSelect = Array.isArray(options);
+        return (
+            <div>
+                <label className="block text-gray-600 text-sm font-semibold mb-2">{label}</label>
+                {isEditing && !readOnly ? (
+                    isSelect ? (
+                         <select name={name} value={value || ''} onChange={handleChange} className="input-field">
+                            {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                         </select>
+                    ) : type === 'textarea' ? (
+                        <textarea name={name} value={value || ''} onChange={handleChange} className="input-field min-h-[80px]" />
+                    ) : (
+                        <input type={type} name={name} value={value || ''} onChange={handleChange} className={readOnly ? "input-field-disabled" : "input-field"} readOnly={readOnly} />
+                    )
                 ) : (
-                    <input type={type} name={name} value={value || ''} onChange={handleChange} className={readOnly ? "input-field-disabled" : "input-field"} readOnly={readOnly} />
-                )
-            ) : (
-                <p className="w-full p-3 neu-inset rounded-lg text-gray-800 min-h-[46px]">{value || '-'}</p>
-            )}
-        </div>
-    );
+                    <p className="w-full p-3 neu-inset rounded-lg text-gray-800 min-h-[46px]">{value || '-'}</p>
+                )}
+            </div>
+        );
+    };
     
     return (
         <div>
@@ -69,7 +93,7 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
             </div>
             <div className="neu-card p-8 max-w-4xl mx-auto">
                 <form onSubmit={handleSubmit}>
-                    <div className="flex flex-col md:flex-row items-center gap-8 mb-6">
+                     <div className="flex flex-col md:flex-row items-center gap-8 mb-6">
                         <div className="flex-shrink-0">
                             <div className="relative w-32 h-32 rounded-full neu-card flex items-center justify-center font-bold text-5xl text-red-500 overflow-hidden">
                                 {photoPreview ? <img src={photoPreview} alt="profile" className="w-full h-full object-cover"/> : profile.nama.charAt(0)}
@@ -80,24 +104,40 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
                             </>)}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow w-full">
-                           {renderField(`Nama ${isPelanggan ? 'Outlet' : 'Admin'}`, profile.nama, 'nama')}
-                           {isPelanggan && renderField('Nama Owner', profile.owner, 'owner')}
+                           {isPelanggan ? (
+                               <>
+                                {renderField('Nama Outlet', profile.nama, 'nama')}
+                                {renderField('Nama Owner', profile.owner, 'owner')}
+                               </>
+                           ) : (
+                               <>
+                                {renderField('Nama Lengkap', profile.nama, 'nama')}
+                                {renderField('Username', currentUser.id, 'id', 'text', true)}
+                               </>
+                           )}
                            {renderField('Email', profile.email, 'email', 'email')}
-                           {renderField('Nomor HP', profile.phone, 'phone', 'tel')}
+                           {renderField(isPelanggan ? 'Nomor WhatsApp' : 'Nomor HP', profile.phone, 'phone', 'tel')}
                         </div>
                     </div>
-
+                    
                     <div className="space-y-6 pt-6 border-t border-gray-200/80">
-                         <h3 className="font-semibold text-gray-700 text-lg">Info {isPelanggan ? 'Outlet' : 'Admin'}</h3>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {isPelanggan && renderField('ID Digipos', currentUser.id, 'id', 'text', true)}
-                            {isPelanggan && renderField('No. RS', profile.noRs, 'noRs', 'text', true)}
-                            {isPelanggan && renderField('Kabupaten', profile.kabupaten, 'kabupaten')}
-                            {isPelanggan && renderField('Kecamatan', profile.kecamatan, 'kecamatan')}
-                            {isPelanggan && renderField('Nama Salesforce', profile.salesforce, 'salesforce')}
-                            {isPelanggan && renderField('Alamat Lengkap', profile.alamat, 'alamat', 'textarea')}
-                            {!isPelanggan && renderField('TAP', profile.tap, 'tap')}
-                         </div>
+                         <h3 className="font-semibold text-gray-700 text-lg">Info Detail</h3>
+                        {isPelanggan ? (
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {renderField('ID Digipos', currentUser.id, 'id', 'text', true)}
+                                {renderField('No. RS', profile.noRs, 'noRs', 'text', true)}
+                                {renderField('TAP', profile.tap, 'tap', 'text', true)}
+                                {renderField('Nama Salesforce', profile.salesforce, 'salesforce')}
+                                {renderField('Kabupaten', profile.kabupaten, 'kabupaten')}
+                                {renderField('Kecamatan', profile.kecamatan, 'kecamatan')}
+                                {renderField('Alamat Lengkap', profile.alamat, 'alamat', 'textarea')}
+                             </div>
+                        ) : (
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {renderField('TAP', profile.tap, 'tap', 'text', false, allTaps)}
+                                {renderField('Jabatan', profile.jabatan, 'jabatan', 'text', false, allJabatans)}
+                             </div>
+                        )}
                     </div>
                     
                     {isEditing && (

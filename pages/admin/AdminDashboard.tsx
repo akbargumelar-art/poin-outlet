@@ -1,37 +1,56 @@
-import React, { useState } from 'react';
-import { User, Transaction, RunningProgram } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { User, Transaction, RunningProgram, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
+import SimulasiPoin from '../../components/SimulasiPoin';
 
 interface AdminDashboardProps {
     users: User[];
     transactions: Transaction[];
     runningPrograms: RunningProgram[];
+    loyaltyPrograms: LoyaltyProgram[];
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, runningPrograms }) => {
-    const pelangganUsers = users.filter(u => u.role === 'pelanggan');
-    const totalPelanggan = pelangganUsers.length;
-    const totalPenjualan = transactions.reduce((sum, t) => sum + t.totalPembelian, 0);
-    const totalPoin = users.reduce((sum, u) => sum + (u.points || 0), 0);
-
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, runningPrograms, loyaltyPrograms }) => {
+    const [tapFilter, setTapFilter] = useState('');
     const [modalData, setModalData] = useState<{title: string, users: User[]} | null>(null);
 
+    const allTaps = useMemo(() => [...new Set(users.filter(u => u.role === 'pelanggan' && u.profile.tap).map(u => u.profile.tap!))].sort(), [users]);
+
+    const filteredUsers = useMemo(() => {
+        const pelanggan = users.filter(u => u.role === 'pelanggan');
+        if (!tapFilter) return pelanggan;
+        return pelanggan.filter(u => u.profile.tap === tapFilter);
+    }, [users, tapFilter]);
+
+    const filteredTransactions = useMemo(() => {
+        if (!tapFilter) return transactions;
+        const filteredUserIds = new Set(filteredUsers.map(u => u.id));
+        return transactions.filter(t => filteredUserIds.has(t.userId));
+    }, [transactions, filteredUsers, tapFilter]);
+
+    const totalPelanggan = filteredUsers.length;
+    const totalPenjualan = filteredTransactions.reduce((sum, t) => sum + t.totalPembelian, 0);
+    const totalPoin = filteredUsers.reduce((sum, u) => sum + (u.points || 0), 0);
+    
     const handleShowList = (program: RunningProgram, type: 'participants' | 'achievers') => {
-        let targetUserIds: string[];
-        let title: string;
-
-        if(type === 'participants') {
-            targetUserIds = program.targets.map(t => t.userId);
-            title = `Partisipan Program: ${program.name}`;
-        } else {
-            targetUserIds = program.targets.filter(t => t.progress >= 100).map(t => t.userId);
-            title = `Mencapai Target: ${program.name}`;
-        }
-
-        const userList = users.filter(u => targetUserIds.includes(u.id));
+        const userList = users.filter(user => {
+            if (tapFilter && user.profile.tap !== tapFilter) return false;
+            const target = program.targets.find(t => t.userId === user.id);
+            if (!target) return false;
+            return type === 'participants' || (type === 'achievers' && target.progress >= 100);
+        });
+        
+        const title = type === 'participants' ? `Partisipan: ${program.name}` : `Mencapai Target: ${program.name}`;
         setModalData({ title, users: userList });
+    };
+
+    const formatDateRange = (start: string, end: string) => {
+        const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+        const startDate = new Date(start).toLocaleDateString('id-ID', options);
+        const endDate = new Date(end).toLocaleDateString('id-ID', options);
+        return `${startDate} - ${endDate}`;
     };
 
     return (
@@ -55,7 +74,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
                 </Modal>
             )}
 
-            <h1 className="text-3xl font-bold text-gray-700 mb-6">Admin Dashboard</h1>
+            <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                <h1 className="text-3xl font-bold text-gray-700">Admin Dashboard</h1>
+                <div className="w-full md:w-auto md:min-w-[200px]">
+                    <select value={tapFilter} onChange={e => setTapFilter(e.target.value)} className="input-field">
+                        <option value="">Semua TAP</option>
+                        {allTaps.map(tap => <option key={tap} value={tap}>{tap}</option>)}
+                    </select>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="neu-card p-6 flex items-center gap-4">
                     <div className="p-3 neu-card rounded-full"><Icon path={ICONS.users} className="w-8 h-8 text-red-600"/></div>
@@ -81,15 +109,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
             </div>
 
             <div className="mt-10">
+                <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
+            </div>
+
+            <div className="mt-10">
                 <h2 className="text-2xl font-bold text-gray-700 mb-4">Ringkasan Program Berjalan</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {runningPrograms.map(program => {
-                        const participants = program.targets.length;
-                        const achieved = program.targets.filter(t => t.progress >= 100).length;
+                         const filteredTargets = program.targets.filter(target => {
+                            if (!tapFilter) return true;
+                            const user = users.find(u => u.id === target.userId);
+                            return user?.profile.tap === tapFilter;
+                        });
+                        const participants = filteredTargets.length;
+                        const achieved = filteredTargets.filter(t => t.progress >= 100).length;
                         return (
                              <div key={program.id} className="neu-card p-6">
                                 <h3 className="font-bold text-lg text-red-600">{program.name}</h3>
-                                <p className="text-sm text-gray-500">{program.period}</p>
+                                <p className="text-sm text-gray-500">{formatDateRange(program.startDate, program.endDate)}</p>
                                 <div className="mt-4 grid grid-cols-2 gap-4 text-center">
                                     <div>
                                         <button onClick={() => handleShowList(program, 'participants')} className="w-full h-full hover:bg-slate-100 rounded-lg p-2 transition-colors">
