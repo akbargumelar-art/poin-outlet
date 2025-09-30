@@ -53,12 +53,12 @@ export const MOCK_LOCATION_DATA: LocationData = {
 };
 
 export const initialUsers: User[] = [
-    { id: 'admin', password: 'admin', role: 'admin', profile: { nama: 'Admin Utama', email: 'admin@mitra.com', phone: '081234567890', tap: 'CIREBON', jabatan: 'Head Admin' }},
+    { id: 'admin', password: 'admin', role: 'admin', profile: { nama: 'Admin Utama', email: 'admin@mitra.com', phone: '081234567890', tap: 'CIREBON', jabatan: 'Head Admin', photo: '/public/images/profiles/admin.png' }},
     { id: 'spv', password: 'spv', role: 'supervisor', profile: { nama: 'Supervisor', email: 'spv@mitra.com', phone: '081234567891', tap: 'CIREBON', jabatan: 'Supervisor Lapangan' }},
-    { id: 'DG10001', password: 'password', role: 'pelanggan', points: 12500, kuponUndian: 5, level: 'Gold', profile: { nama: 'Jaya Cell', owner: 'Budi Gunawan', email: 'jayacell@example.com', phone: '081298765432', kabupaten: 'Kabupaten Cirebon', kecamatan: 'Palimanan', salesforce: 'Indra Lesmana', noRs: 'RS-001', alamat: 'Jl. Merdeka No. 10', tap: 'Palimanan' }},
+    { id: 'DG10001', password: 'password', role: 'pelanggan', points: 12500, kuponUndian: 5, level: 'Gold', profile: { nama: 'Jaya Cell', owner: 'Budi Gunawan', email: 'jayacell@example.com', phone: '081298765432', kabupaten: 'Kabupaten Cirebon', kecamatan: 'Palimanan', salesforce: 'Indra Lesmana', noRs: 'RS-001', alamat: 'Jl. Merdeka No. 10', tap: 'Palimanan', photo: '/public/images/profiles/jaya-cell.png' }},
     { id: 'DG10002', password: 'password', role: 'pelanggan', points: 4500, kuponUndian: 1, level: 'Silver', profile: { nama: 'Berkah Pulsa', owner: 'Siti Aminah', email: 'berkahpulsa@example.com', phone: '085611223344', kabupaten: 'Kabupaten Kuningan', kecamatan: 'Kuningan', salesforce: 'Kiki Amelia', noRs: 'RS-002', alamat: 'Jl. Raya Cilimus No. 25', tap: 'Kuningan' }},
     { id: 'DG10003', password: 'password', role: 'pelanggan', points: 1500, kuponUndian: 0, level: 'Bronze', profile: { nama: 'Sinar Pagi', owner: 'Ahmad', email: 'sinarpagi@example.com', phone: '081111111111', kabupaten: 'Kota Cirebon', kecamatan: 'Kesambi', salesforce: 'Euis Komariah', noRs: 'RS-004', alamat: 'Jl. Ciledug No. 1', tap: 'Pemuda' }},
-    { id: 'DG10004', password: 'password', role: 'pelanggan', points: 15000, kuponUndian: 8, level: 'Gold', profile: { nama: 'Ceria Cell', owner: 'Rina', email: 'ceriacell@example.com', phone: '082222222222', kabupaten: 'Kabupaten Cirebon', kecamatan: 'Plered', salesforce: 'Sule', noRs: 'RS-005', alamat: 'Jl. Plered No. 5', tap: 'Palimanan' }},
+    { id: 'DG10004', password: 'password', role: 'pelanggan', points: 15000, kuponUndian: 8, level: 'Gold', profile: { nama: 'Ceria Cell', owner: 'Rina', email: 'ceriacell@example.com', phone: '082222222222', kabupaten: 'Kabupaten Cirebon', kecamatan: 'Plered', salesforce: 'Sule', noRs: 'RS-005', alamat: 'Jl. Plered No. 5', tap: 'Palimanan', photo: '/public/images/profiles/ceria-cell.png' }},
     { id: 'DG10005', password: 'password', role: 'pelanggan', points: 30000, kuponUndian: 12, level: 'Platinum', profile: { nama: 'Raja Pulsa', owner: 'David', email: 'rajapulsa@example.com', phone: '083333333333', kabupaten: 'Kabupaten Cirebon', kecamatan: 'Lemahabang', salesforce: 'Maman Abdurahman', noRs: 'RS-006', alamat: 'Jl. Ciawi No. 10', tap: 'Lemahabang' }},
     { id: 'DG10006', password: 'password', role: 'pelanggan', points: 8000, kuponUndian: 3, level: 'Silver', profile: { nama: 'Luragung Cell', owner: 'Lurah', email: 'luragung@example.com', phone: '084444444444', kabupaten: 'Kabupaten Kuningan', kecamatan: 'Luragung', salesforce: 'Rina Nose', noRs: 'RS-007', alamat: 'Jl. Luragung No. 1', tap: 'Luragung' }},
     { id: 'DG10007', password: 'password', role: 'pelanggan', points: 2200, kuponUndian: 0, level: 'Bronze', profile: { nama: 'Pemuda Reload', owner: 'Joko', email: 'pemuda@example.com', phone: '085555555555', kabupaten: 'Kota Cirebon', kecamatan: 'Harjamukti', salesforce: 'Asep Sunandar', noRs: 'RS-008', alamat: 'Jl. Pemuda No. 20', tap: 'Pemuda' }},
@@ -77,14 +77,14 @@ export const initialTransactions: Transaction[] = [
 ];
 
 export const initialRewards: Reward[] = [
-    { id: 8, name: '1 Kupon Undian', points: 500, image: 'https://placehold.co/400x300/8E44AD/FFFFFF?text=Kupon+Undian', stock: 999 },
-    { id: 1, name: 'Voucher Pulsa 50K', points: 5000, image: 'https://placehold.co/400x300/FF5722/FFFFFF?text=Voucher+Pulsa', stock: 15 },
-    { id: 2, name: 'T-Shirt Exclusive', points: 7500, image: 'https://placehold.co/400x300/4CAF50/FFFFFF?text=T-Shirt', stock: 5 },
-    { id: 3, name: 'Smartwatch Keren', points: 25000, image: 'https://placehold.co/400x300/03A9F4/FFFFFF?text=Smartwatch', stock: 3 },
-    { id: 4, name: 'Power Bank 10000mAh', points: 15000, image: 'https://placehold.co/400x300/673AB7/FFFFFF?text=Power+Bank', stock: 0 },
-    { id: 5, name: 'Headphone Bluetooth', points: 20000, image: 'https://placehold.co/400x300/009688/FFFFFF?text=Headphone', stock: 8 },
-    { id: 6, name: 'Voucher Belanja 100K', points: 10000, image: 'https://placehold.co/400x300/FFC107/FFFFFF?text=Voucher+100K', stock: 20 },
-    { id: 7, name: 'Smartphone Keren', points: 75000, image: 'https://placehold.co/400x300/F44336/FFFFFF?text=Smartphone', stock: 0 },
+    { id: 8, name: '1 Kupon Undian', points: 500, image: '/public/images/rewards/kupon.png', stock: 999 },
+    { id: 1, name: 'Voucher Pulsa 50K', points: 5000, image: '/public/images/rewards/voucher-pulsa.png', stock: 15 },
+    { id: 2, name: 'T-Shirt Exclusive', points: 7500, image: '/public/images/rewards/t-shirt.png', stock: 5 },
+    { id: 3, name: 'Smartwatch Keren', points: 25000, image: '/public/images/rewards/smartwatch.png', stock: 3 },
+    { id: 4, name: 'Power Bank 10000mAh', points: 15000, image: '/public/images/rewards/powerbank.png', stock: 0 },
+    { id: 5, name: 'Headphone Bluetooth', points: 20000, image: '/public/images/rewards/headphone.png', stock: 8 },
+    { id: 6, name: 'Voucher Belanja 100K', points: 10000, image: '/public/images/rewards/voucher-belanja.png', stock: 20 },
+    { id: 7, name: 'Smartphone Keren', points: 75000, image: '/public/images/rewards/smartphone.png', stock: 0 },
 ];
 
 export const initialRedemptionHistory: Redemption[] = [
@@ -109,9 +109,9 @@ export const initialCouponRedemptions: CouponRedemption[] = [
 ];
 
 export const initialRaffleWinners: RaffleWinner[] = [
-    { id: 1, name: 'Berkah Pulsa', prize: 'Paket Liburan 2 Orang', photo: 'https://placehold.co/400x400/663399/FFFFFF?text=BP', period: 'Jun - Agu 2025' },
-    { id: 2, name: 'Ceria Cell', prize: 'Paket Liburan 2 Orang', photo: 'https://placehold.co/400x400/20B2AA/FFFFFF?text=CC', period: 'Jun - Agu 2025' },
-    { id: 3, name: 'Sinar Pagi', prize: 'Paket Liburan 2 Orang', photo: 'https://placehold.co/400x400/FF7F50/FFFFFF?text=SP', period: 'Jun - Agu 2025' },
+    { id: 1, name: 'Berkah Pulsa', prize: 'Paket Liburan 2 Orang', photo: '/public/images/winners/berkah-pulsa.png', period: 'Jun - Agu 2025' },
+    { id: 2, name: 'Ceria Cell', prize: 'Paket Liburan 2 Orang', photo: '/public/images/winners/ceria-cell.png', period: 'Jun - Agu 2025' },
+    { id: 3, name: 'Sinar Pagi', prize: 'Paket Liburan 2 Orang', photo: '/public/images/winners/sinar-pagi.png', period: 'Jun - Agu 2025' },
 ];
 
 
@@ -130,7 +130,7 @@ export const initialRunningPrograms: RunningProgram[] = [
         prize: '1 Unit Sepeda Motor', 
         startDate: '2025-09-01',
         endDate: '2025-09-30',
-        image: 'https://placehold.co/400x400/EF4444/FFFFFF?text=Poin+Extra',
+        image: '/public/images/programs/poin-extra.png',
         targets: [{ userId: 'DG10001', progress: 75 }, { userId: 'DG10002', progress: 50 }] 
     },
     { 
@@ -140,7 +140,7 @@ export const initialRunningPrograms: RunningProgram[] = [
         prize: 'Smartphone Terbaru', 
         startDate: '2025-10-01',
         endDate: '2025-10-31',
-        image: 'https://placehold.co/400x400/4CAF50/FFFFFF?text=Oktober+Ceria',
+        image: '/public/images/programs/oktober-ceria.png',
         targets: [{ userId: 'DG10001', progress: 40 }, { userId: 'DG10002', progress: 65 }] 
     },
     { 
@@ -150,7 +150,7 @@ export const initialRunningPrograms: RunningProgram[] = [
         prize: 'Bonus Poin 2X Lipat', 
         startDate: '2025-11-01',
         endDate: '2025-11-30',
-        image: 'https://placehold.co/400x400/03A9F4/FFFFFF?text=Poin+Double',
+        image: '/public/images/programs/poin-double.png',
         targets: [{ userId: 'DG10001', progress: 90 }, { userId: 'DG10002', progress: 80 }] 
     },
     { 
@@ -160,7 +160,7 @@ export const initialRunningPrograms: RunningProgram[] = [
         prize: 'Liburan ke Bali', 
         startDate: '2025-12-01',
         endDate: '2025-12-31',
-        image: 'https://placehold.co/400x400/FFC107/FFFFFF?text=Akhir+Tahun',
+        image: '/public/images/programs/akhir-tahun.png',
         targets: [{ userId: 'DG10001', progress: 25 }, { userId: 'DG10002', progress: 30 }] 
     },
 ];

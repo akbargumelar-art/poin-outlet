@@ -39,7 +39,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
         <div className="min-h-screen neu-bg font-sans animate-fade-in-down">
             {/* Header */}
             <header className="sticky top-0 z-30 p-6 flex justify-between items-center neu-bg shadow-sm">
-                <img src="/logo.png" alt="Agrabudi Komunika Logo" className="h-10" />
+                <img src="/public/logo.png" alt="Agrabudi Komunika Logo" className="h-10" />
                 <button onClick={() => setCurrentPage('login')} className="neu-button !w-auto px-6 py-2 text-sm">Login</button>
             </header>
 

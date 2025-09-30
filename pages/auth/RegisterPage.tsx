@@ -57,7 +57,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                     <Icon path={ICONS.chevronLeft} className="w-6 h-6" />
                 </button>
                  <div className="text-center mb-8">
-                    <img src="/logo.png" alt="Agrabudi Komunika Logo" className="h-12 mx-auto mb-4" />
+                    <img src="/public/logo.png" alt="Agrabudi Komunika Logo" className="h-12 mx-auto mb-4" />
                     <h1 className="text-3xl font-bold text-gray-700">Registrasi Mitra Baru</h1>
                 </div>
                 {error && <p className="bg-red-100 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</p>}

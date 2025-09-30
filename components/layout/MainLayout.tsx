@@ -47,7 +47,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
     return (
         <div className="h-screen w-full flex flex-col font-sans neu-bg">
             <header className="h-20 flex-shrink-0 flex items-center justify-between px-6">
-                <img src="/logo.png" alt="Agrabudi Komunika Logo" className="h-10" />
+                <img src="/public/logo.png" alt="Agrabudi Komunika Logo" className="h-10" />
                 <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-4 group">
                     <div className="text-right">
                         <p className="font-semibold text-gray-700 group-hover:text-red-600 transition-colors">{currentUser.profile.nama}</p>
