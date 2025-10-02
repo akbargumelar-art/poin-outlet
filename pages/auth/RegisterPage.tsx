@@ -1,47 +1,105 @@
-
-import React, { useState, useEffect } from 'react';
-import { User, Page, LocationData, DigiposData } from '../../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Page, Location } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 
+const API_URL = '/api';
+
 interface RegisterPageProps {
-    handleRegister: (formData: any) => void;
+    handleRegister: (formData: any) => Promise<boolean>;
     setCurrentPage: (page: Page) => void;
-    users: User[];
-    MOCK_LOCATION_DATA: LocationData;
-    MOCK_DIGIPOS_DATA: DigiposData;
+    locations: Location[];
 }
 
-const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, users, MOCK_LOCATION_DATA, MOCK_DIGIPOS_DATA }) => {
-    const [formData, setFormData] = useState({ idDigipos: '', namaOutlet: '', noRs: '', kabupaten: 'Kabupaten Cirebon', kecamatan: '', namaOwner: '', noWhatsapp: '', namaSalesforce: '' });
-    const [error, setError] = useState('');
+const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations }) => {
+    const [formData, setFormData] = useState({
+        idDigipos: '',
+        namaOutlet: '',
+        noRs: '',
+        kabupaten: '',
+        kecamatan: '',
+        namaOwner: '',
+        noWhatsapp: '',
+        salesforce: ''
+    });
 
+    const [isLoading, setIsLoading] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [digiposError, setDigiposError] = useState('');
+    const [isDigiposVerified, setIsDigiposVerified] = useState(false);
+
+    // Debounce for Digipos ID verification
     useEffect(() => {
-        const data = MOCK_DIGIPOS_DATA[formData.idDigipos];
-        if (data) {
-            setFormData(prev => ({ ...prev, namaOutlet: data.namaOutlet, noRs: data.noRs }));
-            setError('');
-        } else if (formData.idDigipos.length > 4) {
-             setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '' }));
-             setError('ID Digipos tidak ditemukan.');
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        const handler = setTimeout(() => {
+            if (formData.idDigipos.length > 4) {
+                verifyDigiposId(formData.idDigipos);
+            } else {
+                setDigiposError('');
+                setIsDigiposVerified(false);
+                setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '', salesforce: ''}));
+            }
+        }, 800);
+
+        return () => {
+            clearTimeout(handler);
+        };
     }, [formData.idDigipos]);
+
+    const kabupatenOptions = useMemo(() => [...new Set(locations.map(l => l.kabupaten))].sort(), [locations]);
+    const kecamatanOptions = useMemo(() => {
+        if (!formData.kabupaten) return [];
+        return locations.filter(l => l.kabupaten === formData.kabupaten).map(l => l.kecamatan).sort();
+    }, [locations, formData.kabupaten]);
+
+    // Effect to auto-select first kecamatan when kabupaten changes
+     useEffect(() => {
+        if (formData.kabupaten && kecamatanOptions.length > 0) {
+            setFormData(prev => ({...prev, kecamatan: kecamatanOptions[0]}));
+        } else {
+            setFormData(prev => ({...prev, kecamatan: ''}));
+        }
+    }, [formData.kabupaten, kecamatanOptions]);
+
+    const verifyDigiposId = async (id: string) => {
+        setIsVerifying(true);
+        setDigiposError('');
+        try {
+            const response = await fetch(`${API_URL}/digipos-info/${id}`);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Error Verifikasi');
+            }
+            setFormData(prev => ({
+                ...prev,
+                namaOutlet: data.namaOutlet,
+                noRs: data.noRs,
+                salesforce: data.salesforce,
+            }));
+            setIsDigiposVerified(true);
+        } catch (error: any) {
+            setDigiposError(error.message);
+            setIsDigiposVerified(false);
+             setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '', salesforce: ''}));
+        } finally {
+            setIsVerifying(false);
+        }
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!MOCK_DIGIPOS_DATA[formData.idDigipos]) return setError('ID Digipos harus valid.');
-        if (users.find(u => u.id === formData.idDigipos)) return setError('ID Digipos sudah terdaftar.');
-        handleRegister(formData);
+        if (!isDigiposVerified) {
+             setDigiposError('Harap gunakan ID Digipos yang valid.');
+             return;
+        }
+        setIsLoading(true);
+        await handleRegister(formData);
+        setIsLoading(false);
     };
-    
-    const kecamatanOptions = MOCK_LOCATION_DATA[formData.kabupaten] ? Object.keys(MOCK_LOCATION_DATA[formData.kabupaten]) : [];
-    const salesforceOptions = (formData.kabupaten && formData.kecamatan && MOCK_LOCATION_DATA[formData.kabupaten]?.[formData.kecamatan]) ? MOCK_LOCATION_DATA[formData.kabupaten][formData.kecamatan] : [];
     
     const InputWrapper: React.FC<{icon: string, children: React.ReactNode}> = ({icon, children}) => (
         <div className="relative w-full">
@@ -49,7 +107,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
             {children}
         </div>
     );
-
+    
     return (
          <div className="min-h-screen neu-bg flex justify-center items-center p-4">
             <div className="w-full max-w-2xl neu-card p-8 z-10 animate-fade-in-down relative">
@@ -57,22 +115,44 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                     <Icon path={ICONS.chevronLeft} className="w-6 h-6" />
                 </button>
                  <div className="text-center mb-8">
-                    <img src="/public/logo.png" alt="Agrabudi Komunika Logo" className="h-12 mx-auto mb-4" />
+                    <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-12 mx-auto mb-4" />
                     <h1 className="text-3xl font-bold text-gray-700">Registrasi Mitra Baru</h1>
                 </div>
-                {error && <p className="bg-red-100 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</p>}
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InputWrapper icon={ICONS.idCard}><input type="text" name="idDigipos" value={formData.idDigipos} onChange={handleChange} className="input-field pl-12" placeholder="ID Digipos"/></InputWrapper>
-                        <InputWrapper icon={ICONS.store}><input type="text" name="namaOutlet" value={formData.namaOutlet} className="input-field-disabled pl-12" readOnly placeholder="Nama Outlet"/></InputWrapper>
-                        <InputWrapper icon={ICONS.idCard}><input type="text" name="noRs" value={formData.noRs} className="input-field-disabled pl-12" readOnly placeholder="No. RS"/></InputWrapper>
-                        <InputWrapper icon={ICONS.location}><select name="kabupaten" value={formData.kabupaten} onChange={handleChange} className="input-field pl-12">{Object.keys(MOCK_LOCATION_DATA).map(kab => <option key={kab} value={kab}>{kab}</option>)}</select></InputWrapper>
-                        <InputWrapper icon={ICONS.location}><select name="kecamatan" value={formData.kecamatan} onChange={handleChange} className="input-field pl-12" disabled={!formData.kabupaten}><option value="">Pilih Kecamatan</option>{kecamatanOptions.map(kec => <option key={kec} value={kec}>{kec}</option>)}</select></InputWrapper>
-                        <InputWrapper icon={ICONS.users}><select name="namaSalesforce" value={formData.namaSalesforce} onChange={handleChange} className="input-field pl-12" disabled={!formData.kecamatan}><option value="">Pilih Salesforce</option>{salesforceOptions.map(sf => <option key={sf} value={sf}>{sf}</option>)}</select></InputWrapper>
-                        <InputWrapper icon={ICONS.user}><input type="text" name="namaOwner" value={formData.namaOwner} onChange={handleChange} className="input-field pl-12" required placeholder="Nama Owner"/></InputWrapper>
+                        <div>
+                            <InputWrapper icon={ICONS.idCard}>
+                                <input type="text" name="idDigipos" value={formData.idDigipos} onChange={handleChange} className="input-field pl-12" placeholder="ID Digipos" required />
+                            </InputWrapper>
+                            {isVerifying && <p className="text-xs text-blue-600 mt-1">Memeriksa ID...</p>}
+                            {digiposError && <p className="text-xs text-red-600 mt-1">{digiposError}</p>}
+                            {isDigiposVerified && <p className="text-xs text-green-600 mt-1">✓ ID Digipos Valid</p>}
+                        </div>
+
+                        <InputWrapper icon={ICONS.store}><input type="text" name="namaOutlet" value={formData.namaOutlet} onChange={handleChange} className="input-field pl-12" placeholder="Nama Outlet" required disabled={isDigiposVerified} /></InputWrapper>
+                        <InputWrapper icon={ICONS.idCard}><input type="text" name="noRs" value={formData.noRs} onChange={handleChange} className="input-field pl-12" placeholder="No. RS" disabled={isDigiposVerified} /></InputWrapper>
+                        <InputWrapper icon={ICONS.users}><input type="text" name="salesforce" value={formData.salesforce} onChange={handleChange} className="input-field pl-12" placeholder="Nama Salesforce" disabled={isDigiposVerified} /></InputWrapper>
+                        
+                        <InputWrapper icon={ICONS.location}>
+                            <select name="kabupaten" value={formData.kabupaten} onChange={handleChange} className="input-field pl-12" required>
+                                <option value="">-- Pilih Kabupaten --</option>
+                                {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
+                            </select>
+                        </InputWrapper>
+                        <InputWrapper icon={ICONS.location}>
+                            <select name="kecamatan" value={formData.kecamatan} onChange={handleChange} className="input-field pl-12" required disabled={!formData.kabupaten}>
+                                <option value="">-- Pilih Kecamatan --</option>
+                                {kecamatanOptions.map(k => <option key={k} value={k}>{k}</option>)}
+                            </select>
+                        </InputWrapper>
+
+                        <InputWrapper icon={ICONS.user}><input type="text" name="namaOwner" value={formData.namaOwner} onChange={handleChange} className="input-field pl-12" placeholder="Nama Owner"/></InputWrapper>
                         <InputWrapper icon={ICONS.phone}><input type="tel" name="noWhatsapp" value={formData.noWhatsapp} onChange={handleChange} className="input-field pl-12" required placeholder="Nomor WhatsApp"/></InputWrapper>
                     </div>
-                    <button type="submit" className="neu-button text-red-600">Registrasi</button>
+                    <button type="submit" className="neu-button text-red-600" disabled={isLoading || !isDigiposVerified}>
+                        {isLoading ? 'Mendaftar...' : 'Registrasi'}
+                    </button>
                 </form>
                 <p className="text-center text-sm mt-6">Sudah punya akun? <button onClick={() => setCurrentPage('login')} className="font-bold text-red-600">Login</button></p>
             </div>

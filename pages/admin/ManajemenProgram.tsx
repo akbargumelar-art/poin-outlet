@@ -18,7 +18,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
         prize: '', 
         startDate: new Date().toISOString().split('T')[0],
         endDate: '',
-        image: '',
+        imageUrl: '',
         targets: [] 
     });
 
@@ -45,7 +45,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
                 </div>
             </div>
             <input name="prize" value={formData.prize} onChange={handleChange} placeholder="Hadiah Utama" className="input-field" required />
-            <input name="image" value={formData.image} onChange={handleChange} placeholder="URL Gambar (e.g., https://placehold.co/400x400/...)" className="input-field" required />
+            <input name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="URL Gambar (e.g., https://placehold.co/400x400/...)" className="input-field" required />
             <textarea name="mechanism" value={formData.mechanism} onChange={handleChange} placeholder="Mekanisme Program" className="input-field min-h-[100px]" required />
             <div className="flex gap-4">
                 <button type="button" onClick={onCancel} className="neu-button">Batal</button>
@@ -150,7 +150,7 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, setProgra
             <div className="space-y-6">
                 {programs.map(p => (
                     <div key={p.id} className="neu-card p-6 flex flex-col md:flex-row gap-6">
-                        <img src={p.image} alt={p.name} className="w-full md:w-32 h-48 md:h-32 object-cover rounded-lg neu-inset p-1 flex-shrink-0"/>
+                        <img src={p.imageUrl} alt={p.name} className="w-full md:w-32 h-48 md:h-32 object-cover rounded-lg neu-inset p-1 flex-shrink-0"/>
                         <div className="flex-grow">
                             <div className="flex justify-between items-start">
                                 <div>

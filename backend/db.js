@@ -1,4 +1,3 @@
-
 const mysql = require('mysql2/promise');
 
 // Create a connection pool to the database
@@ -14,17 +13,7 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-// Test the connection
-pool.getConnection()
-  .then(connection => {
-    console.log('Successfully connected to the database.');
-    connection.release();
-  })
-  .catch(err => {
-    console.error('Error connecting to the database:');
-    console.error(`Please check your .env file and ensure the database server is running and accessible.`);
-    console.error(`Details: ${err.message}`);
-  });
-
+// The initial connection check is now handled in server.js to ensure
+// the server only starts if the database is available.
 
 module.exports = pool;

@@ -17,7 +17,7 @@ const PemenangUndian: React.FC<PemenangUndianProps> = ({ winners }) => {
                 {winners.map((winner) => (
                     <div key={winner.id} className="neu-card p-4 text-center animate-fade-in-up">
                         <div className="w-24 h-24 rounded-full mx-auto neu-inset p-1 overflow-hidden mb-4">
-                            <img src={winner.photo} alt={winner.name} className="w-full h-full object-cover rounded-full" />
+                            <img src={winner.photoUrl} alt={winner.name} className="w-full h-full object-cover rounded-full" />
                         </div>
                         <h4 className="text-xl font-bold text-gray-800">{winner.name}</h4>
                         <p className="text-sm text-gray-500">Pemenang Undian Periode {winner.period}</p>

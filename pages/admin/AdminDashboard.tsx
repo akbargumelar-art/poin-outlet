@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { User, Transaction, RunningProgram, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -31,8 +32,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
     }, [transactions, filteredUsers, tapFilter]);
 
     const totalPelanggan = filteredUsers.length;
-    const totalPenjualan = filteredTransactions.reduce((sum, t) => sum + t.totalPembelian, 0);
-    const totalPoin = filteredUsers.reduce((sum, u) => sum + (u.points || 0), 0);
+    const totalPenjualan = filteredTransactions.reduce((sum, t) => sum + Number(t.totalPembelian), 0);
+    const totalPoin = filteredUsers.reduce((sum, u) => sum + Number(u.points || 0), 0);
     
     const handleShowList = (program: RunningProgram, type: 'participants' | 'achievers') => {
         const userList = users.filter(user => {

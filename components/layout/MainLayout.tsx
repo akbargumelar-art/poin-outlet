@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { User, Page } from '../../types';
 import { ICONS } from '../../constants';
@@ -47,14 +48,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
     return (
         <div className="h-screen w-full flex flex-col font-sans neu-bg">
             <header className="h-20 flex-shrink-0 flex items-center justify-between px-6">
-                <img src="/public/logo.png" alt="Agrabudi Komunika Logo" className="h-10" />
+                <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-10" />
                 <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-4 group">
                     <div className="text-right">
                         <p className="font-semibold text-gray-700 group-hover:text-red-600 transition-colors">{currentUser.profile.nama}</p>
                         <p className="text-sm text-red-600 capitalize">{isPelanggan ? 'Mitra Outlet' : currentUser.role}</p>
                     </div>
                     <div className="w-12 h-12 rounded-full neu-card flex items-center justify-center font-bold text-xl text-red-500 overflow-hidden">
-                       {currentUser.profile.photo ? <img src={currentUser.profile.photo} alt="profile" className="w-full h-full object-cover"/> : currentUser.profile.nama.charAt(0)}
+                       {currentUser.profile.photoUrl ? <img src={currentUser.profile.photoUrl} alt="profile" className="w-full h-full object-cover"/> : currentUser.profile.nama.charAt(0)}
                     </div>
                 </button>
             </header>

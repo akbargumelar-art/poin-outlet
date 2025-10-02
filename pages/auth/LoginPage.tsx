@@ -66,7 +66,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ handleLogin, setCurrentPage }) =>
                     <Icon path={ICONS.chevronLeft} className="w-6 h-6" />
                 </button>
                 <div className="text-center mb-8">
-                     <img src="/public/logo.png" alt="Agrabudi Komunika Logo" className="h-12 mx-auto mb-6" />
+                     <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-12 mx-auto mb-6" />
                     <h1 className="text-2xl font-bold text-gray-700">Program Loyalitas Mitra</h1>
                     <p className="text-gray-500 mt-2">Selamat Datang Kembali!</p>
                 </div>

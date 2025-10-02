@@ -89,7 +89,7 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                              <p className="text-sm font-semibold text-gray-700 truncate">{recentTransaction.produk}</p>
                             <div className="flex justify-between items-center mt-1">
                                 <p className="text-xs text-gray-500">{new Date(recentTransaction.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                <p className="text-sm font-bold text-green-600">+ {recentTransaction.points} Poin</p>
+                                <p className="text-sm font-bold text-green-600">+ {recentTransaction.pointsEarned} Poin</p>
                             </div>
                         </>
                     ) : (

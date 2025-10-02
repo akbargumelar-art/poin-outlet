@@ -1,9 +1,7 @@
-
 import React, { useState, useMemo } from 'react';
 import { User, UserProfile } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
-import { MOCK_LOCATION_DATA } from '../../data/mockData';
 
 interface EditProfilePageProps {
     currentUser: User;
@@ -14,18 +12,10 @@ interface EditProfilePageProps {
 const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUserProfile, handleLogout }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [profile, setProfile] = useState<UserProfile>(currentUser.profile);
-    const [photoPreview, setPhotoPreview] = useState<string | null>(currentUser.profile.photo || null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(currentUser.profile.photoUrl || null);
 
     const allTaps = useMemo(() => {
-        const taps = new Set<string>();
-        Object.values(MOCK_LOCATION_DATA).forEach(kabupaten => {
-            Object.values(kabupaten).forEach(salesforceArray => {
-                salesforceArray.forEach(sf => {
-                    // This logic is a placeholder; real logic would map SF to TAP
-                });
-            });
-        });
-        // Add known TAPs from mock data for now
+        // In a real app, this would be fetched from the API
         return ['CIREBON', 'KUNINGAN', 'MAJALENGKA', 'INDRAMAYU', 'Palimanan', 'Lemahabang', 'Luragung', 'Pemuda'].sort();
     }, []);
     
@@ -43,7 +33,7 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
             reader.onloadend = () => {
                 const result = reader.result as string;
                 setPhotoPreview(result);
-                setProfile(prev => ({...prev, photo: result}));
+                setProfile(prev => ({...prev, photoUrl: result}));
             };
             reader.readAsDataURL(file);
         }
@@ -57,7 +47,7 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
 
     const handleCancel = () => {
         setProfile(currentUser.profile);
-        setPhotoPreview(currentUser.profile.photo || null);
+        setPhotoPreview(currentUser.profile.photoUrl || null);
         setIsEditing(false);
     };
 
@@ -136,6 +126,7 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {renderField('TAP', profile.tap, 'tap', 'text', false, allTaps)}
                                 {renderField('Jabatan', profile.jabatan, 'jabatan', 'text', false, allJabatans)}
+                                {renderField('Alamat', profile.alamat, 'alamat', 'textarea')}
                              </div>
                         )}
                     </div>

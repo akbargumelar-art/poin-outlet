@@ -1,5 +1,3 @@
-
-
 export type UserRole = 'admin' | 'pelanggan' | 'supervisor';
 export type Page = 
     | 'landing'
@@ -22,18 +20,15 @@ export interface UserProfile {
     nama: string;
     email: string;
     phone: string;
-    // Mitra Outlet specific
     owner?: string;
     kabupaten?: string;
     kecamatan?: string;
     salesforce?: string;
     noRs?: string;
     alamat?: string;
-    // Admin/Supervisor specific
-    tap?: string; // Kantor cabang / area
+    tap?: string; 
     jabatan?: string;
-    // Common
-    photo?: string;
+    photoUrl?: string; // Standardized to photoUrl
 }
 
 export interface User {
@@ -42,7 +37,7 @@ export interface User {
     role: UserRole;
     points?: number;
     level?: string;
-    kuponUndian?: number; // Tambah kupon undian
+    kuponUndian?: number;
     profile: UserProfile;
 }
 
@@ -54,21 +49,22 @@ export interface Transaction {
     harga: number;
     kuantiti: number;
     totalPembelian: number;
-    points: number;
+    pointsEarned: number;
 }
 
 export interface Reward {
     id: number;
     name: string;
     points: number;
-    image: string;
+    imageUrl: string;
     stock: number;
 }
 
 export interface Redemption {
     id: number;
     userId: string;
-    rewardName: string;
+    rewardId: number;
+    rewardName: string; 
     pointsSpent: number;
     date: string;
 }
@@ -91,6 +87,8 @@ export interface LoyaltyProgram {
 }
 
 export interface RunningProgramTarget {
+    id: number;
+    programId: number;
     userId: string;
     progress: number;
 }
@@ -102,21 +100,8 @@ export interface RunningProgram {
     prize: string;
     startDate: string; // ISO date string e.g. "2025-09-01"
     endDate: string;   // ISO date string e.g. "2025-09-30"
-    image: string;     // URL for the program image
+    imageUrl: string;
     targets: RunningProgramTarget[];
-}
-
-export interface DigiposData {
-    [key: string]: {
-        namaOutlet: string;
-        noRs: string;
-    };
-}
-
-export interface LocationData {
-    [key: string]: { // Kabupaten
-        [key: string]: string[]; // Kecamatan: Salesforce[]
-    };
 }
 
 export interface RaffleProgram {
@@ -138,6 +123,12 @@ export interface RaffleWinner {
     id: number;
     name: string;
     prize: string;
-    photo: string;
+    photoUrl: string;
     period: string;
+}
+
+export interface Location {
+    id: number;
+    kabupaten: string;
+    kecamatan: string;
 }

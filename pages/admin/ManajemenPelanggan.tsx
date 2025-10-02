@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { User, Page, Transaction } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
@@ -15,7 +16,6 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
-    const [showExportModal, setShowExportModal] = useState(false);
 
     const pelangganUsers = useMemo(() => users.filter(u => u.role === 'pelanggan'), [users]);
     const allTaps = useMemo(() => [...new Set(pelangganUsers.map(u => u.profile.tap).filter((tap): tap is string => !!tap))].sort(), [pelangganUsers]);
@@ -25,7 +25,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
         const totals = new Map<string, { totalPembelian: number }>();
         transactions.forEach(t => {
             const current = totals.get(t.userId) || { totalPembelian: 0 };
-            totals.set(t.userId, { totalPembelian: current.totalPembelian + t.totalPembelian });
+            totals.set(t.userId, { totalPembelian: current.totalPembelian + Number(t.totalPembelian) });
         });
         return totals;
     }, [transactions]);
@@ -57,8 +57,21 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
     };
     
     const handleExport = () => {
-        console.log("Exporting data...", filteredUsers);
-        setShowExportModal(true);
+        const params = new URLSearchParams();
+        if (tapFilter) params.append('tap', tapFilter);
+        if (salesforceFilter) params.append('salesforce', salesforceFilter);
+        if (searchTerm) params.append('search', searchTerm);
+        
+        const url = `/api/users/export?${params.toString()}`;
+        
+        // Create a temporary link to trigger the download
+        const link = document.createElement('a');
+        link.href = url;
+        // The backend will set the filename, but this is a good fallback.
+        link.setAttribute('download', 'mitra_export.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const chartData = useMemo(() => {
@@ -86,15 +99,6 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
 
     return (
         <div>
-            {showExportModal && (
-                <Modal show={true} onClose={() => setShowExportModal(false)} title="Ekspor Berhasil">
-                    <div className="text-center">
-                        <p className="mb-6">Data tabel mitra telah berhasil disimulasikan untuk ekspor ke Excel.</p>
-                        <button onClick={() => setShowExportModal(false)} className="neu-button text-red-600">Tutup</button>
-                    </div>
-                </Modal>
-            )}
-
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-3xl font-bold text-gray-700">Manajemen Mitra Outlet</h1>
                 <div className="flex gap-2">

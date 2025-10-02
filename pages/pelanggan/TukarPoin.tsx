@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { User, Reward, RaffleProgram, LoyaltyProgram } from '../../types';
 
@@ -83,7 +82,7 @@ const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukar
                     return (
                         <div key={r.id} className={`neu-card overflow-hidden flex flex-col transition-opacity ${isOutOfStock ? 'opacity-60' : ''}`}>
                             <div className="relative">
-                                <img src={r.image} alt={r.name} className={`w-full h-64 object-cover ${isOutOfStock ? 'filter grayscale' : ''}`}/>
+                                <img src={r.imageUrl} alt={r.name} className={`w-full h-64 object-cover ${isOutOfStock ? 'filter grayscale' : ''}`}/>
                                 {isOutOfStock && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white font-bold text-lg bg-red-600 px-3 py-1 rounded-md">STOK HABIS</span></div>}
                             </div>
                             <div className="p-4 flex flex-col flex-grow">

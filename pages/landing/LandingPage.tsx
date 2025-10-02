@@ -1,3 +1,4 @@
+
 import React, { useRef } from 'react';
 import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -39,7 +40,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
         <div className="min-h-screen neu-bg font-sans animate-fade-in-down">
             {/* Header */}
             <header className="sticky top-0 z-30 p-6 flex justify-between items-center neu-bg shadow-sm">
-                <img src="/public/logo.png" alt="Agrabudi Komunika Logo" className="h-10" />
+                <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-10" />
                 <button onClick={() => setCurrentPage('login')} className="neu-button !w-auto px-6 py-2 text-sm">Login</button>
             </header>
 
@@ -67,7 +68,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                            {rewards.map((r) => (
                                 <div key={r.id} className="snap-center flex-shrink-0 w-10/12 md:w-1/3 lg:w-1/4 p-4">
                                     <div className="neu-card overflow-hidden flex flex-col h-full">
-                                        <img src={r.image} alt={r.name} className="w-full h-48 object-cover"/>
+                                        <img src={r.imageUrl} alt={r.name} className="w-full h-48 object-cover"/>
                                         <div className="p-6 flex flex-col flex-grow text-center">
                                             <h4 className="text-lg font-bold flex-grow text-gray-800 min-h-[56px]">{r.name}</h4>
                                             <p className="text-xl font-bold text-red-600 mt-2">{r.points.toLocaleString('id-ID')} Poin</p>
@@ -100,7 +101,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                {runningPrograms.map((p) => (
                                     <div key={p.id} className="snap-center flex-shrink-0 w-10/12 md:w-1/3 lg:w-1/4 p-4">
                                         <div className="neu-card overflow-hidden flex flex-col h-full">
-                                            <img src={p.image} alt={p.name} className="w-full h-48 object-cover" />
+                                            <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-cover" />
                                             <div className="p-6 flex flex-col flex-grow text-center">
                                                 <h4 className="text-xl font-bold text-gray-800">{p.name}</h4>
                                                 <p className="text-sm text-gray-500 mb-2">{formatDateRange(p.startDate, p.endDate)}</p>

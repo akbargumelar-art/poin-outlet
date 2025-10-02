@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { User, LoyaltyProgram, RunningProgram } from '../../types';
 
@@ -31,7 +30,7 @@ const PencapaianProgram: React.FC<PencapaianProgramProps> = ({ currentUser, loya
             <div className="space-y-6">
                 {runningPrograms.map(p => (
                     <div key={p.id} className="neu-card overflow-hidden flex flex-col md:flex-row">
-                        <img src={p.image} alt={p.name} className="w-full md:w-48 h-64 md:h-auto object-cover"/>
+                        <img src={p.imageUrl} alt={p.name} className="w-full md:w-48 h-64 md:h-auto object-cover"/>
                         <div className="p-6 flex flex-col flex-grow">
                             <div className="flex justify-between items-start">
                                 <div>

@@ -35,13 +35,13 @@ const LevelForm: React.FC<LevelFormProps> = ({ level, onSave, onCancel }) => {
 // --- Reward Form Component ---
 interface RewardFormProps {
     reward?: Reward;
-    onSave: (reward: Reward) => void;
+    onSave: (reward: Omit<Reward, 'id'> & { id?: number }) => void;
     onCancel: () => void;
 }
 
 const RewardForm: React.FC<RewardFormProps> = ({ reward, onSave, onCancel }) => {
-    const [formData, setFormData] = useState<Omit<Reward, 'id'> & { id?: number }>(
-        reward || { name: '', points: 0, image: '', stock: 0 }
+    const [formData, setFormData] = useState(
+        reward || { name: '', points: 0, imageUrl: '', stock: 0 }
     );
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,11 +51,7 @@ const RewardForm: React.FC<RewardFormProps> = ({ reward, onSave, onCancel }) => 
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const finalReward: Reward = {
-            ...formData,
-            id: formData.id || Date.now(),
-        };
-        onSave(finalReward);
+        onSave(formData);
     };
 
     return (
@@ -63,7 +59,7 @@ const RewardForm: React.FC<RewardFormProps> = ({ reward, onSave, onCancel }) => 
             <input name="name" value={formData.name} onChange={handleChange} placeholder="Nama Hadiah" className="input-field" required />
             <input name="points" type="number" value={formData.points} onChange={handleChange} placeholder="Poin Dibutuhkan" className="input-field" required />
             <input name="stock" type="number" value={formData.stock} onChange={handleChange} placeholder="Jumlah Stok" className="input-field" required />
-            <input name="image" value={formData.image} onChange={handleChange} placeholder="URL Gambar (e.g., https://placehold.co/...)" className="input-field" required />
+            <input name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="URL Gambar (e.g., https://placehold.co/...)" className="input-field" required />
             <div className="flex gap-4 pt-4">
                 <button type="button" onClick={onCancel} className="neu-button">Batal</button>
                 <button type="submit" className="neu-button text-red-600">Simpan Hadiah</button>
@@ -75,7 +71,7 @@ const RewardForm: React.FC<RewardFormProps> = ({ reward, onSave, onCancel }) => 
 // --- Main Component ---
 interface ManajemenHadiahProps {
     rewards: Reward[];
-    addReward: (reward: Reward) => void;
+    addReward: (reward: Omit<Reward, 'id'>) => void;
     updateReward: (reward: Reward) => void;
     deleteReward: (rewardId: number) => void;
     isReadOnly?: boolean;
@@ -99,11 +95,11 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, addReward, u
         setShowFormModal(true);
     };
 
-    const handleSave = (reward: Reward) => {
-        if (editingReward) {
-            updateReward(reward);
+    const handleSave = (rewardData: Omit<Reward, 'id'> & { id?: number }) => {
+        if (rewardData.id) {
+            updateReward(rewardData as Reward);
         } else {
-            addReward(reward);
+            addReward(rewardData);
         }
         setShowFormModal(false);
         setEditingReward(undefined);
@@ -197,7 +193,7 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, addReward, u
                     <tbody>
                         {rewards.map(r => (
                             <tr key={r.id} className="border-t border-slate-200/80">
-                                <td className="p-4"><img src={r.image} alt={r.name} className="w-16 h-12 object-cover rounded-md neu-inset p-1"/></td>
+                                <td className="p-4"><img src={r.imageUrl} alt={r.name} className="w-16 h-12 object-cover rounded-md neu-inset p-1"/></td>
                                 <td className="p-4 font-semibold">{r.name}</td>
                                 <td className="p-4 font-bold text-red-600">{r.points.toLocaleString('id-ID')}</td>
                                 <td className="p-4">{r.stock}</td>

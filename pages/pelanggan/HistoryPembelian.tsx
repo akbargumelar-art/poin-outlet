@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { User, Transaction, Redemption, HistoryItem } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -21,7 +20,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                 type: 'Pembelian',
                 description: t.produk,
                 amount: t.totalPembelian,
-                points: t.points,
+                points: t.pointsEarned,
             }));
 
         const redemptionHistoryItems: HistoryItem[] = redemptionHistory

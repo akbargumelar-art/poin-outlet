@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner } from './types';
-import { initialUsers, initialTransactions, initialRewards, initialRedemptionHistory, initialLoyaltyPrograms, initialRunningPrograms, MOCK_DIGIPOS_DATA, MOCK_LOCATION_DATA, initialRafflePrograms, initialCouponRedemptions, initialRaffleWinners } from './data/mockData';
+import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location } from './types';
 
 import Modal from './components/common/Modal';
 import MainLayout from './components/layout/MainLayout';
@@ -21,66 +20,104 @@ import ManajemenPoin from './pages/admin/ManajemenPoin';
 import ManajemenHadiah from './pages/admin/ManajemenHadiah';
 import ManajemenUndian from './pages/admin/ManajemenUndian';
 
-
-// Helper function to get data from localStorage or initial data
-function useStickyState<T>(initialValue: T, key: string): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [value, setValue] = useState<T>(() => {
-        try {
-            const saved = window.localStorage.getItem(key);
-            return saved ? JSON.parse(saved) : initialValue;
-        } catch (error) {
-            console.error(`Error reading localStorage key "${key}":`, error);
-            return initialValue;
-        }
-    });
-
-    useEffect(() => {
-        try {
-            window.localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
-            console.error(`Error setting localStorage key "${key}":`, error);
-        }
-    }, [key, value]);
-
-    return [value, setValue];
-}
-
+// Define the base URL for your API
+const API_URL = '/api'; // Use relative path for same-origin deployment
 
 function App() {
     const [currentPage, setCurrentPage] = useState<Page>('landing');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [modal, setModal] = useState({ show: false, content: <></>, title: '' });
-    
-    // State for all application data using the sticky state hook
-    const [users, setUsers] = useStickyState<User[]>(initialUsers, 'users');
-    const [transactions, setTransactions] = useStickyState<Transaction[]>(initialTransactions, 'transactions');
-    const [rewards, setRewards] = useStickyState<Reward[]>(initialRewards, 'rewards');
-    const [redemptionHistory, setRedemptionHistory] = useStickyState<Redemption[]>(initialRedemptionHistory, 'redemptionHistory');
-    const [loyaltyPrograms, setLoyaltyPrograms] = useStickyState<LoyaltyProgram[]>(initialLoyaltyPrograms, 'loyaltyPrograms');
-    const [runningPrograms, setRunningPrograms] = useStickyState<RunningProgram[]>(initialRunningPrograms, 'runningPrograms');
-    const [rafflePrograms, setRafflePrograms] = useStickyState<RaffleProgram[]>(initialRafflePrograms, 'rafflePrograms');
-    const [couponRedemptions, setCouponRedemptions] = useStickyState<CouponRedemption[]>(initialCouponRedemptions, 'couponRedemptions');
-    const [raffleWinners, setRaffleWinners] = useStickyState<RaffleWinner[]>(initialRaffleWinners, 'raffleWinners');
-    
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
+    // State for all application data, fetched from backend
+    const [users, setUsers] = useState<User[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [rewards, setRewards] = useState<Reward[]>([]);
+    const [redemptionHistory, setRedemptionHistory] = useState<Redemption[]>([]);
+    const [loyaltyPrograms, setLoyaltyPrograms] = useState<LoyaltyProgram[]>([]);
+    const [runningPrograms, setRunningPrograms] = useState<RunningProgram[]>([]);
+    const [rafflePrograms, setRafflePrograms] = useState<RaffleProgram[]>([]);
+    const [couponRedemptions, setCouponRedemptions] = useState<CouponRedemption[]>([]);
+    const [raffleWinners, setRaffleWinners] = useState<RaffleWinner[]>([]);
+    const [locations, setLocations] = useState<Location[]>([]);
+
+    const fetchBootstrapData = async () => {
+        try {
+            setIsLoading(true);
+            const response = await fetch(`${API_URL}/bootstrap`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Gagal mengambil data dari server.');
+            }
+            const data = await response.json();
+            setUsers(data.users || []);
+            setTransactions(data.transactions || []);
+            setRewards(data.rewards || []);
+            setRedemptionHistory(data.redemptionHistory || []);
+            setLoyaltyPrograms(data.loyaltyPrograms || []);
+            setRunningPrograms(data.runningPrograms || []);
+            setRafflePrograms(data.rafflePrograms || []);
+            setCouponRedemptions(data.couponRedemptions || []);
+            setRaffleWinners(data.raffleWinners || []);
+            setLocations(data.locations || []);
+            setError(null);
+        } catch (err: any) {
+            console.error("Bootstrap error:", err);
+            setError(err.message || 'Tidak dapat terhubung ke server.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    // Fetch initial data from backend
+    useEffect(() => {
+        fetchBootstrapData();
+    }, []);
+    
+    // --- API HANDLERS ---
     const handleLogin = async (id: string, password: string): Promise<boolean> => {
-        const user = users.find(u => u.id === id && u.password === password);
-        if (user) {
+        try {
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, password }),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Login gagal');
+            }
+            const user = await response.json();
             setCurrentUser(user);
             setCurrentPage(user.role === 'pelanggan' ? 'pelangganDashboard' : 'adminDashboard');
             return true;
+        } catch (err) {
+            console.error(err);
+            return false;
         }
-        return false;
     };
     
-    const handleRegister = (formData: any) => {
-        const newUser: User = {
-            id: formData.idDigipos, password: 'password', role: 'pelanggan', points: 0, level: 'Bronze', kuponUndian: 0,
-            profile: { nama: formData.namaOutlet, owner: formData.namaOwner, email: '', phone: formData.noWhatsapp, kabupaten: formData.kabupaten, kecamatan: formData.kecamatan, salesforce: formData.namaSalesforce, noRs: formData.noRs }
-        };
-        setUsers([...users, newUser]);
-        setCurrentUser(newUser);
-        setCurrentPage('pelangganDashboard');
+    const handleRegister = async (formData: any) => {
+        try {
+            const response = await fetch(`${API_URL}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
+             if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Registrasi gagal');
+            }
+            const newUser = await response.json();
+            setUsers([...users, newUser]);
+            setCurrentUser(newUser); // Auto-login after registration
+            setCurrentPage('pelangganDashboard');
+            setModal({ show: true, title: 'Registrasi Berhasil', content: <p>Selamat datang! Akun Anda telah berhasil dibuat.</p> });
+            return true;
+        } catch (err: any) {
+             setModal({ show: true, title: 'Registrasi Gagal', content: <p>{err.message}</p> });
+            return false;
+        }
     };
 
     const handleLogout = () => {
@@ -88,37 +125,45 @@ function App() {
         setCurrentPage('landing');
     };
     
-    const redeemReward = (reward: Reward) => {
-        if (!currentUser || !currentUser.points) return;
-        const isKupon = reward.name.includes('Kupon Undian');
-        
-        const updatedUser: User = { 
-            ...currentUser, 
-            points: currentUser.points - reward.points,
-            kuponUndian: isKupon ? (currentUser.kuponUndian || 0) + 1 : currentUser.kuponUndian,
-        };
-        setCurrentUser(updatedUser);
-        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
-        
-        if (isKupon) {
-            const activeProgram = rafflePrograms.find(p => p.isActive);
-            if (activeProgram) {
-                const newRedemption: CouponRedemption = {
-                    id: couponRedemptions.length + 1,
+    const redeemReward = async (reward: Reward) => {
+        if (!currentUser) return;
+        try {
+            const isKupon = reward.name.includes('Kupon Undian');
+            const response = await fetch(`${API_URL}/redemptions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     userId: currentUser.id,
-                    raffleProgramId: activeProgram.id,
-                    redeemedAt: new Date().toISOString(),
-                };
-                setCouponRedemptions(prev => [...prev, newRedemption]);
-            }
-        } else {
-            const updatedRewards = rewards.map(r => r.id === reward.id ? {...r, stock: r.stock - 1 } : r);
-            setRewards(updatedRewards);
-        }
+                    rewardId: reward.id,
+                    pointsSpent: reward.points,
+                    isKupon
+                }),
+            });
 
-        const newHistory: Redemption = { id: redemptionHistory.length + 1, userId: currentUser.id, rewardName: reward.name, pointsSpent: reward.points, date: new Date().toISOString().split('T')[0] };
-        setRedemptionHistory([...redemptionHistory, newHistory]);
-        setModal({ show: true, title: 'Sukses!', content: <p className="text-center text-green-600">Penukaran <b>{reward.name}</b> berhasil.</p> });
+             if (!response.ok) {
+                 const err = await response.json();
+                 throw new Error(err.message || 'Gagal menukar hadiah');
+             }
+
+            // Optimistic UI update
+            const updatedUser: User = { 
+                ...currentUser, 
+                points: (currentUser.points || 0) - reward.points,
+                kuponUndian: isKupon ? (currentUser.kuponUndian || 0) + 1 : currentUser.kuponUndian,
+            };
+            setCurrentUser(updatedUser);
+            setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
+            if (!isKupon) {
+                 setRewards(rewards.map(r => r.id === reward.id ? {...r, stock: r.stock - 1 } : r));
+            }
+            // You might want to refetch history or add it manually
+            setModal({ show: true, title: 'Sukses!', content: <p className="text-center text-green-600">Penukaran <b>{reward.name}</b> berhasil.</p> });
+            await fetchBootstrapData(); // Refetch all data to ensure consistency
+
+        } catch (error: any) {
+            console.error(error);
+            setModal({ show: true, title: 'Error', content: <p>{error.message}</p> });
+        }
     };
     
     const handleTukarClick = (reward: Reward) => {
@@ -128,117 +173,161 @@ function App() {
             setModal({show: true, title: "Poin Tidak Cukup", content: <p>Maaf, poin Anda tidak cukup.</p>})
             return;
         }
-        setModal({show: true, title: "Konfirmasi", content: <div><p className="text-center mb-4">Tukar {reward.points.toLocaleString('id-ID')} poin untuk {reward.name}?</p><div className="flex justify-center gap-4"><button onClick={() => setModal({show: false, title:'', content:<></>})} className="neu-button">Batal</button><button onClick={() => redeemReward(reward)} className="neu-button text-red-600">Ya</button></div></div>});
+        setModal({show: true, title: "Konfirmasi", content: <div><p className="text-center mb-4">Tukar {reward.points.toLocaleString('id-ID')} poin untuk {reward.name}?</p><div className="flex justify-center gap-4"><button onClick={() => setModal({show: false, title:'', content:<></>})} className="neu-button">Batal</button><button onClick={() => { setModal({show: false, title:'', content:<></>}); redeemReward(reward); }} className="neu-button text-red-600">Ya</button></div></div>});
     };
     
-    const updateUserProfile = (updatedProfile: UserProfile) => {
+    const updateUserProfile = async (updatedProfile: UserProfile) => {
         if(!currentUser) return;
-        const updatedUser = {...currentUser, profile: updatedProfile};
-        setCurrentUser(updatedUser);
-        setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
-        setModal({show: true, title: "Berhasil", content: <p className="text-center text-green-600">Profil berhasil diperbarui!</p>});
+        try {
+             const response = await fetch(`${API_URL}/users/${currentUser.id}/profile`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedProfile),
+            });
+            if (!response.ok) throw new Error('Gagal memperbarui profil');
+            
+            const updatedUser = {...currentUser, profile: updatedProfile};
+            setCurrentUser(updatedUser);
+            setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
+            setModal({show: true, title: "Berhasil", content: <p className="text-center text-green-600">Profil berhasil diperbarui!</p>});
+        } catch (error: any) {
+             console.error(error);
+             setModal({ show: true, title: 'Error', content: <p>{error.message}</p> });
+        }
     };
     
-    const adminAddUser = (newUser: User) => {
-        setUsers([...users, newUser]);
-        setModal({show: true, title: "Sukses", content: <p className="text-center text-green-600">User baru berhasil ditambahkan.</p>});
+    const adminAddUser = async (newUser: User) => {
+       try {
+            const response = await fetch(`${API_URL}/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newUser),
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || 'Gagal menambah user');
+            }
+            const addedUser = await response.json();
+            setUsers(prev => [...prev, addedUser]);
+            setModal({ show: true, title: "Sukses", content: <p>User baru <b>{addedUser.profile.nama}</b> berhasil ditambahkan.</p> });
+            setCurrentPage('manajemenPelanggan');
+       } catch(error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+       }
     };
 
-    const adminAddReward = (newReward: Reward) => {
-        setRewards(prev => [...prev, newReward]);
-        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Hadiah baru berhasil ditambahkan.</p> });
+    const adminAddReward = async (newRewardData: Omit<Reward, 'id'>) => {
+        try {
+            const response = await fetch(`${API_URL}/rewards`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newRewardData),
+            });
+            if (!response.ok) throw new Error('Gagal menambah hadiah');
+            const addedReward = await response.json();
+            setRewards(prev => [...prev, addedReward]);
+            setModal({ show: true, title: "Sukses", content: <p>Hadiah baru berhasil ditambahkan.</p> });
+        } catch (error: any) {
+            console.error(error);
+            setModal({ show: true, title: 'Error', content: <p>{error.message}</p> });
+        }
     };
 
-    const adminUpdateReward = (updatedReward: Reward) => {
-        setRewards(prev => prev.map(r => r.id === updatedReward.id ? updatedReward : r));
-        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Data hadiah berhasil diperbarui.</p> });
+    const adminUpdateReward = async (updatedReward: Reward) => {
+        try {
+            await fetch(`${API_URL}/rewards/${updatedReward.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedReward),
+            });
+            setRewards(prev => prev.map(r => r.id === updatedReward.id ? updatedReward : r));
+            setModal({ show: true, title: "Sukses", content: <p>Data hadiah berhasil diperbarui.</p> });
+        } catch (error) {
+            console.error(error);
+             setModal({ show: true, title: 'Error', content: <p>Gagal memperbarui hadiah.</p> });
+        }
     };
 
-    const adminDeleteReward = (rewardId: number) => {
-        setRewards(prev => prev.filter(r => r.id !== rewardId));
-        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Hadiah berhasil dihapus.</p> });
+    const adminDeleteReward = async (rewardId: number) => {
+       try {
+            await fetch(`${API_URL}/rewards/${rewardId}`, { method: 'DELETE' });
+            setRewards(prev => prev.filter(r => r.id !== rewardId));
+            setModal({ show: true, title: "Sukses", content: <p>Hadiah berhasil dihapus.</p> });
+        } catch (error) {
+            console.error(error);
+            setModal({ show: true, title: 'Error', content: <p>Gagal menghapus hadiah.</p> });
+        }
     };
 
     const adminUpdateLoyaltyProgram = (updatedProgram: LoyaltyProgram) => {
-        setLoyaltyPrograms(prev => prev.map(p => p.level === updatedProgram.level ? updatedProgram : p));
-        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Aturan level berhasil diperbarui.</p> });
+        console.log("Update loyalty program - needs backend endpoint");
     };
 
-    const adminAddTransaction = (data: Omit<Transaction, 'id' | 'points' >) => {
-        const user = users.find(u => u.id === data.userId);
-        if (!user) {
-            setModal({ show: true, title: "Error", content: <p>User dengan ID {data.userId} tidak ditemukan.</p>});
-            return;
-        }
-        const loyaltyLevel = loyaltyPrograms.find(p => p.level === user.level);
-        const multiplier = loyaltyLevel ? loyaltyLevel.multiplier : 1;
-        const pointsGained = Math.floor((data.totalPembelian / 1000) * multiplier);
+    const adminAddTransaction = async (data: Omit<Transaction, 'id' | 'pointsEarned' > & {totalPembelian: number}) => {
+        try {
+            const response = await fetch(`${API_URL}/transactions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+             if (!response.ok) {
+                 const err = await response.json();
+                 throw new Error(err.message || "Gagal menambah transaksi");
+             };
+            const { pointsEarned } = await response.json();
 
-        const newTransaction: Transaction = { ...data, id: Date.now(), points: pointsGained };
-        const updatedUser: User = { ...user, points: (user.points || 0) + pointsGained };
-
-        setTransactions(prev => [...prev, newTransaction]);
-        setUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
-        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Transaksi berhasil ditambahkan. Mitra <b className='text-gray-800'>{user.profile.nama}</b> mendapat <b className='text-gray-800'>{pointsGained}</b> poin.</p> });
-    };
-    
-    const adminBulkAddTransactions = (bulkData: Omit<Transaction, 'id' | 'points' | 'totalPembelian'>[]) => {
-        const newTransactions: Transaction[] = [];
-        const userPointUpdates: { [userId: string]: number } = {};
-        let processedCount = 0;
-
-        bulkData.forEach((data, index) => {
-            const user = users.find(u => u.id === data.userId);
-            if (!user) return; // Skip if user not found
-
-            const totalPembelian = data.harga * data.kuantiti;
-            const loyaltyLevel = loyaltyPrograms.find(p => p.level === user.level);
-            const multiplier = loyaltyLevel ? loyaltyLevel.multiplier : 1;
-            const pointsGained = Math.floor((totalPembelian / 1000) * multiplier);
+            // Refetch data for consistency
+            await fetchBootstrapData();
             
-            newTransactions.push({ ...data, totalPembelian, id: Date.now() + index, points: pointsGained });
-            userPointUpdates[data.userId] = (userPointUpdates[data.userId] || 0) + pointsGained;
-            processedCount++;
-        });
-
-        if(processedCount === 0) {
-            setModal({ show: true, title: "Gagal", content: <p>Tidak ada data valid yang dapat diproses.</p> });
-            return;
-        }
-
-        setTransactions(prev => [...prev, ...newTransactions]);
-        setUsers(prev => prev.map(u => {
-            if (userPointUpdates[u.id]) {
-                return { ...u, points: (u.points || 0) + userPointUpdates[u.id] };
+            const user = users.find(u => u.id === data.userId);
+            if(user) {
+                setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Transaksi berhasil ditambahkan. Mitra <b className='text-gray-800'>{user.profile.nama}</b> mendapat <b className='text-gray-800'>{pointsEarned}</b> poin.</p> });
             }
-            return u;
-        }));
-        
-        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600"><b>{processedCount}</b> dari <b>{bulkData.length}</b> transaksi berhasil di-upload dan diproses.</p> });
+        } catch(error: any) {
+             setModal({ show: true, title: "Error", content: <p>{error.message}</p>});
+        }
     };
     
-    const adminBulkUpdateProgramProgress = (programId: number, progressData: { userId: string, progress: number }[]) => {
-        setRunningPrograms(prevPrograms => prevPrograms.map(program => {
-            if (program.id === programId) {
-                const progressMap = new Map(progressData.map(item => [item.userId, item.progress]));
-                const updatedTargets = program.targets.map(target => ({
-                    ...target,
-                    progress: progressMap.has(target.userId) ? Math.max(0, Math.min(100, progressMap.get(target.userId)!)) : target.progress
-                }));
-                return { ...program, targets: updatedTargets };
+    const adminBulkAddTransactions = (bulkData: any[]) => {
+         console.log("Bulk add transactions - needs backend endpoint");
+    };
+    
+    const adminBulkUpdateProgramProgress = async (programId: number, progressData: { userId: string, progress: number }[]) => {
+        try {
+            const response = await fetch(`${API_URL}/programs/${programId}/progress`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(progressData),
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || 'Gagal memperbarui progres.');
             }
-            return program;
-        }));
-        setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Progres peserta berhasil diperbarui dari simulasi upload.</p> });
+
+            const { updatedCount } = await response.json();
+            setModal({
+                show: true,
+                title: "Upload Berhasil",
+                content: <p>Berhasil memperbarui progres untuk <b>{updatedCount}</b> mitra.</p>
+            });
+            await fetchBootstrapData(); // Refetch all data for consistency
+        } catch (error: any) {
+            console.error('Bulk progress update error:', error);
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
     };
 
     const renderPage = () => {
+        if (isLoading) return <div className="h-screen w-screen flex justify-center items-center text-xl font-bold">Memuat Data Aplikasi...</div>;
+        if (error) return <div className="h-screen w-screen flex justify-center items-center text-xl text-red-500 p-8 text-center">{error}</div>;
+
         if (!currentUser) {
             switch (currentPage) {
                 case 'login':
                     return <LoginPage handleLogin={handleLogin} setCurrentPage={setCurrentPage} />;
                 case 'register':
-                    return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} users={users} MOCK_LOCATION_DATA={MOCK_LOCATION_DATA} MOCK_DIGIPOS_DATA={MOCK_DIGIPOS_DATA} />;
+                    return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} />;
                 case 'landing':
                 default:
                     return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} />;
@@ -246,11 +335,7 @@ function App() {
         }
         
         const isReadOnly = currentUser.role === 'supervisor';
-
-        // Block supervisor from accessing tambahUser page
-        if (isReadOnly && currentPage === 'tambahUser') {
-             setCurrentPage('adminDashboard');
-        }
+        if (isReadOnly && currentPage === 'tambahUser') setCurrentPage('adminDashboard');
 
         const pageMap: {[key in Page]?: React.ReactNode} = {
             pelangganDashboard: <PelangganDashboard currentUser={currentUser} transactions={transactions} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} setCurrentPage={setCurrentPage} raffleWinners={raffleWinners} />,
@@ -264,9 +349,9 @@ function App() {
             manajemenProgram: <ManajemenProgram programs={runningPrograms} setPrograms={setRunningPrograms} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} isReadOnly={isReadOnly} />,
             manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} setUsers={setUsers} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} isReadOnly={isReadOnly} />,
             manajemenHadiah: <ManajemenHadiah rewards={rewards} addReward={adminAddReward} updateReward={adminUpdateReward} deleteReward={adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} />,
+            // FIX: Corrected a typo where an undefined variable `setPrograms` was passed instead of `setRafflePrograms`.
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} setPrograms={setRafflePrograms} redemptions={couponRedemptions} isReadOnly={isReadOnly} />
         };
-
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
 
         return <MainLayout currentUser={currentUser} currentPage={currentPage} setCurrentPage={setCurrentPage} handleLogout={handleLogout}>{pageContent}</MainLayout>

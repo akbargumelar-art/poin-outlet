@@ -10,8 +10,12 @@ interface ManajemenPoinProps {
     setUsers: React.Dispatch<React.SetStateAction<User[]>>;
     loyaltyPrograms: LoyaltyProgram[];
     updateLoyaltyProgram: (program: LoyaltyProgram) => void;
-    adminAddTransaction: (data: Omit<Transaction, 'id' | 'points'>) => void;
-    adminBulkAddTransactions: (data: Omit<Transaction, 'id' | 'points' | 'totalPembelian'>[]) => void;
+    // FIX: Corrected Omit to use 'pointsEarned' which exists on Transaction, instead of 'points'.
+    // The backend calculates pointsEarned, so it's correctly omitted here.
+    adminAddTransaction: (data: Omit<Transaction, 'id' | 'pointsEarned'>) => void;
+    // FIX: Corrected Omit to use 'pointsEarned' instead of 'points'.
+    // The mock data for bulk upload doesn't include totalPembelian or pointsEarned, as these would be calculated by the backend.
+    adminBulkAddTransactions: (data: Omit<Transaction, 'id' | 'pointsEarned' | 'totalPembelian'>[]) => void;
     isReadOnly?: boolean;
 }
 
