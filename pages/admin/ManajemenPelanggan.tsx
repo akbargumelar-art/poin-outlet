@@ -57,21 +57,46 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
     };
     
     const handleExport = () => {
-        const params = new URLSearchParams();
-        if (tapFilter) params.append('tap', tapFilter);
-        if (salesforceFilter) params.append('salesforce', salesforceFilter);
-        if (searchTerm) params.append('search', searchTerm);
+        if (filteredUsers.length === 0) {
+            alert("Tidak ada data untuk diekspor dengan filter yang dipilih.");
+            return;
+        }
+    
+        const csvHeader = ['ID Digipos', 'Nama Outlet', 'Nama Owner', 'No. WhatsApp', 'TAP', 'Salesforce', 'Level', 'Poin', 'Kupon Undian', 'Total Pembelian'].join(',');
         
-        const url = `/api/users/export?${params.toString()}`;
+        const csvRows = filteredUsers.map(u => {
+            const totalPembelian = userTotals.get(u.id)?.totalPembelian || 0;
+            const owner = u.profile.owner || '';
+            const cleanName = `"${u.profile.nama.replace(/"/g, '""')}"`;
+            const cleanOwner = `"${owner.replace(/"/g, '""')}"`;
+    
+            return [
+                u.id,
+                cleanName,
+                cleanOwner,
+                u.profile.phone,
+                u.profile.tap,
+                u.profile.salesforce,
+                u.level,
+                u.points || 0,
+                u.kuponUndian || 0,
+                totalPembelian
+            ].join(',');
+        });
+    
+        const csv = [csvHeader, ...csvRows].join('\n');
         
-        // Create a temporary link to trigger the download
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
-        link.href = url;
-        // The backend will set the filename, but this is a good fallback.
-        link.setAttribute('download', 'mitra_export.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'mitra_export.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     };
 
     const chartData = useMemo(() => {

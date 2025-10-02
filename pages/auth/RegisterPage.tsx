@@ -2,16 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Page, Location } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
-
-const API_URL = '/api';
+import { digiposMasterData as defaultDigiposData } from '../../data/mockData'; // Import mock data
 
 interface RegisterPageProps {
     handleRegister: (formData: any) => Promise<boolean>;
     setCurrentPage: (page: Page) => void;
     locations: Location[];
+    digiposMasterData: typeof defaultDigiposData; // Prop for master data
 }
 
-const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations }) => {
+const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations, digiposMasterData }) => {
     const [formData, setFormData] = useState({
         idDigipos: '',
         namaOutlet: '',
@@ -27,6 +27,33 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     const [isVerifying, setIsVerifying] = useState(false);
     const [digiposError, setDigiposError] = useState('');
     const [isDigiposVerified, setIsDigiposVerified] = useState(false);
+
+    const verifyDigiposId = (id: string) => {
+        setIsVerifying(true);
+        setDigiposError('');
+        // Simulate async verification with a timeout
+        setTimeout(() => {
+            const record = digiposMasterData.find(d => d.id_digipos === id);
+    
+            if (!record) {
+                setDigiposError('ID Digipos tidak ditemukan di master data.');
+                setIsDigiposVerified(false);
+            } else if (record.is_registered) {
+                setDigiposError('ID Digipos sudah terdaftar.');
+                setIsDigiposVerified(false);
+            } else {
+                setFormData(prev => ({
+                    ...prev,
+                    namaOutlet: record.nama_outlet,
+                    noRs: record.no_rs,
+                    salesforce: record.salesforce,
+                }));
+                setIsDigiposVerified(true);
+            }
+            setIsVerifying(false);
+        }, 500); // 500ms delay to simulate network
+    };
+
 
     // Debounce for Digipos ID verification
     useEffect(() => {
@@ -59,31 +86,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
             setFormData(prev => ({...prev, kecamatan: ''}));
         }
     }, [formData.kabupaten, kecamatanOptions]);
-
-    const verifyDigiposId = async (id: string) => {
-        setIsVerifying(true);
-        setDigiposError('');
-        try {
-            const response = await fetch(`${API_URL}/digipos-info/${id}`);
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Error Verifikasi');
-            }
-            setFormData(prev => ({
-                ...prev,
-                namaOutlet: data.namaOutlet,
-                noRs: data.noRs,
-                salesforce: data.salesforce,
-            }));
-            setIsDigiposVerified(true);
-        } catch (error: any) {
-            setDigiposError(error.message);
-            setIsDigiposVerified(false);
-             setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '', salesforce: ''}));
-        } finally {
-            setIsVerifying(false);
-        }
-    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
