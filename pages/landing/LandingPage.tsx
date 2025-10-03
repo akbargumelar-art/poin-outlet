@@ -1,3 +1,4 @@
+
 import React, { useRef } from 'react';
 import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -109,7 +110,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                                 <p className="text-gray-600 flex-grow min-h-[70px]">{p.mechanism}</p>
                                                 <div className="mt-6">
                                                     <p className="font-semibold text-gray-500 text-sm">Raih Hadiah Utama</p>
-                                                    <p className="text-xl font-bold text-red-600 my-1">{p.prize}</p>
+                                                    <p className="text-xl font-bold text-red-600 my-1">{p.prizeDescription}</p>
                                                 </div>
                                             </div>
                                             <div className="p-4 pt-0">

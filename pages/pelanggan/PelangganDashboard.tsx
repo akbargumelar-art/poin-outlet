@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { User, Transaction, LoyaltyProgram, RunningProgram, Page, RaffleWinner } from '../../types';
 import PemenangUndian from '../../components/PemenangUndian';
@@ -34,6 +35,18 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
         const endDate = new Date(end).toLocaleDateString('id-ID', options);
         return `${startDate} - ${endDate}`;
     };
+    
+    const getEstimatedPrize = (program: RunningProgram, progress: number): string | null => {
+        if (program.prizeCategory === 'Uang Tunai' || program.prizeCategory === 'Saldo') {
+            const prizeValue = parseInt(program.prizeDescription.replace(/[^0-9]/g, ''), 10);
+            if (!isNaN(prizeValue)) {
+                const estimatedValue = Math.floor((progress / 100) * prizeValue);
+                return `Estimasi: Rp ${estimatedValue.toLocaleString('id-ID')}`;
+            }
+        }
+        return null;
+    };
+
 
     return (
         <div className="space-y-6">
@@ -112,6 +125,7 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                     <div className="space-y-6">
                         {displayedPrograms.map(program => {
                             const userProgress = program.targets.find(t => t.userId === currentUser.id)?.progress || 0;
+                            const estimatedPrize = getEstimatedPrize(program, userProgress);
                             return (
                                 <div key={program.id} className="border-t border-gray-200/80 pt-4 first:pt-0 first:border-none">
                                     <div className="flex justify-between items-start">
@@ -119,7 +133,10 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                                             <h3 className="text-lg font-bold text-gray-800">{program.name}</h3>
                                             <p className="text-xs text-gray-500">{formatDateRange(program.startDate, program.endDate)}</p>
                                         </div>
-                                        <p className="text-sm text-right text-red-500 font-semibold flex-shrink-0 ml-2">{program.prize}</p>
+                                        <div className="text-right flex-shrink-0 ml-2">
+                                            <p className="text-sm text-right text-red-500 font-semibold">{program.prizeDescription}</p>
+                                            <p className="text-xs text-gray-500">{program.prizeCategory}</p>
+                                        </div>
                                     </div>
                                     <div className="mt-2">
                                         <div className="w-full rounded-full h-6 neu-inset p-1">
@@ -127,6 +144,7 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                                                 {userProgress}%
                                             </div>
                                         </div>
+                                        {estimatedPrize && <p className="text-xs text-right mt-1 text-green-600 font-semibold">{estimatedPrize}</p>}
                                     </div>
                                 </div>
                             )

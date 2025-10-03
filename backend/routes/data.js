@@ -1,3 +1,4 @@
+
 const express = require('express');
 const db = require('../db');
 const bcrypt = require('bcryptjs');
@@ -115,7 +116,7 @@ router.get('/bootstrap', async (req, res) => {
         const [
             users, transactions, rewards, redemptions, loyaltyPrograms, 
             runningPrograms, runningProgramTargets, rafflePrograms, 
-            couponRedemptions, raffleWinners, locations, settings
+            couponRedemptions, raffleWinners, locations
         ] = await Promise.all([
             safeQueryDB('SELECT * FROM users'),
             safeQueryDB('SELECT * FROM transactions ORDER BY date DESC'),
@@ -128,7 +129,6 @@ router.get('/bootstrap', async (req, res) => {
             safeQueryDB('SELECT * FROM coupon_redemptions'),
             safeQueryDB('SELECT * FROM raffle_winners'),
             safeQueryDB('SELECT * FROM locations'),
-            safeQueryDB('SELECT * FROM app_settings'),
         ]);
 
         const parsedUsers = parseNumerics(users, ['points', 'kupon_undian']);
@@ -145,17 +145,6 @@ router.get('/bootstrap', async (req, res) => {
                 .filter(t => t.program_id === p.id)
                 .map(t => toCamelCase(t))
         }));
-        
-        const appSettings = settings.reduce((acc, setting) => {
-            let value = setting.setting_value;
-            // Convert '0'/'1' to boolean for boolean-like settings
-            if (setting.setting_key === 'raffle_redemption_enabled') {
-                value = value === '1';
-            }
-            acc[toCamelCase(setting.setting_key)] = value;
-            return acc;
-        }, {});
-
 
         res.json({
             users: structuredUsers,
@@ -168,7 +157,6 @@ router.get('/bootstrap', async (req, res) => {
             couponRedemptions: couponRedemptions.map(c => toCamelCase(c)),
             raffleWinners: raffleWinners.map(w => toCamelCase(w)),
             locations: locations.map(l => toCamelCase(l)),
-            appSettings: appSettings,
         });
     } catch (error) {
         // --- IMPROVED ERROR LOGGING ---
@@ -476,17 +464,19 @@ router.post('/rewards/:id/photo', rewardUpload.single('photo'), async (req, res)
 
 // PROGRAM MANAGEMENT
 router.post('/programs', async (req, res) => {
-    const { name, mechanism, prize, startDate, endDate } = req.body;
+    const { name, mechanism, prizeCategory, prizeDescription, startDate, endDate } = req.body;
     const imageUrl = '/uploads/programs/default.png'; // Default image
-    const [result] = await db.execute('INSERT INTO running_programs (name, mechanism, prize, start_date, end_date, image_url) VALUES (?, ?, ?, ?, ?, ?)', [name, mechanism, prize, startDate, endDate, imageUrl]);
-    res.status(201).json({ id: result.insertId, name, mechanism, prize, startDate, endDate, imageUrl, targets: [] });
+    const sql = 'INSERT INTO running_programs (name, mechanism, prize_category, prize_description, start_date, end_date, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    const [result] = await db.execute(sql, [name, mechanism, prizeCategory, prizeDescription, startDate, endDate, imageUrl]);
+    res.status(201).json({ id: result.insertId, name, mechanism, prizeCategory, prizeDescription, startDate, endDate, imageUrl, targets: [] });
 });
 
 router.put('/programs/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, mechanism, prize, startDate, endDate } = req.body;
-    await db.execute('UPDATE running_programs SET name=?, mechanism=?, prize=?, start_date=?, end_date=? WHERE id = ?', [name, mechanism, prize, startDate, endDate, id]);
-    res.json({ id: parseInt(id), name, mechanism, prize, startDate, endDate });
+    const { name, mechanism, prizeCategory, prizeDescription, startDate, endDate } = req.body;
+    const sql = 'UPDATE running_programs SET name=?, mechanism=?, prize_category=?, prize_description=?, start_date=?, end_date=? WHERE id = ?';
+    await db.execute(sql, [name, mechanism, prizeCategory, prizeDescription, startDate, endDate, id]);
+    res.json({ id: parseInt(id), name, mechanism, prizeCategory, prizeDescription, startDate, endDate });
 });
 
 router.post('/programs/:id/photo', programUpload.single('photo'), async (req, res) => {
@@ -495,57 +485,6 @@ router.post('/programs/:id/photo', programUpload.single('photo'), async (req, re
     const imageUrl = `/uploads/programs/${req.file.filename}`;
     await db.execute('UPDATE running_programs SET image_url = ? WHERE id = ?', [imageUrl, id]);
     res.json({ message: 'Upload berhasil', imageUrl });
-});
-
-// APP SETTINGS MANAGEMENT
-router.get('/settings', async (req, res) => {
-    try {
-        const [settings] = await db.execute('SELECT * FROM app_settings');
-        const settingsObj = settings.reduce((acc, setting) => {
-            acc[toCamelCase(setting.setting_key)] = setting.setting_value;
-            return acc;
-        }, {});
-        res.json(settingsObj);
-    } catch (error) {
-        res.status(500).json({ message: 'Gagal mengambil pengaturan.' });
-    }
-});
-
-router.put('/settings/raffle_redemption', async (req, res) => {
-    const { enabled } = req.body;
-    const valueToSet = enabled ? '1' : '0';
-    const keyToUpdate = 'raffle_redemption_enabled';
-
-    const connection = await db.getConnection();
-    try {
-        // 1. Check if the setting already exists
-        const [rows] = await connection.execute(
-            'SELECT setting_key FROM app_settings WHERE setting_key = ?',
-            [keyToUpdate]
-        );
-
-        if (rows.length > 0) {
-            // 2. If it exists, UPDATE it
-            await connection.execute(
-                'UPDATE app_settings SET setting_value = ? WHERE setting_key = ?',
-                [valueToSet, keyToUpdate]
-            );
-        } else {
-            // 3. If it doesn't exist, INSERT it
-            await connection.execute(
-                'INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?)',
-                [keyToUpdate, valueToSet]
-            );
-        }
-        
-        res.json({ message: 'Pengaturan berhasil diperbarui.' });
-
-    } catch (error) {
-        console.error('Update settings error:', error);
-        res.status(500).json({ message: 'Gagal memperbarui pengaturan.' });
-    } finally {
-        connection.release();
-    }
 });
 
 

@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { User, Reward, RaffleProgram, LoyaltyProgram, AppSettings } from '../../types';
+import { User, Reward, RaffleProgram, LoyaltyProgram } from '../../types';
 
 interface TukarPoinProps {
     currentUser: User;
@@ -7,10 +8,9 @@ interface TukarPoinProps {
     handleTukarClick: (reward: Reward) => void;
     rafflePrograms: RaffleProgram[];
     loyaltyPrograms: LoyaltyProgram[];
-    appSettings: AppSettings;
 }
 
-const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukarClick, rafflePrograms, loyaltyPrograms, appSettings }) => {
+const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukarClick, rafflePrograms, loyaltyPrograms }) => {
     const userPoints = currentUser.points || 0;
     const kuponUndianReward = rewards.find(r => r.name.includes('Kupon Undian'));
     const otherRewards = rewards.filter(r => !r.name.includes('Kupon Undian'));
@@ -53,7 +53,7 @@ const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukar
                 </div>
             </div>
 
-            {appSettings.raffleRedemptionEnabled && kuponUndianReward && (
+            {kuponUndianReward && (
                 <div className="neu-card p-6 my-8 bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex flex-col md:flex-row items-center justify-between gap-6">
                     <div>
                         <h2 className="text-2xl font-bold">Tukar Poin Jadi Kesempatan!</h2>

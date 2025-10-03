@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Reward, LoyaltyProgram, AppSettings } from '../../types';
+import { Reward, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
@@ -96,11 +97,9 @@ interface ManajemenHadiahProps {
     isReadOnly?: boolean;
     loyaltyPrograms: LoyaltyProgram[];
     updateLoyaltyProgram: (program: LoyaltyProgram) => void;
-    appSettings: AppSettings;
-    updateRaffleSetting: (isEnabled: boolean) => void;
 }
 
-const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, deleteReward, isReadOnly, loyaltyPrograms, updateLoyaltyProgram, appSettings, updateRaffleSetting }) => {
+const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, deleteReward, isReadOnly, loyaltyPrograms, updateLoyaltyProgram }) => {
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingReward, setEditingReward] = useState<Reward | undefined>(undefined);
     const [deletingReward, setDeletingReward] = useState<Reward | null>(null);
@@ -175,24 +174,7 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
                     </button>
                 )}
             </div>
-
-            <div className="neu-card p-6 mb-8">
-                <h2 className="text-xl font-bold text-gray-700 mb-4">Pengaturan Global</h2>
-                <div className="neu-card-flat p-4 flex justify-between items-center">
-                    <div>
-                        <p className="font-bold text-gray-800">Aktifkan Penukaran Poin Undian</p>
-                        <p className="text-sm text-gray-500">Jika nonaktif, fitur tukar poin jadi kupon akan hilang di halaman Mitra.</p>
-                    </div>
-                    <button
-                        onClick={() => updateRaffleSetting(!appSettings.raffleRedemptionEnabled)}
-                        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${appSettings.raffleRedemptionEnabled ? 'bg-green-600' : 'bg-gray-300'}`}
-                        disabled={isReadOnly}
-                    >
-                        <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${appSettings.raffleRedemptionEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                </div>
-            </div>
-
+            
             <div className="neu-card p-6 mb-8">
                 <h2 className="text-xl font-bold text-gray-700 mb-4">Aturan Level Loyalitas</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { RunningProgram } from '../../types';
+import { RunningProgram, PrizeCategory } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
@@ -14,7 +15,8 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
     const [formData, setFormData] = useState(program || { 
         name: '', 
         mechanism: '', 
-        prize: '', 
+        prizeCategory: 'Barang' as PrizeCategory,
+        prizeDescription: '', 
         startDate: new Date().toISOString().split('T')[0],
         endDate: '',
         imageUrl: '',
@@ -23,7 +25,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
     const [photoPreview, setPhotoPreview] = useState<string | null>(program?.imageUrl || null);
 
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
@@ -53,11 +55,24 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
                     <input name="endDate" type="date" value={formData.endDate} onChange={handleChange} className="input-field" required />
                 </div>
             </div>
-            <input name="prize" value={formData.prize} onChange={handleChange} placeholder="Hadiah Utama" className="input-field" required />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                     <label className="text-sm font-semibold text-gray-600 mb-1 block">Kategori Hadiah</label>
+                     <select name="prizeCategory" value={formData.prizeCategory} onChange={handleChange} className="input-field">
+                        <option value="Barang">Barang</option>
+                        <option value="Uang Tunai">Uang Tunai</option>
+                        <option value="Saldo">Saldo</option>
+                     </select>
+                </div>
+                <div>
+                    <label className="text-sm font-semibold text-gray-600 mb-1 block">Deskripsi Hadiah</label>
+                    <input name="prizeDescription" value={formData.prizeDescription} onChange={handleChange} placeholder="e.g., iPhone 15 atau 5.000.000" className="input-field" required />
+                </div>
+            </div>
              <div>
-                 <label className="block text-gray-600 text-sm font-semibold mb-2">Key Visual Program</label>
+                 <label className="block text-gray-600 text-sm font-semibold mb-2">Key Visual Program (Potrait)</label>
                  <div className="flex items-center gap-4">
-                     {photoPreview && <img src={photoPreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg neu-inset p-1" />}
+                     {photoPreview && <img src={photoPreview} alt="Preview" className="w-20 h-28 object-cover rounded-lg neu-inset p-1" />}
                      <label htmlFor="program-photo-upload" className="neu-button !w-auto px-4 cursor-pointer">Pilih File</label>
                      <input id="program-photo-upload" type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
                  </div>
@@ -179,7 +194,7 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, onSave, a
                                 )}
                             </div>
                             <p className="text-gray-700 mt-2">{p.mechanism}</p>
-                            <p className="text-md font-semibold text-gray-800 mt-2">Hadiah: <span className="font-bold text-red-600">{p.prize}</span></p>
+                            <p className="text-md font-semibold text-gray-800 mt-2">Hadiah: <span className="font-bold text-red-600">{p.prizeDescription} ({p.prizeCategory})</span></p>
                              <p className="text-sm font-semibold text-gray-800 mt-1">Peserta: <span className="font-bold text-gray-600">{p.targets.length} Mitra</span></p>
                         </div>
                     </div>

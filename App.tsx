@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, AppSettings } from './types';
+import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, PrizeCategory } from './types';
 
 import Modal from './components/common/Modal';
 import MainLayout from './components/layout/MainLayout';
@@ -36,7 +37,6 @@ function App() {
     const [couponRedemptions, setCouponRedemptions] = useState<CouponRedemption[]>([]);
     const [raffleWinners, setRaffleWinners] = useState<RaffleWinner[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
-    const [appSettings, setAppSettings] = useState<AppSettings>({ raffleRedemptionEnabled: true });
 
 
     const fetchBootstrapData = async () => {
@@ -54,7 +54,6 @@ function App() {
             setCouponRedemptions(data.couponRedemptions || []);
             setRaffleWinners(data.raffleWinners || []);
             setLocations(data.locations || []);
-            setAppSettings(data.appSettings || { raffleRedemptionEnabled: true });
         } catch (error) {
             console.error("Bootstrap failed:", error);
             setModal({ show: true, title: "Error", content: <p>Gagal memuat data dari server. Silakan coba lagi nanti.</p> });
@@ -294,7 +293,7 @@ function App() {
         }
     };
 
-    const saveProgram = async (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => {
+    const saveProgram = async (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number; prizeCategory: PrizeCategory; prizeDescription: string; }, photoFile: File | null) => {
         try {
             const method = programData.id ? 'PUT' : 'POST';
             const url = programData.id ? `/api/programs/${programData.id}` : '/api/programs';
@@ -324,21 +323,6 @@ function App() {
             await fetchBootstrapData();
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
-        }
-    };
-
-    const updateRaffleSetting = async (isEnabled: boolean) => {
-        try {
-            const response = await fetch('/api/settings/raffle_redemption', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: isEnabled }),
-            });
-            if (!response.ok) throw new Error('Gagal memperbarui pengaturan.');
-            setAppSettings(prev => ({ ...prev, raffleRedemptionEnabled: isEnabled }));
-            setModal({ show: true, title: "Sukses", content: <p>Pengaturan berhasil diperbarui.</p> });
-        } catch (error: any) {
-             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
     };
 
@@ -381,14 +365,14 @@ function App() {
             pelangganDashboard: <PelangganDashboard currentUser={currentUser} transactions={transactions} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} setCurrentPage={setCurrentPage} raffleWinners={raffleWinners} />,
             historyPembelian: <HistoryPembelian currentUser={currentUser} transactions={transactions} redemptionHistory={redemptionHistory} />,
             pencapaianProgram: <PencapaianProgram currentUser={currentUser} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} />,
-            tukarPoin: <TukarPoin currentUser={currentUser} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} loyaltyPrograms={loyaltyPrograms} appSettings={appSettings} />,
+            tukarPoin: <TukarPoin currentUser={currentUser} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} loyaltyPrograms={loyaltyPrograms} />,
             editProfile: <EditProfilePage currentUser={currentUser} updateUserProfile={updateUserProfile} handleLogout={handleLogout} />,
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms}/>,
             manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
             manajemenProgram: <ManajemenProgram programs={runningPrograms} onSave={saveProgram} adminBulkUpdateProgramProgress={getMockFunctionality().adminBulkUpdateProgramProgress} isReadOnly={isReadOnly} />,
             manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} setUsers={setUsers} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={getMockFunctionality().adminBulkAddTransactions} isReadOnly={isReadOnly} />,
-            manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={getMockFunctionality().adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} appSettings={appSettings} updateRaffleSetting={updateRaffleSetting} />,
+            manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={getMockFunctionality().adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} />,
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} setPrograms={setRafflePrograms} redemptions={couponRedemptions} isReadOnly={isReadOnly} />
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;

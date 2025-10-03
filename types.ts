@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'pelanggan' | 'supervisor';
 export type Page = 
     | 'landing'
@@ -93,11 +94,14 @@ export interface RunningProgramTarget {
     progress: number;
 }
 
+export type PrizeCategory = 'Barang' | 'Uang Tunai' | 'Saldo';
+
 export interface RunningProgram {
     id: number;
     name: string;
     mechanism: string;
-    prize: string;
+    prizeCategory: PrizeCategory;
+    prizeDescription: string;
     startDate: string; // ISO date string e.g. "2025-09-01"
     endDate: string;   // ISO date string e.g. "2025-09-30"
     imageUrl: string;
@@ -131,8 +135,4 @@ export interface Location {
     id: number;
     kabupaten: string;
     kecamatan: string;
-}
-
-export interface AppSettings {
-    raffleRedemptionEnabled: boolean;
 }

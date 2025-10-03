@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { User, Page } from '../../types';
 import { ICONS } from '../../constants';
@@ -60,7 +61,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
                     </button>
                 </div>
             </header>
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 animate-fade-in-up">{children}</main>
+            <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 animate-fade-in-up">
+                <div className="max-w-7xl mx-auto w-full">
+                    {children}
+                </div>
+            </main>
             <nav className="fixed bottom-0 left-0 right-0 h-16 bg-transparent flex justify-around items-center z-50">
                 <div className="neu-card-flat w-full h-full flex justify-around items-center rounded-t-2xl md:rounded-none">
                     {navItems.map(item => {

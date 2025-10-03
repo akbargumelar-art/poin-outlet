@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, RaffleProgram, CouponRedemption } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -211,19 +212,21 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, setP
                              {tapChartData.stats.length > 0 && (
                                 <div className="mb-6 p-4 neu-card-flat">
                                      <h5 className="font-semibold text-gray-700 mb-4 text-center">Grafik Partisipasi per TAP</h5>
-                                     <div className="flex justify-around items-end h-48 pt-4 space-x-2 border-b border-gray-200">
-                                        {tapChartData.stats.map(({ tap, outletCount, couponCount }) => (
-                                            <div key={tap} className="flex flex-col items-center justify-end flex-1 h-full">
-                                                <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{outletCount}</div>
-                                                <div 
-                                                    className="w-full bg-gradient-to-t from-red-600 to-red-500 rounded-t-md transition-all duration-500 ease-out"
-                                                    style={{ height: `${(outletCount / tapChartData.maxCount) * 100}%` }}
-                                                    title={`${outletCount} Mitra | ${couponCount.toLocaleString('id-ID')} Kupon`}
-                                                ></div>
-                                                <div className="text-center mt-1 w-full"><p className="font-bold text-gray-600 text-sm truncate">{tap}</p></div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                     <div className="overflow-x-auto">
+                                        <div className="flex justify-around items-end h-48 pt-4 space-x-2 border-b border-gray-200 min-w-[600px]">
+                                            {tapChartData.stats.map(({ tap, outletCount, couponCount }) => (
+                                                <div key={tap} className="flex flex-col items-center justify-end flex-1 h-full">
+                                                    <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{outletCount}</div>
+                                                    <div 
+                                                        className="w-full bg-gradient-to-t from-red-600 to-red-500 rounded-t-md transition-all duration-500 ease-out"
+                                                        style={{ height: `${(outletCount / tapChartData.maxCount) * 100}%` }}
+                                                        title={`${outletCount} Mitra | ${couponCount.toLocaleString('id-ID')} Kupon`}
+                                                    ></div>
+                                                    <div className="text-center mt-1 w-full"><p className="font-bold text-gray-600 text-sm truncate">{tap}</p></div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                     </div>
                                 </div>
                              )}
 
