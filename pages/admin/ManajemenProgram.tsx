@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { RunningProgram, PrizeCategory } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { RunningProgram, PrizeCategory, User } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
 
+// --- Form Component ---
 interface ProgramFormProps {
     program?: Omit<RunningProgram, 'targets'>;
     onSave: (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => void;
@@ -142,18 +143,97 @@ const UploadProgressModal: React.FC<{
     );
 };
 
+const ManageParticipantsModal: React.FC<{
+    program: RunningProgram;
+    allUsers: User[];
+    onClose: () => void;
+    onSave: (participantIds: string[]) => void;
+}> = ({ program, allUsers, onClose, onSave }) => {
+    const [participantIds, setParticipantIds] = useState<Set<string>>(() => new Set(program.targets.map(t => t.userId)));
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const participants = useMemo(() => allUsers.filter(u => participantIds.has(u.id)), [allUsers, participantIds]);
+    
+    const availableUsers = useMemo(() => {
+        const lowercasedSearch = searchTerm.toLowerCase();
+        return allUsers.filter(u => 
+            !participantIds.has(u.id) &&
+            (u.profile.nama.toLowerCase().includes(lowercasedSearch) || u.id.toLowerCase().includes(lowercasedSearch))
+        );
+    }, [allUsers, participantIds, searchTerm]);
+    
+    const toggleParticipant = (userId: string) => {
+        setParticipantIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(userId)) {
+                newSet.delete(userId);
+            } else {
+                newSet.add(userId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleSave = () => {
+        onSave(Array.from(participantIds));
+    };
+
+    return (
+        <Modal show={true} onClose={onClose} title={`Kelola Peserta: ${program.name}`}>
+            <div className="grid grid-cols-2 gap-4 h-[60vh]">
+                <div>
+                    <h4 className="font-bold mb-2">Peserta Terdaftar ({participants.length})</h4>
+                    <div className="neu-inset p-2 h-[calc(100%-6rem)] overflow-y-auto">
+                        {participants.map(user => (
+                            <div key={user.id} onClick={() => toggleParticipant(user.id)} className="p-2 rounded-lg cursor-pointer hover:bg-red-100 flex justify-between items-center">
+                                <span>{user.profile.nama}</span>
+                                <Icon path={ICONS.chevronRight} className="w-5 h-5 text-red-500"/>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                     <h4 className="font-bold mb-2">Mitra Tersedia</h4>
+                    <input 
+                        type="text"
+                        placeholder="Cari mitra..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="input-field mb-2"
+                    />
+                    <div className="neu-inset p-2 h-[calc(100%-6rem)] overflow-y-auto">
+                        {availableUsers.map(user => (
+                             <div key={user.id} onClick={() => toggleParticipant(user.id)} className="p-2 rounded-lg cursor-pointer hover:bg-green-100 flex justify-between items-center">
+                                 <Icon path={ICONS.chevronLeft} className="w-5 h-5 text-green-500"/>
+                                <span>{user.profile.nama}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+             <div className="flex justify-center gap-4 mt-4">
+                <button onClick={onClose} className="neu-button">Batal</button>
+                <button onClick={handleSave} className="neu-button text-red-600">Simpan Perubahan</button>
+            </div>
+        </Modal>
+    );
+};
+
 
 interface ManajemenProgramProps {
     programs: RunningProgram[];
+    allUsers: User[];
     onSave: (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => void;
     adminBulkUpdateProgramProgress: (programId: number, file: File) => void;
+    adminUpdateProgramParticipants: (programId: number, participantIds: string[]) => void;
     isReadOnly?: boolean;
 }
 
-const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, onSave, adminBulkUpdateProgramProgress, isReadOnly }) => {
+const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers, onSave, adminBulkUpdateProgramProgress, adminUpdateProgramParticipants, isReadOnly }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingProgram, setEditingProgram] = useState<RunningProgram | undefined>(undefined);
     const [uploadingProgram, setUploadingProgram] = useState<RunningProgram | null>(null);
+    const [managingParticipantsProgram, setManagingParticipantsProgram] = useState<RunningProgram | null>(null);
 
     const handleSave = (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => {
         onSave(programData, photoFile);
@@ -181,6 +261,12 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, onSave, a
         adminBulkUpdateProgramProgress(uploadingProgram.id, file);
         setUploadingProgram(null);
     };
+
+    const handleSaveParticipants = (participantIds: string[]) => {
+        if (!managingParticipantsProgram) return;
+        adminUpdateProgramParticipants(managingParticipantsProgram.id, participantIds);
+        setManagingParticipantsProgram(null);
+    };
     
     const formatDateRange = (start: string, end: string) => {
         const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
@@ -202,6 +288,15 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, onSave, a
                 />
             )}
 
+            {managingParticipantsProgram && (
+                <ManageParticipantsModal
+                    program={managingParticipantsProgram}
+                    allUsers={allUsers}
+                    onClose={() => setManagingParticipantsProgram(null)}
+                    onSave={handleSaveParticipants}
+                />
+            )}
+
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-700">Manajemen Program Berjalan</h1>
                 {!isReadOnly && <button onClick={openAddModal} className="neu-button !w-auto px-6 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5" />Tambah</button>}
@@ -218,7 +313,8 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, onSave, a
                                     <p className="text-sm text-gray-500 bg-slate-200/50 inline-block px-2 py-1 rounded-md mt-1">{formatDateRange(p.startDate, p.endDate)}</p>
                                 </div>
                                 {!isReadOnly && (
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 flex-wrap justify-end">
+                                        <button title="Kelola Peserta" onClick={() => setManagingParticipantsProgram(p)} className="neu-button-icon text-purple-600"><Icon path={ICONS.users} className="w-5 h-5"/></button>
                                         <button title="Upload Pencapaian" onClick={() => setUploadingProgram(p)} className="neu-button-icon text-green-600"><Icon path={ICONS.upload} className="w-5 h-5"/></button>
                                         <button title="Edit Program" onClick={() => openEditModal(p)} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5"/></button>
                                         <button title="Hapus Program" onClick={() => handleDelete(p.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5"/></button>

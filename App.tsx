@@ -325,6 +325,24 @@ function App() {
         }
     };
 
+    const adminUpdateProgramParticipants = async (programId: number, participantIds: string[]) => {
+        try {
+            const response = await fetch(`/api/programs/${programId}/participants`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ participantIds }),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Gagal memperbarui daftar peserta.');
+            }
+            setModal({ show: true, title: "Sukses", content: <p>{result.message}</p> });
+            await fetchBootstrapData();
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    };
+
     const adminBulkUpdateProgramProgress = async (programId: number, file: File) => {
         try {
             const formData = new FormData();
@@ -394,7 +412,7 @@ function App() {
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms}/>,
             manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
-            manajemenProgram: <ManajemenProgram programs={runningPrograms} onSave={saveProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} isReadOnly={isReadOnly} />,
+            manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} isReadOnly={isReadOnly} />,
             manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} setUsers={setUsers} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={getMockFunctionality().adminBulkAddTransactions} isReadOnly={isReadOnly} />,
             manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={getMockFunctionality().adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} />,
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} setPrograms={setRafflePrograms} redemptions={couponRedemptions} isReadOnly={isReadOnly} />

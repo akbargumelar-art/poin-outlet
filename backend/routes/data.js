@@ -509,6 +509,42 @@ router.post('/programs/:id/photo', programUpload.single('photo'), async (req, re
     }
 });
 
+// UPDATE PROGRAM PARTICIPANTS
+router.put('/programs/:id/participants', async (req, res) => {
+    const { id: programId } = req.params;
+    const { participantIds } = req.body;
+
+    if (!Array.isArray(participantIds)) {
+        return res.status(400).json({ message: 'Daftar peserta harus berupa array.' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. Hapus semua peserta lama dari program ini
+        await connection.execute('DELETE FROM running_program_targets WHERE program_id = ?', [programId]);
+
+        // 2. Tambahkan semua peserta baru
+        if (participantIds.length > 0) {
+            const sql = 'INSERT INTO running_program_targets (program_id, user_id, progress) VALUES ?';
+            const values = participantIds.map(userId => [programId, userId, 0]); // Default progress 0
+            await connection.query(sql, [values]);
+        }
+
+        await connection.commit();
+        res.json({ message: `Daftar peserta berhasil diperbarui. Total ${participantIds.length} peserta.` });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Update participants error:', error);
+        res.status(500).json({ message: 'Gagal memperbarui daftar peserta.', error: error.message });
+    } finally {
+        connection.release();
+    }
+});
+
+
 // UPLOAD PROGRAM PROGRESS
 router.post('/programs/:id/progress', progressUpload.single('progressFile'), async (req, res) => {
     const { id: programId } = req.params;
