@@ -132,3 +132,7 @@ export interface Location {
     kabupaten: string;
     kecamatan: string;
 }
+
+export interface AppSettings {
+    raffleRedemptionEnabled: boolean;
+}

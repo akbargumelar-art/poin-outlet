@@ -115,7 +115,7 @@ router.get('/bootstrap', async (req, res) => {
         const [
             users, transactions, rewards, redemptions, loyaltyPrograms, 
             runningPrograms, runningProgramTargets, rafflePrograms, 
-            couponRedemptions, raffleWinners, locations
+            couponRedemptions, raffleWinners, locations, settings
         ] = await Promise.all([
             safeQueryDB('SELECT * FROM users'),
             safeQueryDB('SELECT * FROM transactions ORDER BY date DESC'),
@@ -128,6 +128,7 @@ router.get('/bootstrap', async (req, res) => {
             safeQueryDB('SELECT * FROM coupon_redemptions'),
             safeQueryDB('SELECT * FROM raffle_winners'),
             safeQueryDB('SELECT * FROM locations'),
+            safeQueryDB('SELECT * FROM app_settings'),
         ]);
 
         const parsedUsers = parseNumerics(users, ['points', 'kupon_undian']);
@@ -144,6 +145,17 @@ router.get('/bootstrap', async (req, res) => {
                 .filter(t => t.program_id === p.id)
                 .map(t => toCamelCase(t))
         }));
+        
+        const appSettings = settings.reduce((acc, setting) => {
+            let value = setting.setting_value;
+            // Convert '0'/'1' to boolean for boolean-like settings
+            if (setting.setting_key === 'raffle_redemption_enabled') {
+                value = value === '1';
+            }
+            acc[toCamelCase(setting.setting_key)] = value;
+            return acc;
+        }, {});
+
 
         res.json({
             users: structuredUsers,
@@ -156,6 +168,7 @@ router.get('/bootstrap', async (req, res) => {
             couponRedemptions: couponRedemptions.map(c => toCamelCase(c)),
             raffleWinners: raffleWinners.map(w => toCamelCase(w)),
             locations: locations.map(l => toCamelCase(l)),
+            appSettings: appSettings,
         });
     } catch (error) {
         // --- IMPROVED ERROR LOGGING ---
@@ -455,6 +468,7 @@ router.put('/rewards/:id', async (req, res) => {
 
 router.post('/rewards/:id/photo', rewardUpload.single('photo'), async (req, res) => {
     const { id } = req.params;
+    if (!req.file) return res.status(400).json({ message: 'File tidak ditemukan.' });
     const imageUrl = `/uploads/rewards/${req.file.filename}`;
     await db.execute('UPDATE rewards SET image_url = ? WHERE id = ?', [imageUrl, id]);
     res.json({ message: 'Upload berhasil', imageUrl });
@@ -477,9 +491,42 @@ router.put('/programs/:id', async (req, res) => {
 
 router.post('/programs/:id/photo', programUpload.single('photo'), async (req, res) => {
     const { id } = req.params;
+    if (!req.file) return res.status(400).json({ message: 'File tidak ditemukan.' });
     const imageUrl = `/uploads/programs/${req.file.filename}`;
     await db.execute('UPDATE running_programs SET image_url = ? WHERE id = ?', [imageUrl, id]);
     res.json({ message: 'Upload berhasil', imageUrl });
 });
+
+// APP SETTINGS MANAGEMENT
+router.get('/settings', async (req, res) => {
+    try {
+        const [settings] = await db.execute('SELECT * FROM app_settings');
+        const settingsObj = settings.reduce((acc, setting) => {
+            acc[toCamelCase(setting.setting_key)] = setting.setting_value;
+            return acc;
+        }, {});
+        res.json(settingsObj);
+    } catch (error) {
+        res.status(500).json({ message: 'Gagal mengambil pengaturan.' });
+    }
+});
+
+router.put('/settings/raffle_redemption', async (req, res) => {
+    const { enabled } = req.body;
+    const valueToSet = enabled ? '1' : '0';
+    try {
+        // Use INSERT ... ON DUPLICATE KEY UPDATE to handle both creation and update
+        const sql = `
+            INSERT INTO app_settings (setting_key, setting_value) 
+            VALUES ('raffle_redemption_enabled', ?)
+            ON DUPLICATE KEY UPDATE setting_value = ?
+        `;
+        await db.execute(sql, [valueToSet, valueToSet]);
+        res.json({ message: 'Pengaturan berhasil diperbarui.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Gagal memperbarui pengaturan.' });
+    }
+});
+
 
 module.exports = router;
