@@ -3,6 +3,14 @@ import { Page, Location } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 
+interface AvailableOutlet {
+    idDigipos: string;
+    namaOutlet: string;
+    noRs: string;
+    salesforce: string;
+    tap: string;
+}
+
 interface RegisterPageProps {
     handleRegister: (formData: any) => Promise<boolean>;
     setCurrentPage: (page: Page) => void;
@@ -23,83 +31,84 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
         confirmPassword: ''
     });
 
+    const [availableOutlets, setAvailableOutlets] = useState<AvailableOutlet[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
     const [isLoading, setIsLoading] = useState(false);
-    const [isVerifying, setIsVerifying] = useState(false);
-    const [digiposError, setDigiposError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [isDigiposVerified, setIsDigiposVerified] = useState(false);
 
-    const debounceTimeoutRef = useRef<number | null>(null);
-
-
-    const verifyDigiposId = async (id: string) => {
-        setIsVerifying(true);
-        setDigiposError('');
-        try {
-            const response = await fetch(`/api/digipos-info/${id}`);
-            const data = await response.json();
-    
-            if (!response.ok) {
-                throw new Error(data.message || 'Verification failed');
-            }
-    
-            setFormData(prev => ({
-                ...prev,
-                namaOutlet: data.namaOutlet,
-                noRs: data.noRs,
-                salesforce: data.salesforce,
-            }));
-            setIsDigiposVerified(true);
-        } catch (error: any) {
-            setDigiposError(error.message);
-            setIsDigiposVerified(false);
-        } finally {
-            setIsVerifying(false);
-        }
-    };
-
-
-    // Debounce for Digipos ID verification, fixed to prevent focus loss.
+    // Fetch available outlets when the component mounts
     useEffect(() => {
-        // Always clear the previous timeout when the input changes.
-        if (debounceTimeoutRef.current) {
-            clearTimeout(debounceTimeoutRef.current);
-        }
-
-        const id = formData.idDigipos.trim();
-        
-        // If the input is empty, reset the form state immediately. This is a direct action.
-        if (id.length === 0) {
-            setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '', salesforce: ''}));
-            setDigiposError('');
-            setIsDigiposVerified(false);
-            setIsVerifying(false);
-            return;
-        }
-
-        // IMPORTANT: No state is set immediately here. All validation logic is deferred.
-        // This prevents re-renders that could cause focus loss while the user is typing.
-
-        // Start a timer. The validation will only run after the user stops typing.
-        debounceTimeoutRef.current = window.setTimeout(() => {
-            if (id.length > 4) {
-                // The user has stopped typing with a valid-length ID. Start verification.
-                verifyDigiposId(id);
-            } else {
-                // The user has stopped typing with an ID that is too short. Show an error.
-                setDigiposError('ID Digipos terlalu pendek.');
-                setIsVerifying(false);
-                setIsDigiposVerified(false);
-            }
-        }, 800); // 800ms after last keystroke
-
-        // Cleanup function
-        return () => {
-            if (debounceTimeoutRef.current) {
-                clearTimeout(debounceTimeoutRef.current);
+        const fetchAvailableOutlets = async () => {
+            try {
+                const response = await fetch('/api/available-digipos');
+                if (!response.ok) throw new Error('Gagal memuat data outlet');
+                const data = await response.json();
+                setAvailableOutlets(data);
+            } catch (error) {
+                console.error(error);
+                // Optionally show an error to the user
             }
         };
-    }, [formData.idDigipos]);
+        fetchAvailableOutlets();
+    }, []);
+
+    // Handle clicks outside the dropdown to close it
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    const filteredOutlets = useMemo(() => {
+        if (!searchTerm) return availableOutlets;
+        const lowercasedTerm = searchTerm.toLowerCase();
+        return availableOutlets.filter(outlet =>
+            outlet.namaOutlet.toLowerCase().includes(lowercasedTerm) ||
+            outlet.idDigipos.toLowerCase().includes(lowercasedTerm)
+        );
+    }, [searchTerm, availableOutlets]);
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setIsDropdownOpen(true);
+        setIsDigiposVerified(false); // Reset verification if user changes input
+         setFormData(prev => ({ // Clear related fields when searching
+            ...prev,
+            idDigipos: '',
+            namaOutlet: '',
+            noRs: '',
+            salesforce: ''
+        }));
+    };
+
+    const handleSelectOutlet = (outlet: AvailableOutlet) => {
+        setSearchTerm(`${outlet.namaOutlet} (${outlet.idDigipos})`);
+        setFormData(prev => ({
+            ...prev,
+            idDigipos: outlet.idDigipos,
+            namaOutlet: outlet.namaOutlet,
+            noRs: outlet.noRs,
+            salesforce: outlet.salesforce
+        }));
+        setIsDigiposVerified(true);
+        setIsDropdownOpen(false);
+    };
+    
+    // Handler umum untuk semua input LAINNYA.
+    const handleOtherInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
     const kabupatenOptions = useMemo(() => [...new Set(locations.map(l => l.kabupaten))].sort(), [locations]);
     const kecamatanOptions = useMemo(() => {
@@ -107,28 +116,22 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
         return locations.filter(l => l.kabupaten === formData.kabupaten).map(l => l.kecamatan).sort();
     }, [locations, formData.kabupaten]);
 
-    // Effect to auto-select first kecamatan when kabupaten changes
      useEffect(() => {
         if (formData.kabupaten && kecamatanOptions.length > 0) {
             const isCurrentKecamatanValid = kecamatanOptions.includes(formData.kecamatan);
             if (!isCurrentKecamatanValid) {
                  setFormData(prev => ({...prev, kecamatan: kecamatanOptions[0]}));
             }
-        } else {
+        } else if (formData.kabupaten === '') {
             setFormData(prev => ({...prev, kecamatan: ''}));
         }
     }, [formData.kabupaten, kecamatanOptions]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setPasswordError('');
         if (!isDigiposVerified) {
-             setDigiposError('Harap gunakan ID Digipos yang valid.');
+             alert('Harap pilih outlet yang valid dari daftar.');
              return;
         }
         if (formData.password !== formData.confirmPassword) {
@@ -164,37 +167,59 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <InputWrapper icon={ICONS.idCard}>
-                                <input type="text" name="idDigipos" value={formData.idDigipos} onChange={handleChange} className="input-field pl-12" placeholder="ID Digipos" required />
+                        <div className="relative md:col-span-2" ref={dropdownRef}>
+                             <InputWrapper icon={ICONS.idCard}>
+                                <input 
+                                    type="text" 
+                                    value={searchTerm}
+                                    onChange={handleSearchChange}
+                                    onFocus={() => setIsDropdownOpen(true)}
+                                    className="input-field pl-12" 
+                                    placeholder="Ketik ID Digipos atau Nama Outlet" 
+                                    required 
+                                    autoComplete="off"
+                                />
                             </InputWrapper>
-                            {isVerifying && <p className="text-xs text-blue-600 mt-1">Memeriksa ID...</p>}
-                            {digiposError && <p className="text-xs text-red-600 mt-1">{digiposError}</p>}
-                            {isDigiposVerified && <p className="text-xs text-green-600 mt-1">✓ ID Digipos Valid</p>}
+                             {isDigiposVerified && <p className="text-xs text-green-600 mt-1">✓ Outlet Terpilih</p>}
+                             
+                             {isDropdownOpen && filteredOutlets.length > 0 && (
+                                <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    {filteredOutlets.map(outlet => (
+                                        <li 
+                                            key={outlet.idDigipos}
+                                            onClick={() => handleSelectOutlet(outlet)}
+                                            className="px-4 py-2 hover:bg-red-100 cursor-pointer"
+                                        >
+                                            <p className="font-semibold">{outlet.namaOutlet}</p>
+                                            <p className="text-sm text-gray-500">{outlet.idDigipos}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                             )}
                         </div>
 
-                        <InputWrapper icon={ICONS.store}><input type="text" name="namaOutlet" value={formData.namaOutlet} onChange={handleChange} className="input-field-disabled pl-12" placeholder="Nama Outlet" required disabled /></InputWrapper>
-                        <InputWrapper icon={ICONS.idCard}><input type="text" name="noRs" value={formData.noRs} onChange={handleChange} className="input-field-disabled pl-12" placeholder="No. RS" disabled /></InputWrapper>
-                        <InputWrapper icon={ICONS.users}><input type="text" name="salesforce" value={formData.salesforce} onChange={handleChange} className="input-field-disabled pl-12" placeholder="Nama Salesforce" disabled /></InputWrapper>
+                        <InputWrapper icon={ICONS.store}><input type="text" name="namaOutlet" value={formData.namaOutlet} readOnly className="input-field-disabled pl-12" placeholder="Nama Outlet" required /></InputWrapper>
+                        <InputWrapper icon={ICONS.idCard}><input type="text" name="noRs" value={formData.noRs} readOnly className="input-field-disabled pl-12" placeholder="No. RS" /></InputWrapper>
+                        <InputWrapper icon={ICONS.users}><input type="text" name="salesforce" value={formData.salesforce} readOnly className="input-field-disabled pl-12" placeholder="Nama Salesforce" /></InputWrapper>
                         
                         <InputWrapper icon={ICONS.location}>
-                            <select name="kabupaten" value={formData.kabupaten} onChange={handleChange} className="input-field pl-12" required>
+                            <select name="kabupaten" value={formData.kabupaten} onChange={handleOtherInputChange} className="input-field pl-12" required>
                                 <option value="">-- Pilih Kabupaten --</option>
                                 {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
                             </select>
                         </InputWrapper>
                         <InputWrapper icon={ICONS.location}>
-                            <select name="kecamatan" value={formData.kecamatan} onChange={handleChange} className="input-field pl-12" required disabled={!formData.kabupaten}>
+                            <select name="kecamatan" value={formData.kecamatan} onChange={handleOtherInputChange} className="input-field pl-12" required disabled={!formData.kabupaten}>
                                 <option value="">-- Pilih Kecamatan --</option>
                                 {kecamatanOptions.map(k => <option key={k} value={k}>{k}</option>)}
                             </select>
                         </InputWrapper>
 
-                        <InputWrapper icon={ICONS.user}><input type="text" name="namaOwner" value={formData.namaOwner} onChange={handleChange} className="input-field pl-12" placeholder="Nama Owner"/></InputWrapper>
-                        <InputWrapper icon={ICONS.phone}><input type="tel" name="noWhatsapp" value={formData.noWhatsapp} onChange={handleChange} className="input-field pl-12" required placeholder="Nomor WhatsApp"/></InputWrapper>
+                        <InputWrapper icon={ICONS.user}><input type="text" name="namaOwner" value={formData.namaOwner} onChange={handleOtherInputChange} className="input-field pl-12" placeholder="Nama Owner"/></InputWrapper>
+                        <InputWrapper icon={ICONS.phone}><input type="tel" name="noWhatsapp" value={formData.noWhatsapp} onChange={handleOtherInputChange} className="input-field pl-12" required placeholder="Nomor WhatsApp"/></InputWrapper>
 
-                        <InputWrapper icon={ICONS.lock}><input type="password" name="password" value={formData.password} onChange={handleChange} className="input-field pl-12" placeholder="Buat Password"/></InputWrapper>
-                        <InputWrapper icon={ICONS.lock}><input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className="input-field pl-12" placeholder="Konfirmasi Password"/></InputWrapper>
+                        <InputWrapper icon={ICONS.lock}><input type="password" name="password" value={formData.password} onChange={handleOtherInputChange} className="input-field pl-12" placeholder="Buat Password"/></InputWrapper>
+                        <InputWrapper icon={ICONS.lock}><input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleOtherInputChange} className="input-field pl-12" placeholder="Konfirmasi Password"/></InputWrapper>
                     </div>
                      {passwordError && <p className="text-sm text-red-600 mt-2 text-center">{passwordError}</p>}
                     <button type="submit" className="neu-button text-red-600" disabled={isLoading || !isDigiposVerified}>

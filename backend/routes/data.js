@@ -167,6 +167,19 @@ router.get('/bootstrap', async (req, res) => {
 
 // --- API ENDPOINTS ---
 
+// GET LIST OF AVAILABLE DIGIPOS IDs FOR REGISTRATION
+router.get('/available-digipos', async (req, res) => {
+    try {
+        const [rows] = await db.execute(
+            'SELECT id_digipos, no_rs, nama_outlet, tap, salesforce FROM digipos_data WHERE is_registered = 0 OR is_registered IS NULL ORDER BY nama_outlet ASC'
+        );
+        res.json(rows.map(toCamelCase));
+    } catch (error) {
+        console.error('Error fetching available digipos IDs:', error);
+        res.status(500).json({ message: 'Gagal mengambil daftar outlet.' });
+    }
+});
+
 // GET DIGIPOS INFO
 router.get('/digipos-info/:id', async (req, res) => {
     const { id } = req.params;
