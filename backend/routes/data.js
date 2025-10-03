@@ -1,4 +1,3 @@
-
 const express = require('express');
 const db = require('../db');
 const bcrypt = require('bcryptjs');
@@ -481,10 +480,17 @@ router.put('/programs/:id', async (req, res) => {
 
 router.post('/programs/:id/photo', programUpload.single('photo'), async (req, res) => {
     const { id } = req.params;
-    if (!req.file) return res.status(400).json({ message: 'File tidak ditemukan.' });
+    if (!req.file) {
+        return res.status(400).json({ message: 'File tidak ditemukan.' });
+    }
     const imageUrl = `/uploads/programs/${req.file.filename}`;
-    await db.execute('UPDATE running_programs SET image_url = ? WHERE id = ?', [imageUrl, id]);
-    res.json({ message: 'Upload berhasil', imageUrl });
+    try {
+        await db.execute('UPDATE running_programs SET image_url = ? WHERE id = ?', [imageUrl, id]);
+        res.json({ message: 'Upload berhasil', imageUrl });
+    } catch (error) {
+        console.error('Program photo upload DB error:', error);
+        res.status(500).json({ message: 'Gagal menyimpan path foto program ke database.' });
+    }
 });
 
 

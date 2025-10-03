@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -49,9 +48,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
             </header>
 
             <main className="p-4 sm:p-6 md:p-12">
-                {/* Hero Section */}
-                <section className="text-center my-10 md:my-16">
-                     <div className="max-w-7xl mx-auto px-4">
+                 <div className="max-w-7xl mx-auto">
+                    {/* Hero Section */}
+                    <section className="text-center my-10 md:my-16">
                         <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-700">Program Loyalitas Mitra Outlet</h2>
                         <p className="text-lg text-gray-500 mt-4 max-w-2xl mx-auto">
                             Bergabunglah dengan program loyalitas kami dan dapatkan poin dari setiap transaksi untuk ditukarkan dengan hadiah-hadiah menarik!
@@ -60,12 +59,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                             <button onClick={() => setCurrentPage('register')} className="neu-button text-red-600 !w-auto px-10 py-3">Daftar Sekarang</button>
                             <p className="text-xs text-gray-500">Khusus Outlet Digipos</p>
                         </div>
-                    </div>
-                </section>
-                
-                {/* Rewards Slider Section */}
-                <section className="my-12 md:my-20 overflow-hidden">
-                    <div className="max-w-7xl mx-auto px-4">
+                    </section>
+                    
+                    {/* Rewards Slider Section */}
+                    <section className="my-12 md:my-20 overflow-hidden">
                         <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
                         <div className="relative md:px-12">
                             <button onClick={() => handleNav('left', 'rewards')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous slide">
@@ -89,20 +86,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                             </button>
                         </div>
                          <p className="text-center mt-8 text-gray-600">Dan masih banyak lagi hadiah lainnya!</p>
-                    </div>
-                </section>
+                    </section>
 
-                {/* Simulasi Poin Section */}
-                <section className="my-12 md:my-20">
-                     <div className="max-w-7xl mx-auto px-4">
+                    {/* Simulasi Poin Section */}
+                    <section className="my-12 md:my-20">
                         <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
-                    </div>
-                </section>
+                    </section>
 
-                {/* Running Program Section */}
-                {runningPrograms && runningPrograms.length > 0 && (
-                    <section className="my-12 md:my-20 overflow-hidden">
-                        <div className="max-w-7xl mx-auto px-4">
+                    {/* Running Program Section */}
+                    {runningPrograms && runningPrograms.length > 0 && (
+                        <section className="my-12 md:my-20 overflow-hidden">
                             <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Program Berjalan</h3>
                              <div className="relative md:px-12">
                                 <button onClick={() => handleNav('left', 'programs')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous program">
@@ -135,17 +128,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                    <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
                                 </button>
                             </div>
-                        </div>
-                    </section>
-                )}
+                        </section>
+                    )}
 
-                <div className="max-w-7xl mx-auto px-4">
                     <PemenangUndian winners={raffleWinners} />
-                </div>
 
-                {/* About Section */}
-                <section className="my-12 md:my-20">
-                     <div className="max-w-7xl mx-auto px-4">
+                    {/* About Section */}
+                    <section className="my-12 md:my-20">
                         <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Tentang Kami</h3>
                          <div className="neu-card p-8 md:p-10">
                             <h4 className="text-2xl font-bold text-red-600">PT Agrabudi Komunika</h4>
@@ -165,8 +154,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                 </div>
                             </div>
                          </div>
-                    </div>
-                </section>
+                    </section>
+                </div>
             </main>
 
             {/* Footer */}

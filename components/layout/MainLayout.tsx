@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { User, Page } from '../../types';
 import { ICONS } from '../../constants';
@@ -70,7 +69,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
             </main>
              <div className="fixed bottom-0 left-0 right-0 h-16 bg-transparent z-50">
                 <div className="max-w-7xl mx-auto h-full">
-                    <nav className="neu-card-flat w-full h-full flex justify-around items-center rounded-t-2xl md:rounded-none">
+                    <nav className="neu-card-flat w-full h-full flex justify-around items-center rounded-t-2xl md:rounded-b-2xl">
                         {navItems.map(item => {
                             const page = (item as { page: Page }).page;
                             const action = (item as { action: () => void }).action;
