@@ -7,24 +7,21 @@ import { ICONS } from '../../constants';
 // --- Main Component ---
 interface ManajemenPoinProps {
     users: User[];
-    setUsers: React.Dispatch<React.SetStateAction<User[]>>;
     loyaltyPrograms: LoyaltyProgram[];
     updateLoyaltyProgram: (program: LoyaltyProgram) => void;
-    // FIX: Corrected Omit to use 'pointsEarned' which exists on Transaction, instead of 'points'.
-    // The backend calculates pointsEarned, so it's correctly omitted here.
     adminAddTransaction: (data: Omit<Transaction, 'id' | 'pointsEarned'>) => void;
-    // FIX: Corrected Omit to use 'pointsEarned' instead of 'points'.
-    // The mock data for bulk upload doesn't include totalPembelian or pointsEarned, as these would be calculated by the backend.
-    adminBulkAddTransactions: (data: Omit<Transaction, 'id' | 'pointsEarned' | 'totalPembelian'>[]) => void;
+    adminBulkAddTransactions: (file: File) => void;
+    adminUpdatePointsManual: (userId: string, points: number, action: 'tambah' | 'kurang') => void;
     isReadOnly?: boolean;
 }
 
-const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, setUsers, loyaltyPrograms, updateLoyaltyProgram, adminAddTransaction, adminBulkAddTransactions, isReadOnly }) => {
+const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, loyaltyPrograms, updateLoyaltyProgram, adminAddTransaction, adminBulkAddTransactions, adminUpdatePointsManual, isReadOnly }) => {
     const [manualUserId, setManualUserId] = useState('');
     const [manualPoints, setManualPoints] = useState(0);
     const [manualAction, setManualAction] = useState<'tambah' | 'kurang'>('tambah');
     const [txData, setTxData] = useState({ userId: '', produk: '', harga: 0, kuantiti: 0, date: new Date().toISOString().split('T')[0]});
     const [showUploadModal, setShowUploadModal] = useState(false);
+    const [uploadFile, setUploadFile] = useState<File | null>(null);
 
     const selectedUser = users.find(u => u.id === txData.userId);
     const loyaltyLevel = loyaltyPrograms.find(p => p.level === selectedUser?.level);
@@ -48,27 +45,23 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, setUsers, loyaltyP
 
     const handleUpdatePoin = () => {
         if (!manualUserId || manualPoints <= 0) return;
-        setUsers(currentUsers => currentUsers.map(u => {
-            if (u.id === manualUserId) {
-                const currentPoints = u.points || 0;
-                const newPoints = manualAction === 'tambah' ? currentPoints + manualPoints : currentPoints - manualPoints;
-                return { ...u, points: newPoints < 0 ? 0 : newPoints };
-            }
-            return u;
-        }));
+        adminUpdatePointsManual(manualUserId, manualPoints, manualAction);
         setManualPoints(0);
         setManualUserId('');
     };
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setUploadFile(e.target.files[0]);
+        }
+    };
 
     const handleBulkUpload = () => {
-        const MOCK_UPLOAD_DATA = [
-            { date: '2024-08-01', userId: 'DG12345', produk: 'Bulk Upload Item A', harga: 50000, kuantiti: 10 }, 
-            { date: '2024-08-01', userId: 'DG67890', produk: 'Bulk Upload Item B', harga: 200000, kuantiti: 2 }, 
-            { date: '2024-08-01', userId: 'NON_EXISTENT_ID', produk: 'Should Fail', harga: 10000, kuantiti: 1},
-            { date: '2024-08-01', userId: 'DG12345', produk: 'Bulk Upload Item C', harga: 100000, kuantiti: 1 }, 
-        ];
-        adminBulkAddTransactions(MOCK_UPLOAD_DATA);
-        setShowUploadModal(false);
+        if (uploadFile) {
+            adminBulkAddTransactions(uploadFile);
+            setShowUploadModal(false);
+            setUploadFile(null);
+        }
     }
     
     return (
@@ -77,13 +70,25 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, setUsers, loyaltyP
                  <Modal show={true} onClose={() => setShowUploadModal(false)} title="Upload Transaksi Massal">
                     <div>
                         <p className="mb-4">Pastikan file Excel Anda memiliki kolom berikut dengan urutan yang benar:</p>
-                        <div className="bg-gray-100 p-3 rounded-lg text-sm font-mono mb-6">
+                        <div className="bg-gray-100 p-3 rounded-lg text-sm font-mono mb-4">
                             tanggal, id_digipos, produk, harga, kuantiti
                         </div>
-                        <p className="text-center text-sm mb-6">Fitur ini akan menyimulasikan proses upload dan perhitungan poin otomatis.</p>
+                        <a href="/template_transaksi.xlsx" download className="neu-button !w-auto px-4 flex items-center gap-2 mb-6">
+                            <Icon path={ICONS.download} className="w-5 h-5"/>
+                            Download Template
+                        </a>
+                        <div className="mb-6">
+                            <label className="block text-gray-600 text-sm font-semibold mb-2">Pilih File Excel</label>
+                            <input 
+                                type="file" 
+                                accept=".xlsx, .xls"
+                                onChange={handleFileChange}
+                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                            />
+                        </div>
                         <div className="flex justify-center gap-4">
                             <button onClick={() => setShowUploadModal(false)} className="neu-button">Batal</button>
-                            <button onClick={handleBulkUpload} className="neu-button text-red-600">Proses Upload (Simulasi)</button>
+                            <button onClick={handleBulkUpload} className="neu-button text-red-600" disabled={!uploadFile}>Proses Upload</button>
                         </div>
                     </div>
                 </Modal>

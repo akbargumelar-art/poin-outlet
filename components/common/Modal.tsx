@@ -13,15 +13,15 @@ interface ModalProps {
 const Modal: React.FC<ModalProps> = ({ show, onClose, title, children }) => {
     
     useEffect(() => {
-        const body = document.body;
+        const htmlEl = document.documentElement;
         if (show) {
-            body.style.overflow = 'hidden';
+            htmlEl.classList.add('modal-open');
         } else {
-            body.style.overflow = 'auto';
+            htmlEl.classList.remove('modal-open');
         }
         // Cleanup function to restore scroll on component unmount
         return () => {
-            body.style.overflow = 'auto';
+            htmlEl.classList.remove('modal-open');
         };
     }, [show]);
 

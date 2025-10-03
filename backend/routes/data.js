@@ -58,6 +58,20 @@ const progressUpload = multer({
     }
 });
 
+const transactionUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowedExtensions = ['.xlsx', '.xls'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (allowedExtensions.includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only Excel files (.xlsx, .xls) are allowed.'));
+        }
+    }
+});
+
 
 // --- CONSTANTS & HELPERS ---
 
@@ -280,6 +294,36 @@ router.post('/users/:id/photo', profileUpload.single('profilePhoto'), async (req
     }
 });
 
+// MANUAL POINT ADJUSTMENT
+router.post('/users/:id/points', async (req, res) => {
+    const { id } = req.params;
+    const { points, action } = req.body; // action can be 'tambah' or 'kurang'
+
+    if (!points || !action || typeof points !== 'number' || points <= 0) {
+        return res.status(400).json({ message: 'Jumlah poin dan aksi (tambah/kurang) dibutuhkan.' });
+    }
+
+    try {
+        const operator = action === 'tambah' ? '+' : '-';
+        const sql = `UPDATE users SET points = GREATEST(0, points ${operator} ?) WHERE id = ?`;
+        
+        const [result] = await db.execute(sql, [points, id]);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'User tidak ditemukan.' });
+        }
+        
+        const [updatedUser] = await db.execute('SELECT points FROM users WHERE id = ?', [id]);
+
+        res.json({ message: 'Poin berhasil diperbarui.', newPoints: updatedUser[0].points });
+
+    } catch (error) {
+        console.error('Update points error:', error);
+        res.status(500).json({ message: 'Gagal memperbarui poin.' });
+    }
+});
+
+
 // CREATE A NEW USER (ADMIN)
 router.post('/users', async (req, res) => {
     const { id, password, role, profile } = req.body;
@@ -390,6 +434,94 @@ router.post('/transactions', async (req, res) => {
     }
 });
 
+// BULK TRANSACTION UPLOAD
+router.post('/transactions/bulk', transactionUpload.single('transactionsFile'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'File tidak ditemukan.' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(worksheet, { cellDates: true });
+
+        if (data.length === 0) {
+            return res.status(400).json({ message: 'File Excel kosong atau format tidak sesuai.' });
+        }
+
+        const headers = Object.keys(data[0]);
+        const requiredHeaders = ['tanggal', 'id_digipos', 'produk', 'harga', 'kuantiti'];
+        if (!requiredHeaders.every(h => headers.includes(h))) {
+            return res.status(400).json({ message: `File Excel harus memiliki kolom: ${requiredHeaders.join(', ')}.` });
+        }
+        
+        await connection.beginTransaction();
+
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+
+        const [levels] = await connection.execute('SELECT level, multiplier FROM loyalty_programs');
+        const multiplierMap = new Map(levels.map(l => [l.level, l.multiplier]));
+
+        const [users] = await connection.execute('SELECT id, level FROM users');
+        const userLevelMap = new Map(users.map(u => [u.id, u.level]));
+
+        for (const row of data) {
+            const userId = row.id_digipos;
+            const dateObj = row.tanggal instanceof Date ? row.tanggal : new Date(row.tanggal);
+            const date = dateObj.toISOString().split('T')[0];
+            const produk = row.produk;
+            const harga = parseFloat(row.harga);
+            const kuantiti = parseInt(row.kuantiti, 10);
+
+            if (!userId || !date || !produk || isNaN(harga) || isNaN(kuantiti)) {
+                failCount++;
+                errors.push(`Baris tidak valid untuk ID: ${userId || 'KOSONG'}`);
+                continue;
+            }
+
+            const userLevel = userLevelMap.get(userId);
+            if (!userLevel) {
+                failCount++;
+                errors.push(`User dengan ID ${userId} tidak ditemukan.`);
+                continue;
+            }
+
+            const multiplier = multiplierMap.get(userLevel) || 1.0;
+            const totalPembelian = harga * kuantiti;
+            const pointsEarned = Math.floor((totalPembelian / 1000) * multiplier);
+
+            await connection.execute(
+                'INSERT INTO transactions (user_id, date, produk, harga, kuantiti, total_pembelian, points_earned) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [userId, date, produk, harga, kuantiti, totalPembelian, pointsEarned]
+            );
+            await connection.execute(
+                'UPDATE users SET points = points + ? WHERE id = ?',
+                [pointsEarned, userId]
+            );
+            successCount++;
+        }
+        
+        await connection.commit();
+        res.status(200).json({
+            message: `Proses selesai. ${successCount} transaksi berhasil ditambahkan, ${failCount} gagal.`,
+            successCount,
+            failCount,
+            errors
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Bulk transaction upload error:', error);
+        res.status(500).json({ message: 'Gagal memproses file.', error: error.message });
+    } finally {
+        connection.release();
+    }
+});
+
+
 // Endpoint untuk penukaran poin
 router.post('/redemptions', async (req, res) => {
     const { userId, rewardId, pointsSpent, isKupon } = req.body;
@@ -468,6 +600,21 @@ router.put('/rewards/:id', async (req, res) => {
     await db.execute('UPDATE rewards SET name = ?, points = ?, stock = ? WHERE id = ?', [name, points, stock, id]);
     res.json({ id: parseInt(id), name, points, stock });
 });
+
+router.delete('/rewards/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [result] = await db.execute('DELETE FROM rewards WHERE id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Hadiah tidak ditemukan.' });
+        }
+        res.status(200).json({ message: 'Hadiah berhasil dihapus.' });
+    } catch (error) {
+        console.error('Delete reward error:', error);
+        res.status(500).json({ message: 'Gagal menghapus hadiah.' });
+    }
+});
+
 
 router.post('/rewards/:id/photo', rewardUpload.single('photo'), async (req, res) => {
     const { id } = req.params;
@@ -614,6 +761,24 @@ router.post('/programs/:id/progress', progressUpload.single('progressFile'), asy
         connection.release();
     }
 });
+
+// LOYALTY PROGRAM MANAGEMENT
+router.put('/loyalty-programs/:level', async (req, res) => {
+    const { level } = req.params;
+    const { pointsNeeded, multiplier, benefit } = req.body;
+    try {
+        const sql = 'UPDATE loyalty_programs SET points_needed = ?, multiplier = ?, benefit = ? WHERE level = ?';
+        const [result] = await db.execute(sql, [pointsNeeded, multiplier, benefit, level]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Level loyalitas tidak ditemukan.' });
+        }
+        res.json({ level, pointsNeeded, multiplier, benefit });
+    } catch (error) {
+        console.error('Update loyalty program error:', error);
+        res.status(500).json({ message: 'Gagal memperbarui level loyalitas.' });
+    }
+});
+
 
 
 module.exports = router;

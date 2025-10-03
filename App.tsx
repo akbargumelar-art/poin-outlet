@@ -291,6 +291,94 @@ function App() {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
     };
+    
+    const adminDeleteReward = async (rewardId: number) => {
+        try {
+            const response = await fetch(`/api/rewards/${rewardId}`, {
+                method: 'DELETE',
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            
+            await fetchBootstrapData();
+            setModal({ show: true, title: "Sukses", content: <p>{result.message}</p> });
+
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    };
+
+    const adminUpdateLoyaltyProgram = async (program: LoyaltyProgram) => {
+        try {
+            const response = await fetch(`/api/loyalty-programs/${program.level}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(program)
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            
+            await fetchBootstrapData();
+            setModal({ show: true, title: "Sukses", content: <p>Level <b>{program.level}</b> berhasil diperbarui.</p> });
+
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    };
+
+    const adminBulkAddTransactions = async (file: File) => {
+        try {
+            const formData = new FormData();
+            formData.append('transactionsFile', file);
+            
+            const response = await fetch('/api/transactions/bulk', {
+                method: 'POST',
+                body: formData,
+            });
+            
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            
+            await fetchBootstrapData();
+            
+            setModal({
+                show: true,
+                title: "Upload Selesai",
+                content: (
+                    <div>
+                        <p>{result.message}</p>
+                        {result.errors && result.errors.length > 0 && (
+                            <div className="mt-4 text-xs text-left bg-red-50 p-2 rounded max-h-40 overflow-y-auto">
+                                <strong>Detail Kegagalan:</strong>
+                                <ul className="list-disc pl-5">
+                                    {result.errors.map((e: string, i: number) => <li key={i}>{e}</li>)}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )
+            });
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    };
+    
+    const adminUpdatePointsManual = async (userId: string, points: number, action: 'tambah' | 'kurang') => {
+        try {
+            const response = await fetch(`/api/users/${userId}/points`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ points, action })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            
+            await fetchBootstrapData();
+            setModal({ show: true, title: "Sukses", content: <p>Poin berhasil diperbarui. Poin baru: {result.newPoints.toLocaleString('id-ID')}</p> });
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    };
 
     const saveProgram = async (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number; prizeCategory: PrizeCategory; prizeDescription: string; }, photoFile: File | null) => {
         try {
@@ -372,14 +460,6 @@ function App() {
         }
     };
 
-    const getMockFunctionality = () => {
-        return {
-            adminDeleteReward: (rewardId: number) => { setRewards(prev => prev.filter(r => r.id !== rewardId)); setModal({ show: true, title: "Sukses (Simulasi)", content: <p>Hadiah dihapus.</p> }); },
-            adminUpdateLoyaltyProgram: (updatedProgram: LoyaltyProgram) => { setLoyaltyPrograms(prev => prev.map(p => p.level === updatedProgram.level ? updatedProgram : p)); setModal({ show: true, title: "Sukses (Simulasi)", content: <p>Level <b>{updatedProgram.level}</b> diperbarui.</p> }); },
-            adminBulkAddTransactions: (bulkData: any[]) => { setModal({ show: true, title: "Upload Selesai (Simulasi)", content: <p>{bulkData.length-1} dari {bulkData.length} transaksi berhasil.</p> }); },
-        }
-    }
-
     if (isLoading) {
         return <div className="min-h-screen flex justify-center items-center neu-bg"><p className="text-xl font-semibold text-gray-600">Memuat Aplikasi...</p></div>
     }
@@ -413,8 +493,8 @@ function App() {
             manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
             manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} isReadOnly={isReadOnly} />,
-            manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} setUsers={setUsers} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={getMockFunctionality().adminBulkAddTransactions} isReadOnly={isReadOnly} />,
-            manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={getMockFunctionality().adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} />,
+            manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} isReadOnly={isReadOnly} />,
+            manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} />,
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} setPrograms={setRafflePrograms} redemptions={couponRedemptions} isReadOnly={isReadOnly} />
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
