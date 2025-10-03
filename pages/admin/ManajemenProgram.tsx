@@ -1,34 +1,43 @@
 import React, { useState } from 'react';
-import { RunningProgram, User, RunningProgramTarget } from '../../types';
+import { RunningProgram } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
 
 interface ProgramFormProps {
-    program?: RunningProgram;
-    onSave: (program: RunningProgram) => void;
+    program?: Omit<RunningProgram, 'targets'>;
+    onSave: (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => void;
     onCancel: () => void;
 }
 
 const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) => {
     const [formData, setFormData] = useState(program || { 
-        id: Date.now(), 
         name: '', 
         mechanism: '', 
         prize: '', 
         startDate: new Date().toISOString().split('T')[0],
         endDate: '',
         imageUrl: '',
-        targets: [] 
     });
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(program?.imageUrl || null);
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setPhotoFile(file);
+            setPhotoPreview(URL.createObjectURL(file));
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData as RunningProgram);
+        onSave(formData, photoFile);
     };
 
     return (
@@ -45,7 +54,14 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
                 </div>
             </div>
             <input name="prize" value={formData.prize} onChange={handleChange} placeholder="Hadiah Utama" className="input-field" required />
-            <input name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="URL Gambar (e.g., https://placehold.co/400x400/...)" className="input-field" required />
+             <div>
+                 <label className="block text-gray-600 text-sm font-semibold mb-2">Key Visual Program</label>
+                 <div className="flex items-center gap-4">
+                     {photoPreview && <img src={photoPreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg neu-inset p-1" />}
+                     <label htmlFor="program-photo-upload" className="neu-button !w-auto px-4 cursor-pointer">Pilih File</label>
+                     <input id="program-photo-upload" type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                 </div>
+            </div>
             <textarea name="mechanism" value={formData.mechanism} onChange={handleChange} placeholder="Mekanisme Program" className="input-field min-h-[100px]" required />
             <div className="flex gap-4">
                 <button type="button" onClick={onCancel} className="neu-button">Batal</button>
@@ -76,28 +92,25 @@ const UploadProgressModal: React.FC<{program: RunningProgram, onClose: () => voi
 
 interface ManajemenProgramProps {
     programs: RunningProgram[];
-    setPrograms: React.Dispatch<React.SetStateAction<RunningProgram[]>>;
+    onSave: (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => void;
     adminBulkUpdateProgramProgress: (programId: number, progressData: { userId: string, progress: number }[]) => void;
     isReadOnly?: boolean;
 }
 
-const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, setPrograms, adminBulkUpdateProgramProgress, isReadOnly }) => {
+const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, onSave, adminBulkUpdateProgramProgress, isReadOnly }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingProgram, setEditingProgram] = useState<RunningProgram | undefined>(undefined);
     const [uploadingProgram, setUploadingProgram] = useState<RunningProgram | null>(null);
 
-    const handleSave = (program: RunningProgram) => {
-        if (programs.find(p => p.id === program.id)) {
-            setPrograms(programs.map(p => p.id === program.id ? {...p, ...program, targets: p.targets} : p));
-        } else {
-            setPrograms([...programs, program]);
-        }
+    const handleSave = (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => {
+        onSave(programData, photoFile);
         setShowModal(false);
         setEditingProgram(undefined);
     };
 
     const handleDelete = (id: number) => {
-        setPrograms(programs.filter(p => p.id !== id));
+        // This should be an API call in a real app
+        alert(`Simulasi: Hapus program dengan ID ${id}.`);
     };
 
     const openAddModal = () => {

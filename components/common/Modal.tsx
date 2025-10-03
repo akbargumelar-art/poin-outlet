@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Icon from './Icon';
 import { ICONS } from '../../constants';
 
@@ -11,6 +11,19 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ show, onClose, title, children }) => {
+    
+    useEffect(() => {
+        if (show) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+        // Cleanup function to restore scroll on component unmount
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, [show]);
+
     if (!show) return null;
     return (
         <div onClick={onClose} className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4 cursor-pointer">

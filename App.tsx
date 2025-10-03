@@ -256,13 +256,79 @@ function App() {
         }
     };
 
+    const saveReward = async (rewardData: Omit<Reward, 'id'> & { id?: number }, photoFile: File | null) => {
+        try {
+            const method = rewardData.id ? 'PUT' : 'POST';
+            const url = rewardData.id ? `/api/rewards/${rewardData.id}` : '/api/rewards';
+            
+            const textResponse = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(rewardData)
+            });
+
+            if (!textResponse.ok) {
+                const error = await textResponse.json();
+                throw new Error(error.message || 'Gagal menyimpan data hadiah.');
+            }
+            
+            const savedReward = await textResponse.json();
+
+            if (photoFile) {
+                const formData = new FormData();
+                formData.append('photo', photoFile);
+                const photoResponse = await fetch(`/api/rewards/${savedReward.id}/photo`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!photoResponse.ok) throw new Error('Data teks disimpan, tapi gagal mengunggah foto.');
+            }
+            
+            setModal({ show: true, title: "Sukses", content: <p>Data hadiah berhasil disimpan.</p> });
+            await fetchBootstrapData();
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    };
+
+    const saveProgram = async (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => {
+        try {
+            const method = programData.id ? 'PUT' : 'POST';
+            const url = programData.id ? `/api/programs/${programData.id}` : '/api/programs';
+
+            const textResponse = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(programData)
+            });
+            if (!textResponse.ok) {
+                 const error = await textResponse.json();
+                throw new Error(error.message || 'Gagal menyimpan data program.');
+            }
+            const savedProgram = await textResponse.json();
+
+            if (photoFile) {
+                const formData = new FormData();
+                formData.append('photo', photoFile);
+                const photoResponse = await fetch(`/api/programs/${savedProgram.id}/photo`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!photoResponse.ok) throw new Error('Data program disimpan, tapi foto gagal diunggah.');
+            }
+            
+            setModal({ show: true, title: "Sukses", content: <p>Data program berhasil disimpan.</p> });
+            await fetchBootstrapData();
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    };
+
     // ... other admin handlers would follow a similar pattern of API calls + fetchBootstrapData()
     // For brevity, only key functions are converted. The rest follow the same logic.
     // The existing mock functions can serve as placeholders until each API endpoint is built.
     const getMockFunctionality = () => {
         return {
-            adminAddReward: (newRewardData: Omit<Reward, 'id'>) => { setRewards(prev => [...prev, { id: Date.now(), ...newRewardData }]); setModal({ show: true, title: "Sukses (Simulasi)", content: <p>Hadiah baru ditambahkan.</p> }); },
-            adminUpdateReward: (updatedReward: Reward) => { setRewards(prev => prev.map(r => r.id === updatedReward.id ? updatedReward : r)); setModal({ show: true, title: "Sukses (Simulasi)", content: <p>Data hadiah diperbarui.</p> }); },
             adminDeleteReward: (rewardId: number) => { setRewards(prev => prev.filter(r => r.id !== rewardId)); setModal({ show: true, title: "Sukses (Simulasi)", content: <p>Hadiah dihapus.</p> }); },
             adminUpdateLoyaltyProgram: (updatedProgram: LoyaltyProgram) => { setLoyaltyPrograms(prev => prev.map(p => p.level === updatedProgram.level ? updatedProgram : p)); setModal({ show: true, title: "Sukses (Simulasi)", content: <p>Level <b>{updatedProgram.level}</b> diperbarui.</p> }); },
             adminBulkAddTransactions: (bulkData: any[]) => { setModal({ show: true, title: "Upload Selesai (Simulasi)", content: <p>{bulkData.length-1} dari {bulkData.length} transaksi berhasil.</p> }); },
@@ -288,9 +354,10 @@ function App() {
         }
         
         const isReadOnly = currentUser.role === 'supervisor';
-        if (isReadOnly && (currentPage === 'tambahUser' || currentPage === 'manajemenPoin' || currentPage === 'manajemenHadiah')) {
+        if (isReadOnly && (currentPage === 'tambahUser' || currentPage === 'manajemenPoin')) {
             setCurrentPage('adminDashboard');
         }
+
 
         const pageMap: {[key in Page]?: React.ReactNode} = {
             pelangganDashboard: <PelangganDashboard currentUser={currentUser} transactions={transactions} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} setCurrentPage={setCurrentPage} raffleWinners={raffleWinners} />,
@@ -301,9 +368,9 @@ function App() {
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms}/>,
             manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
-            manajemenProgram: <ManajemenProgram programs={runningPrograms} setPrograms={setRunningPrograms} adminBulkUpdateProgramProgress={getMockFunctionality().adminBulkUpdateProgramProgress} isReadOnly={isReadOnly} />,
+            manajemenProgram: <ManajemenProgram programs={runningPrograms} onSave={saveProgram} adminBulkUpdateProgramProgress={getMockFunctionality().adminBulkUpdateProgramProgress} isReadOnly={isReadOnly} />,
             manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} setUsers={setUsers} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={getMockFunctionality().adminBulkAddTransactions} isReadOnly={isReadOnly} />,
-            manajemenHadiah: <ManajemenHadiah rewards={rewards} addReward={getMockFunctionality().adminAddReward} updateReward={getMockFunctionality().adminUpdateReward} deleteReward={getMockFunctionality().adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} />,
+            manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={getMockFunctionality().adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} />,
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} setPrograms={setRafflePrograms} redemptions={couponRedemptions} isReadOnly={isReadOnly} />
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;

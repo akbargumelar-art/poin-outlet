@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Page, Location } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -10,6 +11,7 @@ interface RegisterPageProps {
 }
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations }) => {
+    // State for the main form data. `idDigipos` will only be set after successful validation.
     const [formData, setFormData] = useState({
         idDigipos: '',
         namaOutlet: '',
@@ -23,68 +25,73 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
         confirmPassword: ''
     });
 
-    const [isLoading, setIsLoading] = useState(false);
-    const [passwordError, setPasswordError] = useState('');
-    
-    // State for Digipos validation
+    // --- Isolated state for the ID Digipos input field to prevent re-renders ---
+    const [digiposInput, setDigiposInput] = useState('');
     const [isCheckingDigipos, setIsCheckingDigipos] = useState(false);
     const [digiposError, setDigiposError] = useState('');
     const [isDigiposVerified, setIsDigiposVerified] = useState(false);
-    // FIX: The return type of `setTimeout` in the browser is `number`, not `NodeJS.Timeout`.
     const debounceTimeout = useRef<number | null>(null);
 
+    const [isLoading, setIsLoading] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
 
-    // Handler umum untuk semua input.
+    // Handler for all inputs EXCEPT the idDigipos field.
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-
-        if (name === 'idDigipos') {
-            setIsDigiposVerified(false);
-            setDigiposError('');
-            
-            // Clear auto-filled fields if user edits ID
-            if (isDigiposVerified) {
-                setFormData(prev => ({
-                    ...prev,
-                    namaOutlet: '',
-                    noRs: '',
-                    salesforce: ''
-                }));
-            }
-        }
     };
     
-    // This useEffect handles the debounced validation for idDigipos
+    // Special handler for the idDigipos input. This only updates the isolated state.
+    const handleDigiposInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setDigiposInput(value);
+        setIsDigiposVerified(false);
+        setDigiposError('');
+        // Also clear related auto-filled fields from the main form data immediately
+        setFormData(prev => ({
+            ...prev,
+            idDigipos: '',
+            namaOutlet: '',
+            noRs: '',
+            salesforce: ''
+        }));
+    };
+
+    // useEffect now watches the isolated `digiposInput` state. This is the core of the fix.
     useEffect(() => {
         if (debounceTimeout.current) {
             clearTimeout(debounceTimeout.current);
         }
 
-        const id = formData.idDigipos.trim();
+        const trimmedId = digiposInput.trim();
 
-        if (id.length === 0) {
+        // New condition: Only trigger validation logic if input is 10 chars or more.
+        if (trimmedId.length < 10) {
             setIsCheckingDigipos(false);
-            setDigiposError('');
+            if (trimmedId.length > 0) {
+                setDigiposError('ID Digipos harus minimal 10 karakter.');
+            } else {
+                setDigiposError('');
+            }
             return;
         }
-        
-        // Start checking immediately for user feedback
+
         setIsCheckingDigipos(true);
         setDigiposError('');
 
         debounceTimeout.current = setTimeout(async () => {
             try {
-                const response = await fetch(`/api/digipos-info/${id}`);
+                const response = await fetch(`/api/digipos-info/${trimmedId}`);
                 const data = await response.json();
 
                 if (!response.ok) {
                     throw new Error(data.message || 'Error validasi');
                 }
-                
-                // Success
+
+                // Success! Update the main form data with verified info.
                 setFormData(prev => ({
                     ...prev,
+                    idDigipos: trimmedId,
                     namaOutlet: data.namaOutlet,
                     noRs: data.noRs,
                     salesforce: data.salesforce
@@ -95,27 +102,18 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
             } catch (error: any) {
                 setIsDigiposVerified(false);
                 setDigiposError(error.message);
-                // Clear fields on error
-                 setFormData(prev => ({
-                    ...prev,
-                    namaOutlet: '',
-                    noRs: '',
-                    salesforce: ''
-                }));
             } finally {
                 setIsCheckingDigipos(false);
             }
-        }, 800); // 800ms delay after user stops typing
+        }, 800);
 
-        // Cleanup on unmount
         return () => {
             if (debounceTimeout.current) {
                 clearTimeout(debounceTimeout.current);
             }
         };
 
-    }, [formData.idDigipos]);
-
+    }, [digiposInput]); // This effect ONLY runs when the `digiposInput` changes.
 
     const kabupatenOptions = useMemo(() => [...new Set(locations.map(l => l.kabupaten))].sort(), [locations]);
     const kecamatanOptions = useMemo(() => {
@@ -150,6 +148,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
             return;
         }
         setIsLoading(true);
+        // We submit the main `formData`, which now contains the verified ID.
         await handleRegister(formData);
         setIsLoading(false);
     };
@@ -179,10 +178,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                                 <input 
                                     type="text" 
                                     name="idDigipos"
-                                    value={formData.idDigipos}
-                                    onChange={handleChange}
+                                    value={digiposInput}
+                                    onChange={handleDigiposInputChange}
                                     className="input-field pl-12" 
-                                    placeholder="Ketik ID Digipos Anda" 
+                                    placeholder="Ketik ID Digipos Anda (min. 10 karakter)" 
                                     required 
                                     autoComplete="off"
                                 />

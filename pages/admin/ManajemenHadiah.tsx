@@ -35,7 +35,7 @@ const LevelForm: React.FC<LevelFormProps> = ({ level, onSave, onCancel }) => {
 // --- Reward Form Component ---
 interface RewardFormProps {
     reward?: Reward;
-    onSave: (reward: Omit<Reward, 'id'> & { id?: number }) => void;
+    onSave: (rewardData: Omit<Reward, 'id'> & { id?: number }, photoFile: File | null) => void;
     onCancel: () => void;
 }
 
@@ -43,15 +43,26 @@ const RewardForm: React.FC<RewardFormProps> = ({ reward, onSave, onCancel }) => 
     const [formData, setFormData] = useState(
         reward || { name: '', points: 0, imageUrl: '', stock: 0 }
     );
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(reward?.imageUrl || null);
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
         setFormData(prev => ({ ...prev, [name]: type === 'number' ? parseInt(value, 10) || 0 : value }));
     };
     
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setPhotoFile(file);
+            setPhotoPreview(URL.createObjectURL(file));
+        }
+    };
+    
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        onSave(formData, photoFile);
     };
 
     return (
@@ -59,7 +70,16 @@ const RewardForm: React.FC<RewardFormProps> = ({ reward, onSave, onCancel }) => 
             <input name="name" value={formData.name} onChange={handleChange} placeholder="Nama Hadiah" className="input-field" required />
             <input name="points" type="number" value={formData.points} onChange={handleChange} placeholder="Poin Dibutuhkan" className="input-field" required />
             <input name="stock" type="number" value={formData.stock} onChange={handleChange} placeholder="Jumlah Stok" className="input-field" required />
-            <input name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="URL Gambar (e.g., https://placehold.co/...)" className="input-field" required />
+            
+            <div>
+                 <label className="block text-gray-600 text-sm font-semibold mb-2">Gambar Hadiah</label>
+                 <div className="flex items-center gap-4">
+                     {photoPreview && <img src={photoPreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg neu-inset p-1" />}
+                     <label htmlFor="photo-upload" className="neu-button !w-auto px-4 cursor-pointer">Pilih File</label>
+                     <input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                 </div>
+            </div>
+
             <div className="flex gap-4 pt-4">
                 <button type="button" onClick={onCancel} className="neu-button">Batal</button>
                 <button type="submit" className="neu-button text-red-600">Simpan Hadiah</button>
@@ -71,15 +91,14 @@ const RewardForm: React.FC<RewardFormProps> = ({ reward, onSave, onCancel }) => 
 // --- Main Component ---
 interface ManajemenHadiahProps {
     rewards: Reward[];
-    addReward: (reward: Omit<Reward, 'id'>) => void;
-    updateReward: (reward: Reward) => void;
+    onSave: (rewardData: Omit<Reward, 'id'> & { id?: number }, photoFile: File | null) => void;
     deleteReward: (rewardId: number) => void;
     isReadOnly?: boolean;
     loyaltyPrograms: LoyaltyProgram[];
     updateLoyaltyProgram: (program: LoyaltyProgram) => void;
 }
 
-const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, addReward, updateReward, deleteReward, isReadOnly, loyaltyPrograms, updateLoyaltyProgram }) => {
+const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, deleteReward, isReadOnly, loyaltyPrograms, updateLoyaltyProgram }) => {
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingReward, setEditingReward] = useState<Reward | undefined>(undefined);
     const [deletingReward, setDeletingReward] = useState<Reward | null>(null);
@@ -95,12 +114,8 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, addReward, u
         setShowFormModal(true);
     };
 
-    const handleSave = (rewardData: Omit<Reward, 'id'> & { id?: number }) => {
-        if (rewardData.id) {
-            updateReward(rewardData as Reward);
-        } else {
-            addReward(rewardData);
-        }
+    const handleSave = (rewardData: Omit<Reward, 'id'> & { id?: number }, photoFile: File | null) => {
+        onSave(rewardData, photoFile);
         setShowFormModal(false);
         setEditingReward(undefined);
     };

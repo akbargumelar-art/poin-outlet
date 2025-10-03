@@ -7,34 +7,40 @@ const fs = require('fs');
 const router = express.Router();
 
 // --- MULTER CONFIG FOR FILE UPLOADS ---
-const uploadDir = path.join(__dirname, '../uploads/profiles');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, `user-${req.params.id}-${uniqueSuffix}${path.extname(file.originalname)}`);
+const setupMulter = (subfolder) => {
+    const uploadDir = path.join(__dirname, `../uploads/${subfolder}`);
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
     }
-});
 
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-    fileFilter: (req, file, cb) => {
-        const filetypes = /jpeg|jpg|png|gif/;
-        const mimetype = filetypes.test(file.mimetype);
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        if (mimetype && extname) {
-            return cb(null, true);
+    const storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+            cb(null, uploadDir);
+        },
+        filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+            cb(null, `${subfolder.slice(0, -1)}-${req.params.id}-${uniqueSuffix}${path.extname(file.originalname)}`);
         }
-        cb(new Error("Error: File upload only supports the following filetypes - " + filetypes));
-    }
-});
+    });
+
+    return multer({
+        storage: storage,
+        limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+        fileFilter: (req, file, cb) => {
+            const filetypes = /jpeg|jpg|png|gif|webp/;
+            const mimetype = filetypes.test(file.mimetype);
+            const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+            if (mimetype && extname) {
+                return cb(null, true);
+            }
+            cb(new Error("Error: File upload only supports the following filetypes - " + filetypes));
+        }
+    });
+};
+
+const profileUpload = setupMulter('profiles');
+const rewardUpload = setupMulter('rewards');
+const programUpload = setupMulter('programs');
 
 
 // --- CONSTANTS & HELPERS ---
@@ -241,7 +247,7 @@ router.put('/users/:id/profile', async (req, res) => {
 
 
 // UPLOAD USER PHOTO
-router.post('/users/:id/photo', upload.single('profilePhoto'), async (req, res) => {
+router.post('/users/:id/photo', profileUpload.single('profilePhoto'), async (req, res) => {
     const { id } = req.params;
     if (!req.file) {
         return res.status(400).json({ message: "File tidak ditemukan." });
@@ -431,5 +437,49 @@ router.post('/redemptions', async (req, res) => {
     }
 });
 
+
+// REWARD MANAGEMENT
+router.post('/rewards', async (req, res) => {
+    const { name, points, stock } = req.body;
+    const imageUrl = '/uploads/rewards/default.png'; // Default image
+    const [result] = await db.execute('INSERT INTO rewards (name, points, stock, image_url) VALUES (?, ?, ?, ?)', [name, points, stock, imageUrl]);
+    res.status(201).json({ id: result.insertId, name, points, stock, imageUrl });
+});
+
+router.put('/rewards/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, points, stock } = req.body;
+    await db.execute('UPDATE rewards SET name = ?, points = ?, stock = ? WHERE id = ?', [name, points, stock, id]);
+    res.json({ id: parseInt(id), name, points, stock });
+});
+
+router.post('/rewards/:id/photo', rewardUpload.single('photo'), async (req, res) => {
+    const { id } = req.params;
+    const imageUrl = `/uploads/rewards/${req.file.filename}`;
+    await db.execute('UPDATE rewards SET image_url = ? WHERE id = ?', [imageUrl, id]);
+    res.json({ message: 'Upload berhasil', imageUrl });
+});
+
+// PROGRAM MANAGEMENT
+router.post('/programs', async (req, res) => {
+    const { name, mechanism, prize, startDate, endDate } = req.body;
+    const imageUrl = '/uploads/programs/default.png'; // Default image
+    const [result] = await db.execute('INSERT INTO running_programs (name, mechanism, prize, start_date, end_date, image_url) VALUES (?, ?, ?, ?, ?, ?)', [name, mechanism, prize, startDate, endDate, imageUrl]);
+    res.status(201).json({ id: result.insertId, name, mechanism, prize, startDate, endDate, imageUrl, targets: [] });
+});
+
+router.put('/programs/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, mechanism, prize, startDate, endDate } = req.body;
+    await db.execute('UPDATE running_programs SET name=?, mechanism=?, prize=?, start_date=?, end_date=? WHERE id = ?', [name, mechanism, prize, startDate, endDate, id]);
+    res.json({ id: parseInt(id), name, mechanism, prize, startDate, endDate });
+});
+
+router.post('/programs/:id/photo', programUpload.single('photo'), async (req, res) => {
+    const { id } = req.params;
+    const imageUrl = `/uploads/programs/${req.file.filename}`;
+    await db.execute('UPDATE running_programs SET image_url = ? WHERE id = ?', [imageUrl, id]);
+    res.json({ message: 'Upload berhasil', imageUrl });
+});
 
 module.exports = router;
