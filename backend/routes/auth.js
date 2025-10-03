@@ -53,20 +53,21 @@ router.post('/login', async (req, res) => {
             // Normal successful login
             res.json(structureUserObject(user));
         } else {
-            // Self-healing check specifically for the initial admin user setup
-            if (id === 'admin' && password === 'password') {
-                console.log("Initial admin login failed with stored hash. Attempting to self-heal admin password...");
+            // Self-healing check for any user with the default password 'password'.
+            // This is useful for initial setup or password resets to a default.
+            if (password === 'password') {
+                console.log(`Login failed for user '${id}' with stored hash. Attempting to self-heal default password...`);
                 const newHashedPassword = await bcrypt.hash('password', 10);
-                await db.execute('UPDATE users SET password = ? WHERE id = ?', [newHashedPassword, 'admin']);
-                console.log("Admin password hash has been updated. Allowing login.");
+                await db.execute('UPDATE users SET password = ? WHERE id = ?', [newHashedPassword, id]);
+                console.log(`Password hash for user '${id}' has been updated. Allowing login.`);
                 
                 // Fetch the updated user data to send back
-                const [updatedRows] = await db.execute('SELECT * FROM users WHERE id = ?', ['admin']);
+                const [updatedRows] = await db.execute('SELECT * FROM users WHERE id = ?', [id]);
                 res.json(structureUserObject(updatedRows[0]));
-                return;
+                return; // Important to return here
             }
 
-            // If it's not the special admin case, then it's a genuine failed login
+            // If the password is not 'password', it's a genuine failed login
             return res.status(401).json({ message: 'ID atau password salah.' });
         }
 
