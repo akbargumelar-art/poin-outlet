@@ -47,47 +47,51 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
 
     return (
         <div className="h-screen w-full flex flex-col font-sans neu-bg">
-            <header className="h-16 flex-shrink-0 flex items-center justify-between px-4 md:px-6">
-                <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-9" />
-                <div className="flex items-center gap-4">
-                    <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-3 group">
-                        <div className="text-right">
-                            <p className="font-semibold text-gray-700 group-hover:text-red-600 transition-colors">{currentUser.profile.nama}</p>
-                            <p className="text-sm text-red-600 capitalize">{isPelanggan ? 'Mitra Outlet' : currentUser.role}</p>
-                        </div>
-                        <div className="w-11 h-11 rounded-full neu-card flex items-center justify-center font-bold text-xl text-red-500 overflow-hidden">
-                           {currentUser.profile.photoUrl ? <img src={currentUser.profile.photoUrl} alt="profile" className="w-full h-full object-cover"/> : currentUser.profile.nama.charAt(0)}
-                        </div>
-                    </button>
-                </div>
-            </header>
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 animate-fade-in-up">
+            <div className="max-w-7xl mx-auto w-full flex-shrink-0">
+                <header className="h-16 flex items-center justify-between px-4 md:px-6">
+                    <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-9" />
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-3 group">
+                            <div className="text-right">
+                                <p className="font-semibold text-gray-700 group-hover:text-red-600 transition-colors">{currentUser.profile.nama}</p>
+                                <p className="text-sm text-red-600 capitalize">{isPelanggan ? 'Mitra Outlet' : currentUser.role}</p>
+                            </div>
+                            <div className="w-11 h-11 rounded-full neu-card flex items-center justify-center font-bold text-xl text-red-500 overflow-hidden">
+                               {currentUser.profile.photoUrl ? <img src={currentUser.profile.photoUrl} alt="profile" className="w-full h-full object-cover"/> : currentUser.profile.nama.charAt(0)}
+                            </div>
+                        </button>
+                    </div>
+                </header>
+            </div>
+            <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 animate-fade-in-up w-full">
                 <div className="max-w-7xl mx-auto w-full">
                     {children}
                 </div>
             </main>
-            <nav className="fixed bottom-0 left-0 right-0 h-16 bg-transparent flex justify-around items-center z-50">
-                <div className="neu-card-flat w-full h-full flex justify-around items-center rounded-t-2xl md:rounded-none">
-                    {navItems.map(item => {
-                        const page = (item as { page: Page }).page;
-                        const action = (item as { action: () => void }).action;
-                        const isActive = currentPage === page;
+             <div className="fixed bottom-0 left-0 right-0 h-16 bg-transparent z-50">
+                <div className="max-w-7xl mx-auto h-full">
+                    <nav className="neu-card-flat w-full h-full flex justify-around items-center rounded-t-2xl md:rounded-none">
+                        {navItems.map(item => {
+                            const page = (item as { page: Page }).page;
+                            const action = (item as { action: () => void }).action;
+                            const isActive = currentPage === page;
 
-                        return (
-                            <button 
-                                key={item.name} 
-                                onClick={() => action ? action() : setCurrentPage(page)} 
-                                className={`flex flex-col items-center justify-center transition-colors duration-200 w-full h-full ${isActive ? 'text-red-600' : 'text-gray-500'}`}
-                            >
-                                <div className={`p-2 rounded-full transition-all duration-200 ${isActive ? 'neu-inset' : ''}`}>
-                                    <Icon path={item.icon} className="w-6 h-6" />
-                                </div>
-                                <span className="text-xs font-semibold mt-1">{item.name}</span>
-                            </button>
-                        )
-                    })}
+                            return (
+                                <button 
+                                    key={item.name} 
+                                    onClick={() => action ? action() : setCurrentPage(page)} 
+                                    className={`flex flex-col items-center justify-center transition-colors duration-200 w-full h-full ${isActive ? 'text-red-600' : 'text-gray-500'}`}
+                                >
+                                    <div className={`p-2 rounded-full transition-all duration-200 ${isActive ? 'neu-inset' : ''}`}>
+                                        <Icon path={item.icon} className="w-6 h-6" />
+                                    </div>
+                                    <span className="text-xs font-semibold mt-1">{item.name}</span>
+                                </button>
+                            )
+                        })}
+                    </nav>
                 </div>
-            </nav>
+            </div>
         </div>
     );
 };
