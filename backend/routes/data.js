@@ -79,8 +79,10 @@ const safeQueryDB = async (query, params = []) => {
         return rows;
     } catch (error) {
         if (error.code === 'ER_NO_SUCH_TABLE') {
+            console.warn(`Warning: Table not found for query: ${query.substring(0, 50)}... Returning empty array.`);
             return [];
         }
+        // Re-throw the error to be caught by the endpoint's main try-catch block
         throw error;
     }
 };
@@ -112,7 +114,6 @@ router.get('/bootstrap', async (req, res) => {
             safeQueryDB('SELECT * FROM users'),
             safeQueryDB('SELECT * FROM transactions ORDER BY date DESC'),
             safeQueryDB('SELECT * FROM rewards ORDER BY points ASC'),
-            // FIX: Changed to LEFT JOIN for robustness against deleted rewards
             safeQueryDB('SELECT r.*, rw.name as reward_name FROM redemptions r LEFT JOIN rewards rw ON r.reward_id = rw.id ORDER BY date DESC'),
             safeQueryDB('SELECT * FROM loyalty_programs ORDER BY points_needed ASC'),
             safeQueryDB('SELECT * FROM running_programs ORDER BY end_date DESC'),
@@ -151,7 +152,14 @@ router.get('/bootstrap', async (req, res) => {
             locations: locations.map(l => toCamelCase(l)),
         });
     } catch (error) {
-        console.error('Bootstrap error:', error);
+        // --- IMPROVED ERROR LOGGING ---
+        console.error('--- BOOTSTRAP API ERROR ---');
+        console.error(`Timestamp: ${new Date().toISOString()}`);
+        console.error('Error Message:', error.message);
+        console.error('Error Code:', error.code); // e.g., ER_BAD_FIELD_ERROR
+        console.error('SQL State:', error.sqlState);
+        console.error('Stack Trace:', error.stack);
+        console.error('--- END OF ERROR ---');
         res.status(500).json({ message: 'Gagal mengambil data aplikasi.', error: error.message });
     }
 });
@@ -250,6 +258,115 @@ router.post('/users/:id/photo', upload.single('profilePhoto'), async (req, res) 
     }
 });
 
-// ... (other endpoints like transactions, redemptions etc. remain the same) ...
+
+// Endpoint untuk menambah transaksi
+router.post('/transactions', async (req, res) => {
+    const { userId, date, produk, harga, kuantiti, totalPembelian } = req.body;
+
+    if (!userId || !date || !produk || !harga || !kuantiti) {
+        return res.status(400).json({ message: "Data transaksi tidak lengkap." });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. Get user's current level and multiplier
+        const [userRows] = await connection.execute('SELECT level FROM users WHERE id = ?', [userId]);
+        if (userRows.length === 0) throw new Error("User tidak ditemukan.");
+        
+        const [levelRows] = await connection.execute('SELECT multiplier FROM loyalty_programs WHERE level = ?', [userRows[0].level]);
+        const multiplier = levelRows[0]?.multiplier || 1.0;
+
+        // 2. Calculate points
+        const pointsEarned = Math.floor((totalPembelian / 1000) * multiplier);
+
+        // 3. Insert transaction
+        await connection.execute(
+            'INSERT INTO transactions (user_id, date, produk, harga, kuantiti, total_pembelian, points_earned) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [userId, date, produk, harga, kuantiti, totalPembelian, pointsEarned]
+        );
+
+        // 4. Update user points
+        await connection.execute(
+            'UPDATE users SET points = points + ? WHERE id = ?',
+            [pointsEarned, userId]
+        );
+
+        await connection.commit();
+        res.status(201).json({ message: "Transaksi berhasil ditambahkan.", pointsEarned });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Add transaction error:', error);
+        res.status(500).json({ message: "Gagal menambah transaksi." });
+    } finally {
+        connection.release();
+    }
+});
+
+// Endpoint untuk penukaran poin
+router.post('/redemptions', async (req, res) => {
+    const { userId, rewardId, pointsSpent, isKupon } = req.body;
+
+    if (!userId || !rewardId || !pointsSpent) {
+        return res.status(400).json({ message: "Data penukaran tidak lengkap." });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. Check user points and reward stock
+        const [userRows] = await connection.execute('SELECT points FROM users WHERE id = ?', [userId]);
+        if (userRows.length === 0) throw new Error("User tidak ditemukan.");
+        if (userRows[0].points < pointsSpent) throw new Error("Poin tidak cukup.");
+
+        const [rewardRows] = await connection.execute('SELECT stock FROM rewards WHERE id = ?', [rewardId]);
+        if (rewardRows.length === 0) throw new Error("Hadiah tidak ditemukan.");
+        if (rewardRows[0].stock <= 0) throw new Error("Stok hadiah habis.");
+        
+        // 2. Insert redemption record
+        await connection.execute(
+            'INSERT INTO redemptions (user_id, reward_id, points_spent, date) VALUES (?, ?, ?, NOW())',
+            [userId, rewardId, pointsSpent]
+        );
+
+        // 3. Decrement user points
+        let sql = 'UPDATE users SET points = points - ?';
+        const params = [pointsSpent];
+        
+        // 4. If it's a raffle coupon, increment user's coupon count
+        if (isKupon) {
+            const [activeRaffle] = await connection.execute('SELECT id FROM raffle_programs WHERE is_active = 1');
+            if (activeRaffle.length > 0) {
+                 await connection.execute(
+                    'INSERT INTO coupon_redemptions (user_id, raffle_program_id) VALUES (?, ?)',
+                    [userId, activeRaffle[0].id]
+                );
+                sql += ', kupon_undian = kupon_undian + 1';
+            }
+        }
+        
+        sql += ' WHERE id = ?';
+        params.push(userId);
+        
+        await connection.execute(sql, params);
+
+        // 5. Decrement reward stock
+        await connection.execute('UPDATE rewards SET stock = stock - 1 WHERE id = ?', [rewardId]);
+
+        await connection.commit();
+        res.status(200).json({ message: "Penukaran berhasil." });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error("Redemption error:", error);
+        res.status(400).json({ message: error.message });
+    } finally {
+        connection.release();
+    }
+});
+
 
 module.exports = router;
