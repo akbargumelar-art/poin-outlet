@@ -61,7 +61,24 @@ function App() {
     };
 
     useEffect(() => {
-        fetchBootstrapData();
+        const checkSessionAndBootstrap = async () => {
+            // Check for a logged in user in localStorage
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                try {
+                    const user: User = JSON.parse(storedUser);
+                    setCurrentUser(user);
+                    setCurrentPage(user.role === 'pelanggan' ? 'pelangganDashboard' : 'adminDashboard');
+                } catch (e) {
+                    console.error("Failed to parse stored user data, clearing session.", e);
+                    localStorage.removeItem('currentUser');
+                }
+            }
+            // Always fetch fresh data from the server, which also handles the loading state.
+            await fetchBootstrapData();
+        };
+
+        checkSessionAndBootstrap();
     }, []);
     
     // --- API HANDLERS ---
@@ -75,6 +92,7 @@ function App() {
             const data = await response.json();
             if (response.ok) {
                 setCurrentUser(data);
+                localStorage.setItem('currentUser', JSON.stringify(data));
                 setCurrentPage(data.role === 'pelanggan' ? 'pelangganDashboard' : 'adminDashboard');
                 return true;
             } else {
@@ -96,6 +114,7 @@ function App() {
             const data = await response.json();
             if (response.ok) {
                 setCurrentUser(data);
+                localStorage.setItem('currentUser', JSON.stringify(data));
                 await fetchBootstrapData(); // Refresh all data
                 setCurrentPage('pelangganDashboard');
                 setModal({ show: true, title: 'Registrasi Berhasil', content: <p>Selamat datang! Akun Anda telah berhasil dibuat.</p> });
@@ -140,6 +159,7 @@ function App() {
             
             // 3. Update state with the final, canonical user object from the server
             setCurrentUser(updatedUserFromServer);
+            localStorage.setItem('currentUser', JSON.stringify(updatedUserFromServer));
             setUsers(users.map(u => u.id === currentUser.id ? updatedUserFromServer : u));
     
             setModal({ show: true, title: "Berhasil", content: <p className="text-center text-green-600">Profil berhasil diperbarui!</p> });
@@ -150,6 +170,7 @@ function App() {
 
     const handleLogout = () => {
         setCurrentUser(null);
+        localStorage.removeItem('currentUser');
         setCurrentPage('landing');
     };
     
