@@ -514,17 +514,37 @@ router.get('/settings', async (req, res) => {
 router.put('/settings/raffle_redemption', async (req, res) => {
     const { enabled } = req.body;
     const valueToSet = enabled ? '1' : '0';
+    const keyToUpdate = 'raffle_redemption_enabled';
+
+    const connection = await db.getConnection();
     try {
-        // Use INSERT ... ON DUPLICATE KEY UPDATE to handle both creation and update
-        const sql = `
-            INSERT INTO app_settings (setting_key, setting_value) 
-            VALUES ('raffle_redemption_enabled', ?)
-            ON DUPLICATE KEY UPDATE setting_value = ?
-        `;
-        await db.execute(sql, [valueToSet, valueToSet]);
+        // 1. Check if the setting already exists
+        const [rows] = await connection.execute(
+            'SELECT setting_key FROM app_settings WHERE setting_key = ?',
+            [keyToUpdate]
+        );
+
+        if (rows.length > 0) {
+            // 2. If it exists, UPDATE it
+            await connection.execute(
+                'UPDATE app_settings SET setting_value = ? WHERE setting_key = ?',
+                [valueToSet, keyToUpdate]
+            );
+        } else {
+            // 3. If it doesn't exist, INSERT it
+            await connection.execute(
+                'INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?)',
+                [keyToUpdate, valueToSet]
+            );
+        }
+        
         res.json({ message: 'Pengaturan berhasil diperbarui.' });
+
     } catch (error) {
+        console.error('Update settings error:', error);
         res.status(500).json({ message: 'Gagal memperbarui pengaturan.' });
+    } finally {
+        connection.release();
     }
 });
 
