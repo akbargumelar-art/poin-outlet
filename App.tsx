@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, PrizeCategory } from './types';
 
@@ -326,15 +325,40 @@ function App() {
         }
     };
 
-    // ... other admin handlers would follow a similar pattern of API calls + fetchBootstrapData()
-    // For brevity, only key functions are converted. The rest follow the same logic.
-    // The existing mock functions can serve as placeholders until each API endpoint is built.
+    const adminBulkUpdateProgramProgress = async (programId: number, file: File) => {
+        try {
+            const formData = new FormData();
+            formData.append('progressFile', file);
+    
+            const response = await fetch(`/api/programs/${programId}/progress`, {
+                method: 'POST',
+                body: formData,
+            });
+    
+            const result = await response.json();
+    
+            if (!response.ok) {
+                throw new Error(result.message || 'Gagal mengunggah file progres.');
+            }
+    
+            setModal({
+                show: true,
+                title: "Upload Selesai",
+                content: <p className="text-center">{result.message}</p>
+            });
+            
+            await fetchBootstrapData(); // Refresh data to show new progress
+    
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    };
+
     const getMockFunctionality = () => {
         return {
             adminDeleteReward: (rewardId: number) => { setRewards(prev => prev.filter(r => r.id !== rewardId)); setModal({ show: true, title: "Sukses (Simulasi)", content: <p>Hadiah dihapus.</p> }); },
             adminUpdateLoyaltyProgram: (updatedProgram: LoyaltyProgram) => { setLoyaltyPrograms(prev => prev.map(p => p.level === updatedProgram.level ? updatedProgram : p)); setModal({ show: true, title: "Sukses (Simulasi)", content: <p>Level <b>{updatedProgram.level}</b> diperbarui.</p> }); },
             adminBulkAddTransactions: (bulkData: any[]) => { setModal({ show: true, title: "Upload Selesai (Simulasi)", content: <p>{bulkData.length-1} dari {bulkData.length} transaksi berhasil.</p> }); },
-            adminBulkUpdateProgramProgress: (programId: number, progressData: { userId: string, progress: number }[]) => { setModal({ show: true, title: "Upload Berhasil (Simulasi)", content: <p>Berhasil memperbarui progres.</p> }); },
         }
     }
 
@@ -370,7 +394,7 @@ function App() {
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms}/>,
             manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
-            manajemenProgram: <ManajemenProgram programs={runningPrograms} onSave={saveProgram} adminBulkUpdateProgramProgress={getMockFunctionality().adminBulkUpdateProgramProgress} isReadOnly={isReadOnly} />,
+            manajemenProgram: <ManajemenProgram programs={runningPrograms} onSave={saveProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} isReadOnly={isReadOnly} />,
             manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} setUsers={setUsers} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={getMockFunctionality().adminBulkAddTransactions} isReadOnly={isReadOnly} />,
             manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={getMockFunctionality().adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={getMockFunctionality().adminUpdateLoyaltyProgram} />,
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} setPrograms={setRafflePrograms} redemptions={couponRedemptions} isReadOnly={isReadOnly} />

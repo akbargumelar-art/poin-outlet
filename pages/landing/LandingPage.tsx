@@ -48,7 +48,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
             </header>
 
             <main className="p-4 sm:p-6 md:p-12">
-                 <div className="max-w-7xl mx-auto">
+                <div className="max-w-7xl mx-auto">
                     {/* Hero Section */}
                     <section className="text-center my-10 md:my-16">
                         <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-700">Program Loyalitas Mitra Outlet</h2>
@@ -60,11 +60,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                             <p className="text-xs text-gray-500">Khusus Outlet Digipos</p>
                         </div>
                     </section>
+                </div>
                     
-                    {/* Rewards Slider Section */}
-                    <section className="my-12 md:my-20 overflow-hidden">
+                {/* Rewards Slider Section */}
+                <section className="my-12 md:my-20 overflow-hidden">
+                    <div className="max-w-7xl mx-auto">
                         <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
-                        <div className="relative md:px-12">
+                    </div>
+                    <div className="relative">
+                        <div className="max-w-7xl mx-auto relative md:px-12">
                             <button onClick={() => handleNav('left', 'rewards')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous slide">
                                 <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                             </button>
@@ -85,19 +89,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
                             </button>
                         </div>
-                         <p className="text-center mt-8 text-gray-600">Dan masih banyak lagi hadiah lainnya!</p>
-                    </section>
+                    </div>
+                     <p className="text-center mt-8 text-gray-600 max-w-7xl mx-auto">Dan masih banyak lagi hadiah lainnya!</p>
+                </section>
 
-                    {/* Simulasi Poin Section */}
-                    <section className="my-12 md:my-20">
-                        <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
-                    </section>
+                {/* Simulasi Poin Section */}
+                <section className="my-12 md:my-20 max-w-7xl mx-auto">
+                    <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
+                </section>
 
-                    {/* Running Program Section */}
-                    {runningPrograms && runningPrograms.length > 0 && (
-                        <section className="my-12 md:my-20 overflow-hidden">
+                {/* Running Program Section */}
+                {runningPrograms && runningPrograms.length > 0 && (
+                    <section className="my-12 md:my-20 overflow-hidden">
+                        <div className="max-w-7xl mx-auto">
                             <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Program Berjalan</h3>
-                             <div className="relative md:px-12">
+                        </div>
+                        <div className="relative">
+                            <div className="max-w-7xl mx-auto relative md:px-12">
                                 <button onClick={() => handleNav('left', 'programs')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous program">
                                     <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                                 </button>
@@ -128,34 +136,36 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                    <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
                                 </button>
                             </div>
-                        </section>
-                    )}
-
-                    <PemenangUndian winners={raffleWinners} />
-
-                    {/* About Section */}
-                    <section className="my-12 md:my-20">
-                        <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Tentang Kami</h3>
-                         <div className="neu-card p-8 md:p-10">
-                            <h4 className="text-2xl font-bold text-red-600">PT Agrabudi Komunika</h4>
-                            <p className="mt-4 text-gray-600">
-                               PT Agrabudi Komunika merupakan Strategic Business Partner Telkomsel (Telkomsel Authorized Partner). Sebagai mitra outlet resmi, kami berkomitmen untuk memberikan layanan dan program terbaik bagi para mitra kami. Program Loyalitas ini adalah bentuk apresiasi kami atas kerja sama dan pencapaian Anda.
-                            </p>
-                            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div>
-                                    <h5 className="font-bold text-gray-700 flex items-center gap-2"><Icon path={ICONS.location} className="w-5 h-5"/>Kantor Cirebon</h5>
-                                    <p className="text-gray-600 mt-1 pl-7">Jl. Pemuda Raya No.21B, Sunyaragi, Kec. Kesambi, Kota Cirebon, Jawa Barat 45132</p>
-                                    <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.33602167812!2d108.5305983153673!3d-6.729125995135111!2m3!1f0!2f0!3f0!3m2!i1024!i768!4f13.1!3m3!1m2!1s0x2e6f1d88a1b5731b%3A0x622cde8718e00318!2sPT.%20Agrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524312891!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
-                                </div>
-                                <div>
-                                    <h5 className="font-bold text-gray-700 flex items-center gap-2"><Icon path={ICONS.location} className="w-5 h-5"/>Kantor Kuningan</h5>
-                                    <p className="text-gray-600 mt-1 pl-7">Jl. Siliwangi No.45, Purwawinangun, Kec. Kuningan, Kabupaten Kuningan, Jawa Barat 45512</p>
-                                    <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.916823521369!2d108.4811198153683!3d-6.90028349501348!2m3!1f0!2f0!3f0!3m2!i1024!i768!4f13.1!3m3!1m2!1s0x2e6f173775b69a6b%3A0x86842586b0a17349!2sAgrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524412803!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
-                                </div>
-                            </div>
-                         </div>
+                        </div>
                     </section>
+                )}
+                
+                <div className="max-w-7xl mx-auto">
+                    <PemenangUndian winners={raffleWinners} />
                 </div>
+
+                {/* About Section */}
+                <section className="my-12 md:my-20 max-w-7xl mx-auto">
+                    <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Tentang Kami</h3>
+                     <div className="neu-card p-8 md:p-10">
+                        <h4 className="text-2xl font-bold text-red-600">PT Agrabudi Komunika</h4>
+                        <p className="mt-4 text-gray-600">
+                           PT Agrabudi Komunika merupakan Strategic Business Partner Telkomsel (Telkomsel Authorized Partner). Sebagai mitra outlet resmi, kami berkomitmen untuk memberikan layanan dan program terbaik bagi para mitra kami. Program Loyalitas ini adalah bentuk apresiasi kami atas kerja sama dan pencapaian Anda.
+                        </p>
+                        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h5 className="font-bold text-gray-700 flex items-center gap-2"><Icon path={ICONS.location} className="w-5 h-5"/>Kantor Cirebon</h5>
+                                <p className="text-gray-600 mt-1 pl-7">Jl. Pemuda Raya No.21B, Sunyaragi, Kec. Kesambi, Kota Cirebon, Jawa Barat 45132</p>
+                                <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.33602167812!2d108.5305983153673!3d-6.729125995135111!2m3!1f0!2f0!3f0!3m2!i1024!i768!4f13.1!3m3!1m2!1s0x2e6f1d88a1b5731b%3A0x622cde8718e00318!2sPT.%20Agrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524312891!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
+                            </div>
+                            <div>
+                                <h5 className="font-bold text-gray-700 flex items-center gap-2"><Icon path={ICONS.location} className="w-5 h-5"/>Kantor Kuningan</h5>
+                                <p className="text-gray-600 mt-1 pl-7">Jl. Siliwangi No.45, Purwawinangun, Kec. Kuningan, Kabupaten Kuningan, Jawa Barat 45512</p>
+                                <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.916823521369!2d108.4811198153683!3d-6.90028349501348!2m3!1f0!2f0!3f0!3m2!i1024!i768!4f13.1!3m3!1m2!1s0x2e6f173775b69a6b%3A0x86842586b0a17349!2sAgrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524412803!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
+                            </div>
+                        </div>
+                     </div>
+                </section>
             </main>
 
             {/* Footer */}

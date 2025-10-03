@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { RunningProgram, PrizeCategory } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -86,18 +85,57 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
     );
 };
 
-const UploadProgressModal: React.FC<{program: RunningProgram, onClose: () => void, onUpload: () => void}> = ({ program, onClose, onUpload }) => {
+const UploadProgressModal: React.FC<{
+    program: RunningProgram;
+    onClose: () => void;
+    onUpload: (file: File) => void;
+}> = ({ program, onClose, onUpload }) => {
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setSelectedFile(e.target.files[0]);
+        }
+    };
+
+    const handleUploadClick = () => {
+        if (selectedFile) {
+            onUpload(selectedFile);
+        }
+    };
+
     return (
         <Modal show={true} onClose={onClose} title={`Upload Progres: ${program.name}`}>
             <div>
                 <p className="mb-4">Pastikan file Excel Anda memiliki kolom berikut dengan urutan yang benar:</p>
-                <div className="bg-gray-100 p-3 rounded-lg text-sm font-mono mb-6">
+                <div className="bg-gray-100 p-3 rounded-lg text-sm font-mono mb-4">
                     id_digipos, progress
                 </div>
-                <p className="text-center text-sm mb-6">Fitur ini akan menyimulasikan proses upload dan memperbarui progres peserta yang terdaftar.</p>
+                
+                <a href="/template_progress.xlsx" download className="neu-button !w-auto px-4 flex items-center gap-2 mb-6">
+                    <Icon path={ICONS.download} className="w-5 h-5"/>
+                    Download Template
+                </a>
+
+                <div className="mb-6">
+                    <label className="block text-gray-600 text-sm font-semibold mb-2">Pilih File Excel</label>
+                    <input 
+                        type="file" 
+                        accept=".xlsx, .xls"
+                        onChange={handleFileChange}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                    />
+                </div>
+
                 <div className="flex justify-center gap-4">
                     <button onClick={onClose} className="neu-button">Batal</button>
-                    <button onClick={onUpload} className="neu-button text-red-600">Proses Upload (Simulasi)</button>
+                    <button 
+                        onClick={handleUploadClick} 
+                        className="neu-button text-red-600"
+                        disabled={!selectedFile}
+                    >
+                        Upload & Proses
+                    </button>
                 </div>
             </div>
         </Modal>
@@ -108,7 +146,7 @@ const UploadProgressModal: React.FC<{program: RunningProgram, onClose: () => voi
 interface ManajemenProgramProps {
     programs: RunningProgram[];
     onSave: (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => void;
-    adminBulkUpdateProgramProgress: (programId: number, progressData: { userId: string, progress: number }[]) => void;
+    adminBulkUpdateProgramProgress: (programId: number, file: File) => void;
     isReadOnly?: boolean;
 }
 
@@ -138,15 +176,9 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, onSave, a
         setShowModal(true);
     };
 
-    const handleUpload = () => {
+    const handleUpload = (file: File) => {
         if (!uploadingProgram) return;
-        // Simulate data from an uploaded file for existing participants
-        const MOCK_PROGRESS_DATA = [
-            { userId: 'DG12345', progress: 88 }, // Will update existing
-            { userId: 'DG67890', progress: 72 }, // Will update existing
-            { userId: 'NEW_USER_ID', progress: 50 }, // Will be ignored as not a participant
-        ];
-        adminBulkUpdateProgramProgress(uploadingProgram.id, MOCK_PROGRESS_DATA);
+        adminBulkUpdateProgramProgress(uploadingProgram.id, file);
         setUploadingProgram(null);
     };
     

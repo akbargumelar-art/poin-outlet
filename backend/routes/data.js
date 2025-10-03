@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const xlsx = require('xlsx');
 const router = express.Router();
 
 // --- MULTER CONFIG FOR FILE UPLOADS ---
@@ -41,6 +42,21 @@ const setupMulter = (subfolder) => {
 const profileUpload = setupMulter('profiles');
 const rewardUpload = setupMulter('rewards');
 const programUpload = setupMulter('programs');
+
+// Multer config for Excel file uploads
+const progressUpload = multer({
+    storage: multer.memoryStorage(), // Use memory to avoid writing temp files
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+        const allowedExtensions = ['.xlsx', '.xls'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (allowedExtensions.includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only Excel files (.xlsx, .xls) are allowed.'));
+        }
+    }
+});
 
 
 // --- CONSTANTS & HELPERS ---
@@ -490,6 +506,76 @@ router.post('/programs/:id/photo', programUpload.single('photo'), async (req, re
     } catch (error) {
         console.error('Program photo upload DB error:', error);
         res.status(500).json({ message: 'Gagal menyimpan path foto program ke database.' });
+    }
+});
+
+// UPLOAD PROGRAM PROGRESS
+router.post('/programs/:id/progress', progressUpload.single('progressFile'), async (req, res) => {
+    const { id: programId } = req.params;
+    if (!req.file) {
+        return res.status(400).json({ message: 'File tidak ditemukan.' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(worksheet);
+
+        if (data.length === 0) {
+            return res.status(400).json({ message: 'File Excel kosong atau format tidak sesuai.' });
+        }
+
+        // Validate headers
+        const headers = Object.keys(data[0]);
+        if (!headers.includes('id_digipos') || !headers.includes('progress')) {
+            return res.status(400).json({ message: "File Excel harus memiliki kolom 'id_digipos' dan 'progress'." });
+        }
+        
+        await connection.beginTransaction();
+
+        let updatedCount = 0;
+        let failedCount = 0;
+        const failedIds = [];
+
+        for (const row of data) {
+            const userId = row.id_digipos;
+            const progress = parseInt(row.progress, 10);
+
+            if (!userId || isNaN(progress)) {
+                failedCount++;
+                failedIds.push(userId || 'ID KOSONG');
+                continue; // Skip invalid rows
+            }
+
+            const [result] = await connection.execute(
+                'UPDATE running_program_targets SET progress = ? WHERE program_id = ? AND user_id = ?',
+                [progress, programId, userId]
+            );
+
+            if (result.affectedRows > 0) {
+                updatedCount++;
+            } else {
+                failedCount++;
+                failedIds.push(userId);
+            }
+        }
+        
+        await connection.commit();
+        res.json({
+            message: `Proses upload selesai. ${updatedCount} progres diperbarui, ${failedCount} gagal (ID tidak terdaftar sebagai peserta).`,
+            updated: updatedCount,
+            failed: failedCount,
+            failedIds: failedIds
+        });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Program progress upload error:', error);
+        res.status(500).json({ message: 'Gagal memproses file.', error: error.message });
+    } finally {
+        connection.release();
     }
 });
 

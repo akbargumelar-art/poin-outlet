@@ -46,8 +46,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
 
     return (
         <div className="h-screen w-full flex flex-col font-sans neu-bg">
-            <div className="max-w-7xl mx-auto w-full flex-shrink-0">
-                <header className="h-16 flex items-center justify-between px-4 md:px-6">
+            <div className="flex-shrink-0 w-full">
+                <header className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 md:px-6">
                     <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-9" />
                     <div className="flex items-center gap-4">
                         <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-3 group">
