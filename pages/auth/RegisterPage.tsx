@@ -59,36 +59,41 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     };
 
 
-    // Debounce for Digipos ID verification with fix for focus loss
+    // Debounce for Digipos ID verification, fixed to prevent focus loss.
     useEffect(() => {
+        // Always clear the previous timeout when the input changes.
         if (debounceTimeoutRef.current) {
             clearTimeout(debounceTimeoutRef.current);
         }
 
         const id = formData.idDigipos.trim();
         
+        // If the input is empty, reset the form state immediately. This is a direct action.
         if (id.length === 0) {
-            // Clear everything if input is empty
             setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '', salesforce: ''}));
             setDigiposError('');
             setIsDigiposVerified(false);
             setIsVerifying(false);
             return;
         }
-        
-        // Only trigger verification if length is sufficient
-        if (id.length > 4) {
-            setIsVerifying(true); // Show verifying status immediately
-            debounceTimeoutRef.current = window.setTimeout(() => {
-                verifyDigiposId(id);
-            }, 800);
-        } else {
-             // If length is too short, just reset status without causing re-renders that steal focus
-             setDigiposError('');
-             setIsDigiposVerified(false);
-             setIsVerifying(false);
-        }
 
+        // IMPORTANT: No state is set immediately here. All validation logic is deferred.
+        // This prevents re-renders that could cause focus loss while the user is typing.
+
+        // Start a timer. The validation will only run after the user stops typing.
+        debounceTimeoutRef.current = window.setTimeout(() => {
+            if (id.length > 4) {
+                // The user has stopped typing with a valid-length ID. Start verification.
+                verifyDigiposId(id);
+            } else {
+                // The user has stopped typing with an ID that is too short. Show an error.
+                setDigiposError('ID Digipos terlalu pendek.');
+                setIsVerifying(false);
+                setIsDigiposVerified(false);
+            }
+        }, 800); // 800ms after last keystroke
+
+        // Cleanup function
         return () => {
             if (debounceTimeoutRef.current) {
                 clearTimeout(debounceTimeoutRef.current);

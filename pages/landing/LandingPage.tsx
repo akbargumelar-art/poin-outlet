@@ -49,10 +49,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 </div>
             </header>
 
-            <main className="p-6 md:p-12">
+            <main className="p-4 sm:p-6 md:p-12">
                 {/* Hero Section */}
-                <section className="text-center my-12 md:my-16">
-                    <h2 className="text-4xl md:text-5xl font-extrabold text-gray-700">Program Loyalitas Mitra Outlet</h2>
+                <section className="text-center my-10 md:my-16">
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-700">Program Loyalitas Mitra Outlet</h2>
                     <p className="text-lg text-gray-500 mt-4 max-w-2xl mx-auto">
                         Bergabunglah dengan program loyalitas kami dan dapatkan poin dari setiap transaksi untuk ditukarkan dengan hadiah-hadiah menarik!
                     </p>
@@ -63,7 +63,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 </section>
                 
                 {/* Rewards Slider Section */}
-                <section className="my-16 md:my-20">
+                <section className="my-12 md:my-20 overflow-hidden">
                     <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
                     <div className="relative max-w-6xl mx-auto">
                         <button onClick={() => handleNav('left', 'rewards')} className="absolute left-2 md:-left-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3" aria-label="Previous slide">
@@ -90,13 +90,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 </section>
 
                 {/* Simulasi Poin Section */}
-                <section className="my-16 md:my-20 max-w-6xl mx-auto">
+                <section className="my-12 md:my-20 max-w-6xl mx-auto">
                     <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
                 </section>
 
                 {/* Running Program Section */}
                 {runningPrograms && runningPrograms.length > 0 && (
-                    <section className="my-16 md:my-20">
+                    <section className="my-12 md:my-20 overflow-hidden">
                         <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Program Berjalan</h3>
                          <div className="relative max-w-6xl mx-auto">
                             <button onClick={() => handleNav('left', 'programs')} className="absolute left-2 md:-left-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3" aria-label="Previous program">
@@ -135,7 +135,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 <PemenangUndian winners={raffleWinners} />
 
                 {/* About Section */}
-                <section className="my-16 md:my-20 max-w-5xl mx-auto">
+                <section className="my-12 md:my-20 max-w-5xl mx-auto">
                      <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Tentang Kami</h3>
                      <div className="neu-card p-8 md:p-10">
                         <h4 className="text-2xl font-bold text-red-600">PT Agrabudi Komunika</h4>

@@ -9,13 +9,19 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
         
+        html {
+            background-color: var(--base-bg);
+            transition: background-color 0.3s;
+            overflow-x: hidden; /* Prevent horizontal scroll which causes auto-zoom */
+        }
+        
         body {
             font-family: 'Poppins', sans-serif;
             position: relative;
             overflow-x: hidden;
             color: var(--text-color); 
-            background-color: var(--base-bg);
-            transition: color 0.3s, background-color 0.3s;
+            /* The background is now on the html element to prevent white borders on mobile zoom-out */
+            transition: color 0.3s;
         }
 
         :root { 
