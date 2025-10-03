@@ -2,7 +2,6 @@ import React from 'react';
 import { User, Page } from '../../types';
 import { ICONS } from '../../constants';
 import Icon from '../common/Icon';
-import ThemeToggle from '../common/ThemeToggle';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -10,11 +9,9 @@ interface MainLayoutProps {
     currentPage: Page;
     setCurrentPage: (page: Page) => void;
     handleLogout: () => void;
-    theme: 'light' | 'dark';
-    toggleTheme: () => void;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentPage, setCurrentPage, handleLogout, theme, toggleTheme }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentPage, setCurrentPage, handleLogout }) => {
     const adminMenu = [
         { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
         { name: 'Mitra', icon: ICONS.users, page: 'manajemenPelanggan' as Page },
@@ -52,7 +49,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
             <header className="h-16 flex-shrink-0 flex items-center justify-between px-4 md:px-6">
                 <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-9" />
                 <div className="flex items-center gap-4">
-                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
                     <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-3 group">
                         <div className="text-right">
                             <p className="font-semibold text-gray-700 group-hover:text-red-600 transition-colors">{currentUser.profile.nama}</p>

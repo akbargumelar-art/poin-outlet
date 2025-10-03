@@ -4,7 +4,6 @@ import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import PemenangUndian from '../../components/PemenangUndian';
 import SimulasiPoin from '../../components/SimulasiPoin';
-import ThemeToggle from '../../components/common/ThemeToggle';
 
 interface LandingPageProps {
     setCurrentPage: (page: Page) => void;
@@ -12,11 +11,9 @@ interface LandingPageProps {
     runningPrograms: RunningProgram[];
     raffleWinners: RaffleWinner[];
     loyaltyPrograms: LoyaltyProgram[];
-    theme: 'light' | 'dark';
-    toggleTheme: () => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms, raffleWinners, loyaltyPrograms, theme, toggleTheme }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms, raffleWinners, loyaltyPrograms }) => {
     const rewardsScrollContainer = useRef<HTMLDivElement>(null);
     const programsScrollContainer = useRef<HTMLDivElement>(null);
 
@@ -44,7 +41,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
             <header className="sticky top-0 z-30 p-4 md:p-6 flex justify-between items-center neu-bg shadow-sm">
                 <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-10" />
                 <div className="flex items-center gap-4">
-                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
                     <button onClick={() => setCurrentPage('login')} className="neu-button !w-auto px-6 py-2 text-sm">Login</button>
                 </div>
             </header>

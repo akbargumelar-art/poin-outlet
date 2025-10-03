@@ -11,39 +11,23 @@
         
         html {
             background-color: var(--base-bg);
-            transition: background-color 0.3s;
-            /* overflow-x: hidden; <-- REMOVED to allow zooming on mobile */
         }
         
         body {
             font-family: 'Poppins', sans-serif;
             position: relative;
-            /* overflow-x: hidden; <-- REMOVED to allow zooming on mobile */
             color: var(--text-color); 
-            /* The background is now on the html element to prevent white borders on mobile zoom-out */
-            transition: color 0.3s;
         }
 
         :root { 
             --base-bg: #F0F2F5;
-            --neu-bg: rgba(240, 242, 245, 0.6); /* Semi-transparent background for cards */
+            --neu-bg: rgba(240, 242, 245, 0.6);
             --neu-shadow-dark: #dce1e7; 
             --neu-shadow-light: #ffffff; 
             --brand-red: #ef4444;
             --brand-blue: #4f46e5;
             --text-color: #5a6678;
             --text-color-strong: #333d4b;
-        }
-
-        html.dark {
-            --base-bg: #1a202c;
-            --neu-bg: rgba(45, 55, 72, 0.7);
-            --neu-shadow-dark: #141821;
-            --neu-shadow-light: #2a3344;
-            --brand-red: #f56565;
-            --brand-blue: #667eea;
-            --text-color: #a0aec0;
-            --text-color-strong: #e2e8f0;
         }
 
         .app-background {
@@ -55,7 +39,6 @@
             z-index: -1;
             background-color: var(--base-bg);
             overflow: hidden;
-            transition: background-color 0.3s;
         }
 
         .blob {
@@ -64,7 +47,6 @@
             filter: blur(100px);
             opacity: 0.8;
             will-change: transform;
-            transition: background-color 0.3s;
         }
 
         .blob-1 {
@@ -86,20 +68,14 @@
         }
 
         .neu-bg { 
-            background-color: transparent; /* Body background is now handled by .app-background */
+            background-color: transparent;
         }
         
-        /* Updated to a more modern "Glassmorphism" effect */
         .neu-card, .neu-card-flat, .neu-button, .neu-button-icon, .input-field {
             background-color: var(--neu-bg);
             -webkit-backdrop-filter: blur(20px);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: background-color 0.3s, box-shadow 0.3s, border-color 0.3s;
-        }
-
-        html.dark .neu-card, html.dark .neu-card-flat, html.dark .neu-button, html.dark .neu-button-icon, html.dark .input-field {
-             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .neu-card { 
@@ -115,10 +91,6 @@
             border-radius: 12px; 
             box-shadow: inset 5px 5px 10px var(--neu-shadow-dark), inset -5px -5px 10px var(--neu-shadow-light); 
             border: none;
-            transition: background-color 0.3s, box-shadow 0.3s;
-        }
-        html.dark .neu-inset {
-            background-color: rgba(0,0,0,0.2);
         }
 
         .neu-gradient-card { 
@@ -129,9 +101,6 @@
             -webkit-backdrop-filter: none;
             backdrop-filter: none;
             border: none;
-        }
-        html.dark .neu-gradient-card {
-            box-shadow: 7px 7px 14px #4a0404, -7px -7px 14px #a43232; 
         }
         .neu-button {
             width: 100%;

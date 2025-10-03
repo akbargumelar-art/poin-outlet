@@ -18,17 +18,12 @@ import ManajemenProgram from './pages/admin/ManajemenProgram';
 import ManajemenPoin from './pages/admin/ManajemenPoin';
 import ManajemenHadiah from './pages/admin/ManajemenHadiah';
 import ManajemenUndian from './pages/admin/ManajemenUndian';
-import ThemeToggle from './components/common/ThemeToggle';
-
-type Theme = 'light' | 'dark';
 
 function App() {
     const [currentPage, setCurrentPage] = useState<Page>('landing');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [modal, setModal] = useState({ show: false, content: <></>, title: '' });
     const [isLoading, setIsLoading] = useState(true);
-    const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'light');
-
 
     // State for all application data, will be fetched from backend
     const [users, setUsers] = useState<User[]>([]);
@@ -41,17 +36,6 @@ function App() {
     const [couponRedemptions, setCouponRedemptions] = useState<CouponRedemption[]>([]);
     const [raffleWinners, setRaffleWinners] = useState<RaffleWinner[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
-
-    useEffect(() => {
-        const root = window.document.documentElement;
-        root.classList.remove(theme === 'light' ? 'dark' : 'light');
-        root.classList.add(theme);
-        localStorage.setItem('theme', theme);
-    }, [theme]);
-
-    const toggleTheme = () => {
-        setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-    };
 
     const fetchBootstrapData = async () => {
         try {
@@ -278,7 +262,7 @@ function App() {
                     return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} />;
                 case 'landing':
                 default:
-                    return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} theme={theme} toggleTheme={toggleTheme} />;
+                    return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} />;
             }
         }
         
@@ -303,7 +287,7 @@ function App() {
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
 
-        return <MainLayout currentUser={currentUser} currentPage={currentPage} setCurrentPage={setCurrentPage} handleLogout={handleLogout} theme={theme} toggleTheme={toggleTheme}>{pageContent}</MainLayout>
+        return <MainLayout currentUser={currentUser} currentPage={currentPage} setCurrentPage={setCurrentPage} handleLogout={handleLogout}>{pageContent}</MainLayout>
     };
 
     return (
