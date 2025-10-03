@@ -114,7 +114,7 @@ router.get('/bootstrap', async (req, res) => {
             safeQueryDB('SELECT * FROM users'),
             safeQueryDB('SELECT * FROM transactions ORDER BY date DESC'),
             safeQueryDB('SELECT * FROM rewards ORDER BY points ASC'),
-            safeQueryDB('SELECT r.*, rw.name as reward_name FROM redemptions r LEFT JOIN rewards rw ON r.reward_id = rw.id ORDER BY date DESC'),
+            safeQueryDB('SELECT r.*, rw.name as reward_name FROM redemptions r LEFT JOIN rewards rw ON r.reward_id = rw.id ORDER BY r.date DESC'),
             safeQueryDB('SELECT * FROM loyalty_programs ORDER BY points_needed ASC'),
             safeQueryDB('SELECT * FROM running_programs ORDER BY end_date DESC'),
             safeQueryDB('SELECT * FROM running_program_targets'),
@@ -166,19 +166,6 @@ router.get('/bootstrap', async (req, res) => {
 
 
 // --- API ENDPOINTS ---
-
-// GET LIST OF AVAILABLE DIGIPOS IDs FOR REGISTRATION
-router.get('/available-digipos', async (req, res) => {
-    try {
-        const [rows] = await db.execute(
-            'SELECT id_digipos, no_rs, nama_outlet, tap, salesforce FROM digipos_data WHERE is_registered = 0 OR is_registered IS NULL ORDER BY nama_outlet ASC'
-        );
-        res.json(rows.map(toCamelCase));
-    } catch (error) {
-        console.error('Error fetching available digipos IDs:', error);
-        res.status(500).json({ message: 'Gagal mengambil daftar outlet.' });
-    }
-});
 
 // GET DIGIPOS INFO
 router.get('/digipos-info/:id', async (req, res) => {
