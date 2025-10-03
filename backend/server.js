@@ -1,5 +1,6 @@
 // Load environment variables from .env file
 require('dotenv').config();
+const path = require('path');
 
 const express = require('express');
 const cors = require('cors');
@@ -14,6 +15,9 @@ const app = express();
 app.use(cors());
 // Parse incoming JSON requests
 app.use(express.json({ limit: '10mb' })); // Increased limit for potential photo uploads
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
 app.use('/api/auth', authRoutes);

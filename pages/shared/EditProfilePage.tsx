@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { User, UserProfile } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -5,7 +6,7 @@ import { ICONS } from '../../constants';
 
 interface EditProfilePageProps {
     currentUser: User;
-    updateUserProfile: (profile: UserProfile) => void;
+    updateUserProfile: (profile: UserProfile, photoFile: File | null) => void;
     handleLogout: () => void;
 }
 
@@ -13,9 +14,9 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
     const [isEditing, setIsEditing] = useState(false);
     const [profile, setProfile] = useState<UserProfile>(currentUser.profile);
     const [photoPreview, setPhotoPreview] = useState<string | null>(currentUser.profile.photoUrl || null);
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
 
     const allTaps = useMemo(() => {
-        // In a real app, this would be fetched from the API
         return ['CIREBON', 'KUNINGAN', 'MAJALENGKA', 'INDRAMAYU', 'Palimanan', 'Lemahabang', 'Luragung', 'Pemuda'].sort();
     }, []);
     
@@ -29,11 +30,10 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            setPhotoFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
-                const result = reader.result as string;
-                setPhotoPreview(result);
-                setProfile(prev => ({...prev, photoUrl: result}));
+                setPhotoPreview(reader.result as string);
             };
             reader.readAsDataURL(file);
         }
@@ -41,13 +41,14 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
 
     const handleSubmit = (e: React.FormEvent) => { 
         e.preventDefault(); 
-        updateUserProfile(profile); 
+        updateUserProfile(profile, photoFile); 
         setIsEditing(false);
     };
 
     const handleCancel = () => {
         setProfile(currentUser.profile);
         setPhotoPreview(currentUser.profile.photoUrl || null);
+        setPhotoFile(null);
         setIsEditing(false);
     };
 
