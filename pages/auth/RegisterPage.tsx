@@ -158,7 +158,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                     <Icon path={ICONS.chevronLeft} className="w-6 h-6" />
                 </button>
                  <div className="text-center mb-6">
-                    <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-10 mx-auto mb-4" />
+                    <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-9 sm:h-10 mx-auto mb-4" />
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Registrasi Mitra Baru</h1>
                 </div>
 

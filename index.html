@@ -12,13 +12,13 @@
         html {
             background-color: var(--base-bg);
             transition: background-color 0.3s;
-            overflow-x: hidden; /* Prevent horizontal scroll which causes auto-zoom */
+            /* overflow-x: hidden; <-- REMOVED to allow zooming on mobile */
         }
         
         body {
             font-family: 'Poppins', sans-serif;
             position: relative;
-            overflow-x: hidden;
+            /* overflow-x: hidden; <-- REMOVED to allow zooming on mobile */
             color: var(--text-color); 
             /* The background is now on the html element to prevent white borders on mobile zoom-out */
             transition: color 0.3s;

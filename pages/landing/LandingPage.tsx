@@ -42,7 +42,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
         <div className="min-h-screen neu-bg font-sans animate-fade-in-down">
             {/* Header */}
             <header className="sticky top-0 z-30 p-4 md:p-6 flex justify-between items-center neu-bg shadow-sm">
-                <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-10" />
+                <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-10" />
                 <div className="flex items-center gap-4">
                     <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
                     <button onClick={() => setCurrentPage('login')} className="neu-button !w-auto px-6 py-2 text-sm">Login</button>
@@ -65,8 +65,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 {/* Rewards Slider Section */}
                 <section className="my-12 md:my-20 overflow-hidden">
                     <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
-                    <div className="relative max-w-6xl mx-auto">
-                        <button onClick={() => handleNav('left', 'rewards')} className="absolute left-2 md:-left-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3" aria-label="Previous slide">
+                    <div className="relative max-w-6xl mx-auto md:px-12">
+                        <button onClick={() => handleNav('left', 'rewards')} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous slide">
                             <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                         </button>
                         <div ref={rewardsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -82,7 +82,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                 </div>
                             ))}
                         </div>
-                        <button onClick={() => handleNav('right', 'rewards')} className="absolute right-2 md:-right-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3" aria-label="Next slide">
+                        <button onClick={() => handleNav('right', 'rewards')} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Next slide">
                            <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
                         </button>
                     </div>
@@ -98,8 +98,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 {runningPrograms && runningPrograms.length > 0 && (
                     <section className="my-12 md:my-20 overflow-hidden">
                         <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Program Berjalan</h3>
-                         <div className="relative max-w-6xl mx-auto">
-                            <button onClick={() => handleNav('left', 'programs')} className="absolute left-2 md:-left-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3" aria-label="Previous program">
+                         <div className="relative max-w-6xl mx-auto md:px-12">
+                            <button onClick={() => handleNav('left', 'programs')} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous program">
                                 <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                             </button>
                             <div ref={programsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -125,7 +125,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                     </div>
                                 ))}
                             </div>
-                             <button onClick={() => handleNav('right', 'programs')} className="absolute right-2 md:-right-4 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3" aria-label="Next program">
+                             <button onClick={() => handleNav('right', 'programs')} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Next program">
                                <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
                             </button>
                         </div>

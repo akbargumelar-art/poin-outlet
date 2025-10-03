@@ -50,7 +50,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
     return (
         <div className="h-screen w-full flex flex-col font-sans neu-bg">
             <header className="h-16 flex-shrink-0 flex items-center justify-between px-4 md:px-6">
-                <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-9" />
+                <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-9" />
                 <div className="flex items-center gap-4">
                     <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
                     <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-3 group">
