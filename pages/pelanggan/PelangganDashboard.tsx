@@ -36,28 +36,28 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold text-gray-700">Selamat Datang Kembali,</h1>
-                <p className="text-xl text-red-600 font-semibold">{currentUser.profile.nama}!</p>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Selamat Datang Kembali,</h1>
+                <p className="text-lg md:text-xl text-red-600 font-semibold">{currentUser.profile.nama}!</p>
             </div>
 
             <div className={`neu-card bg-gradient-to-br ${currentLevelGradient} text-white p-6`}>
                 <div className="flex justify-between items-start">
                     <div>
-                        <h2 className="text-lg font-semibold opacity-80">Total Poin Anda</h2>
-                        <p className="text-5xl font-bold">{(currentUser.points || 0).toLocaleString('id-ID')}</p>
+                        <h2 className="text-md font-semibold opacity-80">Total Poin Anda</h2>
+                        <p className="text-4xl md:text-5xl font-bold">{(currentUser.points || 0).toLocaleString('id-ID')}</p>
                     </div>
                     <div className="text-right">
-                        <h2 className="text-lg font-semibold opacity-80">Kupon Undian</h2>
-                        <p className="text-5xl font-bold">{(currentUser.kuponUndian || 0)}</p>
+                        <h2 className="text-md font-semibold opacity-80">Kupon Undian</h2>
+                        <p className="text-4xl md:text-5xl font-bold">{(currentUser.kuponUndian || 0)}</p>
                     </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-white/20">
                      <div className="flex justify-between items-center">
                         <div>
                             <h2 className="text-md font-semibold opacity-90">Level Loyalti</h2>
-                            <p className="text-2xl font-bold">{currentUser.level}</p>
+                            <p className="text-xl md:text-2xl font-bold">{currentUser.level}</p>
                         </div>
                          <button 
                             onClick={() => setCurrentPage('tukarPoin')} 
@@ -85,7 +85,7 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                     <h2 className="text-md font-semibold text-gray-600">Transaksi Terakhir</h2>
                     {recentTransaction ? (
                         <>
-                            <p className="text-3xl font-bold text-gray-800 mt-1">Rp {recentTransaction.totalPembelian.toLocaleString('id-ID')}</p>
+                            <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-1">Rp {recentTransaction.totalPembelian.toLocaleString('id-ID')}</p>
                              <p className="text-sm font-semibold text-gray-700 truncate">{recentTransaction.produk}</p>
                             <div className="flex justify-between items-center mt-1">
                                 <p className="text-xs text-gray-500">{new Date(recentTransaction.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>

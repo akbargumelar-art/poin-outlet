@@ -18,12 +18,15 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
         kecamatan: '',
         namaOwner: '',
         noWhatsapp: '',
-        salesforce: ''
+        salesforce: '',
+        password: '',
+        confirmPassword: ''
     });
 
     const [isLoading, setIsLoading] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [digiposError, setDigiposError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
     const [isDigiposVerified, setIsDigiposVerified] = useState(false);
 
     const verifyDigiposId = async (id: string) => {
@@ -59,9 +62,11 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
             if (formData.idDigipos.length > 4) {
                 verifyDigiposId(formData.idDigipos);
             } else {
-                setDigiposError('');
+                // Only clear the verified flag, don't clear form data unless the input is empty
                 setIsDigiposVerified(false);
-                setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '', salesforce: ''}));
+                if (formData.idDigipos.length === 0) {
+                     setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '', salesforce: ''}));
+                }
             }
         }, 800);
 
@@ -92,9 +97,18 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setPasswordError('');
         if (!isDigiposVerified) {
              setDigiposError('Harap gunakan ID Digipos yang valid.');
              return;
+        }
+        if (formData.password !== formData.confirmPassword) {
+            setPasswordError('Password dan konfirmasi password tidak cocok.');
+            return;
+        }
+        if (formData.password.length < 6) {
+            setPasswordError('Password minimal harus 6 karakter.');
+            return;
         }
         setIsLoading(true);
         await handleRegister(formData);
@@ -110,17 +124,17 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     
     return (
          <div className="min-h-screen neu-bg flex justify-center items-center p-4">
-            <div className="w-full max-w-2xl neu-card p-8 z-10 animate-fade-in-down relative">
+            <div className="w-full max-w-2xl neu-card p-6 z-10 animate-fade-in-down relative">
                  <button onClick={() => setCurrentPage('landing')} className="absolute top-4 left-4 neu-button-icon text-gray-500 hover:text-red-600 !text-red-600" aria-label="Kembali ke beranda">
                     <Icon path={ICONS.chevronLeft} className="w-6 h-6" />
                 </button>
-                 <div className="text-center mb-8">
-                    <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-12 mx-auto mb-4" />
-                    <h1 className="text-3xl font-bold text-gray-700">Registrasi Mitra Baru</h1>
+                 <div className="text-center mb-6">
+                    <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-10 mx-auto mb-4" />
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Registrasi Mitra Baru</h1>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <InputWrapper icon={ICONS.idCard}>
                                 <input type="text" name="idDigipos" value={formData.idDigipos} onChange={handleChange} className="input-field pl-12" placeholder="ID Digipos" required />
@@ -149,7 +163,11 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
 
                         <InputWrapper icon={ICONS.user}><input type="text" name="namaOwner" value={formData.namaOwner} onChange={handleChange} className="input-field pl-12" placeholder="Nama Owner"/></InputWrapper>
                         <InputWrapper icon={ICONS.phone}><input type="tel" name="noWhatsapp" value={formData.noWhatsapp} onChange={handleChange} className="input-field pl-12" required placeholder="Nomor WhatsApp"/></InputWrapper>
+
+                        <InputWrapper icon={ICONS.lock}><input type="password" name="password" value={formData.password} onChange={handleChange} className="input-field pl-12" placeholder="Buat Password"/></InputWrapper>
+                        <InputWrapper icon={ICONS.lock}><input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className="input-field pl-12" placeholder="Konfirmasi Password"/></InputWrapper>
                     </div>
+                     {passwordError && <p className="text-sm text-red-600 mt-2 text-center">{passwordError}</p>}
                     <button type="submit" className="neu-button text-red-600" disabled={isLoading || !isDigiposVerified}>
                         {isLoading ? 'Mendaftar...' : 'Registrasi'}
                     </button>

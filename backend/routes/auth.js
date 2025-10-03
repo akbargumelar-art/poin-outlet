@@ -79,10 +79,14 @@ router.post('/login', async (req, res) => {
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-    const { idDigipos, namaOutlet, noRs, kabupaten, kecamatan, namaOwner, noWhatsapp, salesforce } = req.body;
+    const { idDigipos, namaOutlet, noRs, kabupaten, kecamatan, namaOwner, noWhatsapp, salesforce, password } = req.body;
     
-    if (!idDigipos || !namaOutlet || !noWhatsapp || !kabupaten || !kecamatan) {
-        return res.status(400).json({ message: 'Semua field wajib diisi.' });
+    if (!idDigipos || !namaOutlet || !noWhatsapp || !kabupaten || !kecamatan || !password) {
+        return res.status(400).json({ message: 'Semua field wajib diisi, termasuk password.' });
+    }
+    
+    if (password.length < 6) {
+        return res.status(400).json({ message: 'Password harus minimal 6 karakter.' });
     }
 
     const connection = await db.getConnection();
@@ -104,8 +108,8 @@ router.post('/register', async (req, res) => {
             throw new Error('ID Digipos sudah terdaftar.');
         }
         
-        // 3. Hash a default password
-        const hashedPassword = await bcrypt.hash('password', 10);
+        // 3. Hash the user-provided password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // 4. Insert new user into `users` table
         const sql = `
