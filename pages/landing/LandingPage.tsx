@@ -1,10 +1,10 @@
-
 import React, { useRef } from 'react';
 import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import PemenangUndian from '../../components/PemenangUndian';
 import SimulasiPoin from '../../components/SimulasiPoin';
+import ThemeToggle from '../../components/common/ThemeToggle';
 
 interface LandingPageProps {
     setCurrentPage: (page: Page) => void;
@@ -12,9 +12,11 @@ interface LandingPageProps {
     runningPrograms: RunningProgram[];
     raffleWinners: RaffleWinner[];
     loyaltyPrograms: LoyaltyProgram[];
+    theme: 'light' | 'dark';
+    toggleTheme: () => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms, raffleWinners, loyaltyPrograms }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms, raffleWinners, loyaltyPrograms, theme, toggleTheme }) => {
     const rewardsScrollContainer = useRef<HTMLDivElement>(null);
     const programsScrollContainer = useRef<HTMLDivElement>(null);
 
@@ -39,9 +41,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
     return (
         <div className="min-h-screen neu-bg font-sans animate-fade-in-down">
             {/* Header */}
-            <header className="sticky top-0 z-30 p-6 flex justify-between items-center neu-bg shadow-sm">
+            <header className="sticky top-0 z-30 p-4 md:p-6 flex justify-between items-center neu-bg shadow-sm">
                 <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-10" />
-                <button onClick={() => setCurrentPage('login')} className="neu-button !w-auto px-6 py-2 text-sm">Login</button>
+                <div className="flex items-center gap-4">
+                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                    <button onClick={() => setCurrentPage('login')} className="neu-button !w-auto px-6 py-2 text-sm">Login</button>
+                </div>
             </header>
 
             <main className="p-6 md:p-12">

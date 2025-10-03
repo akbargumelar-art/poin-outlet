@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Page, Location } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
@@ -29,6 +29,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     const [passwordError, setPasswordError] = useState('');
     const [isDigiposVerified, setIsDigiposVerified] = useState(false);
 
+    const debounceTimeoutRef = useRef<number | null>(null);
+
+
     const verifyDigiposId = async (id: string) => {
         setIsVerifying(true);
         setDigiposError('');
@@ -56,22 +59,40 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     };
 
 
-    // Debounce for Digipos ID verification
+    // Debounce for Digipos ID verification with fix for focus loss
     useEffect(() => {
-        const handler = setTimeout(() => {
-            if (formData.idDigipos.length > 4) {
-                verifyDigiposId(formData.idDigipos);
-            } else {
-                // Only clear the verified flag, don't clear form data unless the input is empty
-                setIsDigiposVerified(false);
-                if (formData.idDigipos.length === 0) {
-                     setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '', salesforce: ''}));
-                }
-            }
-        }, 800);
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
+        const id = formData.idDigipos.trim();
+        
+        if (id.length === 0) {
+            // Clear everything if input is empty
+            setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '', salesforce: ''}));
+            setDigiposError('');
+            setIsDigiposVerified(false);
+            setIsVerifying(false);
+            return;
+        }
+        
+        // Only trigger verification if length is sufficient
+        if (id.length > 4) {
+            setIsVerifying(true); // Show verifying status immediately
+            debounceTimeoutRef.current = window.setTimeout(() => {
+                verifyDigiposId(id);
+            }, 800);
+        } else {
+             // If length is too short, just reset status without causing re-renders that steal focus
+             setDigiposError('');
+             setIsDigiposVerified(false);
+             setIsVerifying(false);
+        }
 
         return () => {
-            clearTimeout(handler);
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current);
+            }
         };
     }, [formData.idDigipos]);
 
@@ -84,7 +105,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     // Effect to auto-select first kecamatan when kabupaten changes
      useEffect(() => {
         if (formData.kabupaten && kecamatanOptions.length > 0) {
-            setFormData(prev => ({...prev, kecamatan: kecamatanOptions[0]}));
+            const isCurrentKecamatanValid = kecamatanOptions.includes(formData.kecamatan);
+            if (!isCurrentKecamatanValid) {
+                 setFormData(prev => ({...prev, kecamatan: kecamatanOptions[0]}));
+            }
         } else {
             setFormData(prev => ({...prev, kecamatan: ''}));
         }

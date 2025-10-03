@@ -2,6 +2,7 @@ import React from 'react';
 import { User, Page } from '../../types';
 import { ICONS } from '../../constants';
 import Icon from '../common/Icon';
+import ThemeToggle from '../common/ThemeToggle';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -9,9 +10,11 @@ interface MainLayoutProps {
     currentPage: Page;
     setCurrentPage: (page: Page) => void;
     handleLogout: () => void;
+    theme: 'light' | 'dark';
+    toggleTheme: () => void;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentPage, setCurrentPage, handleLogout }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentPage, setCurrentPage, handleLogout, theme, toggleTheme }) => {
     const adminMenu = [
         { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
         { name: 'Mitra', icon: ICONS.users, page: 'manajemenPelanggan' as Page },
@@ -48,15 +51,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         <div className="h-screen w-full flex flex-col font-sans neu-bg">
             <header className="h-16 flex-shrink-0 flex items-center justify-between px-4 md:px-6">
                 <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-9" />
-                <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-3 group">
-                    <div className="text-right">
-                        <p className="font-semibold text-gray-700 group-hover:text-red-600 transition-colors">{currentUser.profile.nama}</p>
-                        <p className="text-sm text-red-600 capitalize">{isPelanggan ? 'Mitra Outlet' : currentUser.role}</p>
-                    </div>
-                    <div className="w-11 h-11 rounded-full neu-card flex items-center justify-center font-bold text-xl text-red-500 overflow-hidden">
-                       {currentUser.profile.photoUrl ? <img src={currentUser.profile.photoUrl} alt="profile" className="w-full h-full object-cover"/> : currentUser.profile.nama.charAt(0)}
-                    </div>
-                </button>
+                <div className="flex items-center gap-4">
+                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                    <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-3 group">
+                        <div className="text-right">
+                            <p className="font-semibold text-gray-700 group-hover:text-red-600 transition-colors">{currentUser.profile.nama}</p>
+                            <p className="text-sm text-red-600 capitalize">{isPelanggan ? 'Mitra Outlet' : currentUser.role}</p>
+                        </div>
+                        <div className="w-11 h-11 rounded-full neu-card flex items-center justify-center font-bold text-xl text-red-500 overflow-hidden">
+                           {currentUser.profile.photoUrl ? <img src={currentUser.profile.photoUrl} alt="profile" className="w-full h-full object-cover"/> : currentUser.profile.nama.charAt(0)}
+                        </div>
+                    </button>
+                </div>
             </header>
             <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 animate-fade-in-up">{children}</main>
             <nav className="fixed bottom-0 left-0 right-0 h-16 bg-transparent flex justify-around items-center z-50">
