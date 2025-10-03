@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location } from './types';
 
@@ -114,17 +113,19 @@ function App() {
     const updateUserProfile = async (profile: UserProfile, photoFile: File | null) => {
         if (!currentUser) return;
         try {
-            // Update text data
+            // 1. Update text data first and get the updated user object from server
             const profileResponse = await fetch(`/api/users/${currentUser.id}/profile`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(profile)
             });
-            if (!profileResponse.ok) throw new Error('Gagal memperbarui profil.');
-            
-            let finalProfile = profile;
-
-            // Upload photo if exists
+             if (!profileResponse.ok) {
+                const errorData = await profileResponse.json();
+                throw new Error(errorData.message || 'Gagal memperbarui profil.');
+            }
+            let updatedUserFromServer: User = await profileResponse.json();
+    
+            // 2. Upload photo if it exists
             if (photoFile) {
                 const formData = new FormData();
                 formData.append('profilePhoto', photoFile);
@@ -134,13 +135,14 @@ function App() {
                 });
                 if (!photoResponse.ok) throw new Error('Gagal mengunggah foto.');
                 const photoData = await photoResponse.json();
-                finalProfile.photoUrl = photoData.photoUrl; // Get the new URL from backend
+                // Merge the new photo URL into the user object
+                updatedUserFromServer.profile.photoUrl = photoData.photoUrl;
             }
-
-            const updatedUser = { ...currentUser, profile: finalProfile };
-            setCurrentUser(updatedUser);
-            setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
-
+            
+            // 3. Update state with the final, canonical user object from the server
+            setCurrentUser(updatedUserFromServer);
+            setUsers(users.map(u => u.id === currentUser.id ? updatedUserFromServer : u));
+    
             setModal({ show: true, title: "Berhasil", content: <p className="text-center text-green-600">Profil berhasil diperbarui!</p> });
         } catch (error: any) {
              setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
@@ -246,7 +248,7 @@ function App() {
                 case 'login':
                     return <LoginPage handleLogin={handleLogin} setCurrentPage={setCurrentPage} />;
                 case 'register':
-                    return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} digiposMasterData={[]} />;
+                    return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} />;
                 case 'landing':
                 default:
                     return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} />;

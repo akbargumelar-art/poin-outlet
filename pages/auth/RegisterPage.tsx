@@ -2,16 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Page, Location } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
-import { digiposMasterData as defaultDigiposData } from '../../data/mockData'; // Import mock data
 
 interface RegisterPageProps {
     handleRegister: (formData: any) => Promise<boolean>;
     setCurrentPage: (page: Page) => void;
     locations: Location[];
-    digiposMasterData: typeof defaultDigiposData; // Prop for master data
 }
 
-const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations, digiposMasterData }) => {
+const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations }) => {
     const [formData, setFormData] = useState({
         idDigipos: '',
         namaOutlet: '',
@@ -28,30 +26,30 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     const [digiposError, setDigiposError] = useState('');
     const [isDigiposVerified, setIsDigiposVerified] = useState(false);
 
-    const verifyDigiposId = (id: string) => {
+    const verifyDigiposId = async (id: string) => {
         setIsVerifying(true);
         setDigiposError('');
-        // Simulate async verification with a timeout
-        setTimeout(() => {
-            const record = digiposMasterData.find(d => d.id_digipos === id);
+        try {
+            const response = await fetch(`/api/digipos-info/${id}`);
+            const data = await response.json();
     
-            if (!record) {
-                setDigiposError('ID Digipos tidak ditemukan di master data.');
-                setIsDigiposVerified(false);
-            } else if (record.is_registered) {
-                setDigiposError('ID Digipos sudah terdaftar.');
-                setIsDigiposVerified(false);
-            } else {
-                setFormData(prev => ({
-                    ...prev,
-                    namaOutlet: record.nama_outlet,
-                    noRs: record.no_rs,
-                    salesforce: record.salesforce,
-                }));
-                setIsDigiposVerified(true);
+            if (!response.ok) {
+                throw new Error(data.message || 'Verification failed');
             }
+    
+            setFormData(prev => ({
+                ...prev,
+                namaOutlet: data.namaOutlet,
+                noRs: data.noRs,
+                salesforce: data.salesforce,
+            }));
+            setIsDigiposVerified(true);
+        } catch (error: any) {
+            setDigiposError(error.message);
+            setIsDigiposVerified(false);
+        } finally {
             setIsVerifying(false);
-        }, 500); // 500ms delay to simulate network
+        }
     };
 
 
@@ -132,9 +130,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                             {isDigiposVerified && <p className="text-xs text-green-600 mt-1">✓ ID Digipos Valid</p>}
                         </div>
 
-                        <InputWrapper icon={ICONS.store}><input type="text" name="namaOutlet" value={formData.namaOutlet} onChange={handleChange} className="input-field pl-12" placeholder="Nama Outlet" required disabled={isDigiposVerified} /></InputWrapper>
-                        <InputWrapper icon={ICONS.idCard}><input type="text" name="noRs" value={formData.noRs} onChange={handleChange} className="input-field pl-12" placeholder="No. RS" disabled={isDigiposVerified} /></InputWrapper>
-                        <InputWrapper icon={ICONS.users}><input type="text" name="salesforce" value={formData.salesforce} onChange={handleChange} className="input-field pl-12" placeholder="Nama Salesforce" disabled={isDigiposVerified} /></InputWrapper>
+                        <InputWrapper icon={ICONS.store}><input type="text" name="namaOutlet" value={formData.namaOutlet} onChange={handleChange} className="input-field-disabled pl-12" placeholder="Nama Outlet" required disabled /></InputWrapper>
+                        <InputWrapper icon={ICONS.idCard}><input type="text" name="noRs" value={formData.noRs} onChange={handleChange} className="input-field-disabled pl-12" placeholder="No. RS" disabled /></InputWrapper>
+                        <InputWrapper icon={ICONS.users}><input type="text" name="salesforce" value={formData.salesforce} onChange={handleChange} className="input-field-disabled pl-12" placeholder="Nama Salesforce" disabled /></InputWrapper>
                         
                         <InputWrapper icon={ICONS.location}>
                             <select name="kabupaten" value={formData.kabupaten} onChange={handleChange} className="input-field pl-12" required>
