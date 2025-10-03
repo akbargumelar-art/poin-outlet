@@ -258,6 +258,69 @@ router.post('/users/:id/photo', upload.single('profilePhoto'), async (req, res) 
     }
 });
 
+// CREATE A NEW USER (ADMIN)
+router.post('/users', async (req, res) => {
+    const { id, password, role, profile } = req.body;
+    
+    if (!id || !password || !role || !profile || !profile.nama) {
+        return res.status(400).json({ message: 'Data user tidak lengkap.' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const [existingUser] = await connection.execute('SELECT id FROM users WHERE id = ?', [id]);
+        if (existingUser.length > 0) {
+            throw new Error(`ID/Username '${id}' sudah digunakan.`);
+        }
+        
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        const isPelanggan = role === 'pelanggan';
+
+        const sql = `
+            INSERT INTO users 
+            (id, password, role, nama, email, phone, tap, 
+            ${isPelanggan ? 'no_rs, owner, salesforce, kabupaten, kecamatan, alamat, level, points, kupon_undian' : 'jabatan'})
+            VALUES (?, ?, ?, ?, ?, ?, ?, ${isPelanggan ? '?, ?, ?, ?, ?, ?, ?, ?, ?' : '?'})
+        `;
+        
+        const params = [
+            id, hashedPassword, role, profile.nama, profile.email, profile.phone, profile.tap
+        ];
+
+        if (isPelanggan) {
+            params.push(
+                profile.noRs || null,
+                profile.owner || null,
+                profile.salesforce || null,
+                profile.kabupaten || null,
+                profile.kecamatan || null,
+                profile.alamat || null,
+                'Bronze', // Default level
+                0, // Default points
+                0 // Default kupon
+            );
+        } else { // admin or supervisor
+            params.push(profile.jabatan || null);
+        }
+        
+        await connection.execute(sql, params);
+        await connection.commit();
+
+        const [newUserRows] = await connection.execute('SELECT * FROM users WHERE id = ?', [id]);
+        res.status(201).json(structureUser(newUserRows[0]));
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Admin add user error:', error);
+        res.status(400).json({ message: error.message || 'Gagal menambahkan user.' });
+    } finally {
+        connection.release();
+    }
+});
+
 
 // Endpoint untuk menambah transaksi
 router.post('/transactions', async (req, res) => {

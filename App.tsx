@@ -195,17 +195,29 @@ function App() {
         setModal({show: true, title: "Konfirmasi", content: <div><p className="text-center mb-4">Tukar {reward.points.toLocaleString('id-ID')} poin untuk {reward.name}?</p><div className="flex justify-center gap-4"><button onClick={() => setModal({show: false, title:'', content:<></>})} className="neu-button">Batal</button><button onClick={() => { setModal({show: false, title:'', content:<></>}); redeemReward(reward); }} className="neu-button text-red-600">Ya</button></div></div>});
     };
     
-    // ... all other admin functions to be converted to API calls ...
-    const adminAddUser = (newUser: User) => {
-        // This is now a simplified example. In a real app, this would be an API call.
-        if (users.some(u => u.id === newUser.id)) {
-             setModal({ show: true, title: "Error", content: <p>ID/Username <b>{newUser.id}</b> sudah digunakan.</p> });
-             return;
+    const adminAddUser = async (newUser: User) => {
+        try {
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newUser)
+            });
+    
+            const data = await response.json();
+    
+            if (!response.ok) {
+                throw new Error(data.message || "Gagal menambahkan user.");
+            }
+    
+            // Successfully added, now refresh data to ensure consistency
+            await fetchBootstrapData();
+            
+            setModal({ show: true, title: "Sukses", content: <p>User baru <b>{data.profile.nama}</b> berhasil ditambahkan ke database.</p> });
+            setCurrentPage('manajemenPelanggan');
+    
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-        const userToAdd = {...newUser, password: newUser.password || 'password'}
-        setUsers(prev => [...prev, userToAdd]);
-        setModal({ show: true, title: "Sukses", content: <p>User baru <b>{newUser.profile.nama}</b> berhasil ditambahkan (Simulasi).</p> });
-        setCurrentPage('manajemenPelanggan');
     };
 
     const adminAddTransaction = async (data: Omit<Transaction, 'id' | 'pointsEarned' > & {totalPembelian: number}) => {
