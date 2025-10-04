@@ -37,16 +37,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
 
     return (
         <div className="relative">
-            <header className="absolute top-0 left-0 right-0 p-4 md:p-6 z-10">
+            <header className="p-4 md:p-6">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
                     <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-10" />
                     <button onClick={() => setCurrentPage('login')} className="neu-button !w-auto px-6 py-2 text-sm">Login</button>
                 </div>
             </header>
-            <div className="p-4 sm:p-6 md:p-12 pb-24">
+            <div className="px-4 sm:px-6 md:px-12 pb-24">
                 <div className="max-w-4xl mx-auto">
                     {/* Hero Section */}
-                    <section id="hero-section" className="text-center pt-24 my-10 md:my-16">
+                    <section id="hero-section" className="text-center my-10 md:my-16">
                         <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-700">Program Loyalitas Mitra Outlet</h2>
                         <p className="text-lg text-gray-500 mt-4 max-w-2xl mx-auto">
                             Bergabunglah dengan program loyalitas kami dan dapatkan poin dari setiap transaksi untuk ditukarkan dengan hadiah-hadiah menarik!
@@ -152,12 +152,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                             <div>
                                 <h5 className="font-bold text-gray-700 flex items-center gap-2"><Icon path={ICONS.location} className="w-5 h-5"/>Kantor Cirebon</h5>
                                 <p className="text-gray-600 mt-1 pl-7">Jl. Pemuda Raya No.21B, Sunyaragi, Kec. Kesambi, Kota Cirebon, Jawa Barat 45132</p>
-                                <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.33602167812!2d108.5305983153673!3d-6.729125995135111!2m3!1f0!2f0!3f0!3m2!i1024!i768!4f13.1!3m3!1m2!1s0x2e6f1d88a1b5731b%3A0x622cde8718e00318!2sPT.%20Agrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524312891!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
+                                <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!m12!m3!1d3962.33602167812!2d108.5305983153673!3d-6.729125995135111!2m3!1f0!2f0!3f0!3m2!i1024!i768!4f13.1!3m3!1m2!1s0x2e6f1d88a1b5731b%3A0x622cde8718e00318!2sPT.%20Agrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524312891!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
                             </div>
                             <div>
                                 <h5 className="font-bold text-gray-700 flex items-center gap-2"><Icon path={ICONS.location} className="w-5 h-5"/>Kantor Kuningan</h5>
                                 <p className="text-gray-600 mt-1 pl-7">Jl. Siliwangi No.45, Purwawinangun, Kec. Kuningan, Kabupaten Kuningan, Jawa Barat 45512</p>
-                                <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.916823521369!2d108.4811198153683!3d-6.90028349501348!2m3!1f0!2f0!3f0!3m2!i1024!i768!4f13.1!3m3!1m2!1s0x2e6f173775b69a6b%3A0x86842586b0a17349!2sAgrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524412803!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
+                                <div className="mt-4 rounded-lg overflow-hidden neu-inset"><iframe src="https://www.google.com/maps/embed?pb=!1m18!m12!m3!1d3960.916823521369!2d108.4811198153683!3d-6.90028349501348!2m3!1f0!2f0!3f0!3m2!i1024!i768!4f13.1!3m3!1m2!1s0x2e6f173775b69a6b%3A0x86842586b0a17349!2sAgrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1662524412803!5m2!1sen!2sid" width="100%" height="200" style={{border:0}} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
                             </div>
                         </div>
                      </div>
