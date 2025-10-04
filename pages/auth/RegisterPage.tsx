@@ -9,6 +9,14 @@ interface RegisterPageProps {
     locations: Location[];
 }
 
+// DEFINISIKAN INPUTWRAPPER DI LUAR KOMPONEN UTAMA
+const InputWrapper: React.FC<{icon: string, children: React.ReactNode}> = ({icon, children}) => (
+    <div className="relative w-full">
+        <Icon path={icon} className="absolute top-1/2 left-4 -translate-y-1/2 w-5 h-5 text-gray-400 z-10"/>
+        {children}
+    </div>
+);
+
 const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations }) => {
     const [formData, setFormData] = useState({
         idDigipos: '',
@@ -40,8 +48,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
 
     useEffect(() => {
         // Reset kecamatan if kabupaten changes
-        setFormData(prev => ({ ...prev, kecamatan: '' }));
-    }, [formData.kabupaten]);
+        // Cek dulu apakah formData.kecamatan ada di daftar kecamatan yang tersedia
+        const isKecamatanValid = availableKecamatans.includes(formData.kecamatan);
+        if (!isKecamatanValid) {
+            setFormData(prev => ({ ...prev, kecamatan: '' }));
+        }
+    }, [formData.kabupaten, availableKecamatans, formData.kecamatan]);
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -71,15 +83,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
         }
     };
     
-    const InputWrapper: React.FC<{icon: string, children: React.ReactNode}> = ({icon, children}) => (
-        <div className="relative w-full">
-            <Icon path={icon} className="absolute top-1/2 left-4 -translate-y-1/2 w-5 h-5 text-gray-400 z-10"/>
-            {children}
-        </div>
-    );
-    
+    // Hapus definisi InputWrapper dari sini
+
     return (
-         <div className="min-h-screen neu-bg flex justify-center items-center p-4">
+        <div className="min-h-screen neu-bg flex justify-center items-center p-4">
             <div className="w-full max-w-2xl neu-card p-6 z-10 animate-fade-in-down relative">
                  <button onClick={() => setCurrentPage('landing')} className="absolute top-4 left-4 neu-button-icon text-gray-500 hover:text-red-600 !text-red-600" aria-label="Kembali ke beranda">
                     <Icon path={ICONS.chevronLeft} className="w-6 h-6" />
