@@ -81,8 +81,12 @@ router.post('/login', async (req, res) => {
 router.post('/register', async (req, res) => {
     const { idDigipos, namaOutlet, noRs, kabupaten, kecamatan, namaOwner, noWhatsapp, salesforce, password } = req.body;
     
-    if (!idDigipos || !namaOutlet || !noWhatsapp || !kabupaten || !kecamatan || !password) {
-        return res.status(400).json({ message: 'Semua field wajib diisi, termasuk password.' });
+    // Basic validation for presence
+    const requiredFields = { idDigipos, namaOutlet, noRs, kabupaten, kecamatan, namaOwner, noWhatsapp, salesforce, password };
+    for (const [key, value] of Object.entries(requiredFields)) {
+        if (!value || String(value).trim() === '') {
+            return res.status(400).json({ message: `Kolom ${key} wajib diisi.` });
+        }
     }
     
     if (password.length < 6) {
@@ -93,21 +97,20 @@ router.post('/register', async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        // 1. Check if user already exists in `users` table
+        // 1. **NEW VALIDATION**: Check if the ID Digipos exists in the master data table first.
+        const [digiposRows] = await connection.execute('SELECT tap FROM digipos_data WHERE id_digipos = ?', [idDigipos]);
+        if (digiposRows.length === 0) {
+            // Specific error message as requested by the user.
+            throw new Error('ID Digipos belum terdaftar sebagai Mitra Telkomsel');
+        }
+        const tap = digiposRows[0].tap || 'UNKNOWN'; // Get TAP from master data
+
+        // 2. Check if user already exists in `users` table
         const [existingUser] = await connection.execute('SELECT id FROM users WHERE id = ?', [idDigipos]);
         if (existingUser.length > 0) {
             throw new Error('ID Digipos sudah terdaftar di sistem.');
         }
 
-        // 2. Check master data in `digipos_data`
-        const [digiposRows] = await connection.execute('SELECT is_registered FROM digipos_data WHERE id_digipos = ?', [idDigipos]);
-        if (digiposRows.length === 0) {
-            throw new Error('ID Digipos tidak valid atau tidak terdaftar di master data.');
-        }
-        if (digiposRows[0].is_registered) {
-            throw new Error('ID Digipos sudah terdaftar.');
-        }
-        
         // 3. Hash the user-provided password
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -117,24 +120,19 @@ router.post('/register', async (req, res) => {
             (id, password, role, nama, owner, phone, kabupaten, kecamatan, salesforce, no_rs, tap, level, points, kupon_undian)
             VALUES (?, ?, 'pelanggan', ?, ?, ?, ?, ?, ?, ?, ?, 'Bronze', 0, 0)
         `;
-        // We'll get TAP from the validated digipos data to ensure consistency
-        const [digiposData] = await connection.execute('SELECT tap FROM digipos_data WHERE id_digipos = ?', [idDigipos]);
-        const tap = digiposData[0]?.tap || 'UNKNOWN';
-
-        await connection.execute(sql, [idDigipos, hashedPassword, namaOutlet, namaOwner, noWhatsapp, kabupaten, kecamatan, salesforce, noRs, tap]);
         
-        // 5. Update the `is_registered` flag in the master data
-        await connection.execute('UPDATE digipos_data SET is_registered = 1 WHERE id_digipos = ?', [idDigipos]);
+        await connection.execute(sql, [idDigipos, hashedPassword, namaOutlet, namaOwner, noWhatsapp, kabupaten, kecamatan, salesforce, noRs, tap]);
 
         await connection.commit();
         
-        // Fetch and return the newly created user
+        // Fetch and return the newly created user for immediate login
         const [rows] = await connection.execute('SELECT * FROM users WHERE id = ?', [idDigipos]);
         res.status(201).json(structureUserObject(rows[0]));
 
     } catch (error) {
         await connection.rollback();
         console.error('Registration error:', error);
+        // Send a more specific error message back to the client
         res.status(400).json({ message: error.message || 'Registrasi gagal, terjadi kesalahan pada server.' });
     } finally {
         connection.release();

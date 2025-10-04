@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Page, Location, User } from '../../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Page, Location } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 
@@ -7,10 +7,9 @@ interface RegisterPageProps {
     handleRegister: (formData: any) => Promise<boolean>;
     setCurrentPage: (page: Page) => void;
     locations: Location[];
-    allUsers: User[];
 }
 
-const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations, allUsers }) => {
+const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations }) => {
     const [formData, setFormData] = useState({
         idDigipos: '',
         namaOutlet: '',
@@ -25,60 +24,51 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     });
 
     const [isLoading, setIsLoading] = useState(false);
-    const [passwordError, setPasswordError] = useState('');
-    const [generalError, setGeneralError] = useState('');
+    const [error, setError] = useState('');
+    
+    const uniqueKabupatens = useMemo(() => {
+        return [...new Set(locations.map(l => l.kabupaten))].sort();
+    }, [locations]);
+
+    const availableKecamatans = useMemo(() => {
+        if (!formData.kabupaten) return [];
+        return locations
+            .filter(l => l.kabupaten === formData.kabupaten)
+            .map(l => l.kecamatan)
+            .sort();
+    }, [locations, formData.kabupaten]);
+
+    useEffect(() => {
+        // Reset kecamatan if kabupaten changes
+        setFormData(prev => ({ ...prev, kecamatan: '' }));
+    }, [formData.kabupaten]);
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        
-        const newState = { ...formData, [name]: value };
-        
-        if (name === 'kabupaten') {
-            newState.kecamatan = '';
-            newState.salesforce = '';
-        }
-        
-        setFormData(newState);
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
-
-    const kabupatenOptions = useMemo(() => [...new Set(locations.map(l => l.kabupaten))].sort(), [locations]);
-    
-    const kecamatanOptions = useMemo(() => {
-        if (!formData.kabupaten) return [];
-        return locations.filter(l => l.kabupaten === formData.kabupaten).map(l => l.kecamatan).sort();
-    }, [locations, formData.kabupaten]);
-
-    const salesforceOptions = useMemo(() => {
-        if (!formData.kabupaten) return [];
-        const salesforceInKabupaten = allUsers
-            .filter(u => u.profile.kabupaten === formData.kabupaten && u.profile.salesforce)
-            .map(u => u.profile.salesforce!);
-        return [...new Set(salesforceInKabupaten)].sort();
-    }, [allUsers, formData.kabupaten]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setPasswordError('');
-        setGeneralError('');
+        setError('');
         
-        if (formData.idDigipos.trim().length < 6) {
-            setGeneralError('ID Digipos harus minimal 6 karakter.');
-            return;
-        }
-
         if (formData.password !== formData.confirmPassword) {
-            setPasswordError('Password dan konfirmasi password tidak cocok.');
+            setError('Password dan konfirmasi password tidak cocok.');
             return;
         }
         if (formData.password.length < 6) {
-            setPasswordError('Password minimal harus 6 karakter.');
+            setError('Password minimal harus 6 karakter.');
             return;
         }
 
         setIsLoading(true);
         const { confirmPassword, ...apiData } = formData;
-        await handleRegister(apiData);
-        setIsLoading(false);
+        const success = await handleRegister(apiData);
+        if (!success) {
+            // Error is handled by the modal in App.tsx, but we stop loading
+            setIsLoading(false);
+        }
     };
     
     const InputWrapper: React.FC<{icon: string, children: React.ReactNode}> = ({icon, children}) => (
@@ -102,38 +92,35 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <InputWrapper icon={ICONS.idCard}>
-                            <input type="text" name="idDigipos" value={formData.idDigipos} onChange={handleChange} className="input-field pl-12" placeholder="ID Digipos (min. 6 char)" required />
+                            <input type="text" name="idDigipos" value={formData.idDigipos} onChange={handleChange} className="input-field pl-12" placeholder="ID Digipos" required />
                         </InputWrapper>
                         <InputWrapper icon={ICONS.store}>
                             <input type="text" name="namaOutlet" value={formData.namaOutlet} onChange={handleChange} className="input-field pl-12" placeholder="Nama Outlet" required />
                         </InputWrapper>
                         <InputWrapper icon={ICONS.idCard}>
-                            <input type="text" name="noRs" value={formData.noRs} onChange={handleChange} className="input-field pl-12" placeholder="No. RS (Opsional)" />
+                            <input type="text" name="noRs" value={formData.noRs} onChange={handleChange} className="input-field pl-12" placeholder="No. RS" required />
                         </InputWrapper>
                         <InputWrapper icon={ICONS.location}>
-                            <select name="kabupaten" value={formData.kabupaten} onChange={handleChange} className="input-field pl-12" required>
+                           <select name="kabupaten" value={formData.kabupaten} onChange={handleChange} className="input-field pl-12" required>
                                 <option value="">-- Pilih Kabupaten --</option>
-                                {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
-                            </select>
+                                {uniqueKabupatens.map(k => <option key={k} value={k}>{k}</option>)}
+                           </select>
                         </InputWrapper>
                         <InputWrapper icon={ICONS.location}>
-                            <select name="kecamatan" value={formData.kecamatan} onChange={handleChange} className="input-field pl-12" required disabled={!formData.kabupaten}>
+                           <select name="kecamatan" value={formData.kecamatan} onChange={handleChange} className="input-field pl-12" required disabled={!formData.kabupaten}>
                                 <option value="">-- Pilih Kecamatan --</option>
-                                {kecamatanOptions.map(k => <option key={k} value={k}>{k}</option>)}
-                            </select>
+                                {availableKecamatans.map(k => <option key={k} value={k}>{k}</option>)}
+                           </select>
                         </InputWrapper>
                         <InputWrapper icon={ICONS.users}>
-                            <select name="salesforce" value={formData.salesforce} onChange={handleChange} className="input-field pl-12" required disabled={!formData.kabupaten}>
-                                <option value="">-- Pilih Salesforce --</option>
-                                {salesforceOptions.map(sf => <option key={sf} value={sf}>{sf}</option>)}
-                            </select>
+                           <input type="text" name="salesforce" value={formData.salesforce} onChange={handleChange} className="input-field pl-12" placeholder="Nama Salesforce" required />
                         </InputWrapper>
-                        <InputWrapper icon={ICONS.user}><input type="text" name="namaOwner" value={formData.namaOwner} onChange={handleChange} className="input-field pl-12" placeholder="Nama Owner"/></InputWrapper>
+                        <InputWrapper icon={ICONS.user}><input type="text" name="namaOwner" value={formData.namaOwner} onChange={handleChange} className="input-field pl-12" placeholder="Nama Owner" required /></InputWrapper>
                         <InputWrapper icon={ICONS.phone}><input type="tel" name="noWhatsapp" value={formData.noWhatsapp} onChange={handleChange} className="input-field pl-12" required placeholder="Nomor WhatsApp"/></InputWrapper>
-                        <InputWrapper icon={ICONS.lock}><input type="password" name="password" value={formData.password} onChange={handleChange} className="input-field pl-12" placeholder="Buat Password"/></InputWrapper>
-                        <InputWrapper icon={ICONS.lock}><input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className="input-field pl-12" placeholder="Konfirmasi Password"/></InputWrapper>
+                        <InputWrapper icon={ICONS.lock}><input type="password" name="password" value={formData.password} onChange={handleChange} className="input-field pl-12" placeholder="Buat Password" required /></InputWrapper>
+                        <InputWrapper icon={ICONS.lock}><input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className="input-field pl-12" placeholder="Konfirmasi Password" required /></InputWrapper>
                     </div>
-                     {(passwordError || generalError) && <p className="text-sm text-red-600 mt-2 text-center">{passwordError || generalError}</p>}
+                     {error && <p className="text-sm text-red-600 mt-2 text-center">{error}</p>}
                     <button type="submit" className="neu-button text-red-600" disabled={isLoading}>
                         {isLoading ? 'Mendaftar...' : 'Registrasi'}
                     </button>
