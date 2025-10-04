@@ -536,7 +536,7 @@ function App() {
                 case 'login':
                     return <LoginPage handleLogin={handleLogin} setCurrentPage={setCurrentPage} />;
                 case 'register':
-                    return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} />;
+                    return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} allUsers={users} />;
                 case 'landing':
                 default:
                     return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} />;

@@ -399,29 +399,6 @@ uploadRouter.post('/programs/:id/progress', excelUpload.single('progressFile'), 
 
 // --- JSON API ENDPOINTS (on main router) ---
 
-// GET DIGIPOS INFO
-router.get('/digipos-info/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const [rows] = await db.execute(
-            'SELECT id_digipos, no_rs, nama_outlet, tap, salesforce, is_registered FROM digipos_data WHERE id_digipos = ?',
-            [id]
-        );
-        if (rows.length === 0) {
-            return res.status(404).json({ message: 'ID Digipos tidak ditemukan di master data.' });
-        }
-        if (rows[0].is_registered) {
-            return res.status(409).json({ message: 'ID Digipos sudah terdaftar.' });
-        }
-        const data = toCamelCase(rows[0]);
-        res.json({ ...data, isRegistered: !!data.isRegistered });
-    } catch (error) {
-        console.error('Digipos info error:', error);
-        res.status(500).json({ message: 'Gagal mengambil informasi outlet.' });
-    }
-});
-
-
 // UPDATE USER PROFILE (TEXT FIELDS)
 router.put('/users/:id/profile', async (req, res) => {
     const { id } = req.params;
