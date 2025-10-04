@@ -6,6 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./db'); // This is the database pool
 const authRoutes = require('./routes/auth');
+const digiposRoutes = require('./routes/digipos'); // 1. IMPORT THE NEW ROUTE
 // Import both the data router and the new upload router
 const { router: dataRoutes, uploadRouter } = require('./routes/data');
 
@@ -29,6 +30,7 @@ app.use(express.json({ limit: '10mb' })); // Increased limit for potential photo
 
 // 3. Register the remaining API routes that expect JSON bodies.
 app.use('/api/auth', authRoutes);
+app.use('/api/validate-digipos', digiposRoutes); // 2. REGISTER THE ROUTE AT THE CORRECT PATH
 app.use('/api', dataRoutes);
 
 // If a request starts with /api/ but doesn't match any route, send a 404 response.

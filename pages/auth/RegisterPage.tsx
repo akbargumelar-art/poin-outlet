@@ -33,7 +33,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // --- PERUBAHAN DIMULAI DI SINI ---
     const [digiposValidation, setDigiposValidation] = useState({
         status: 'idle', // 'idle', 'loading', 'valid', 'invalid'
         message: ''
@@ -48,19 +47,14 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
 
         setDigiposValidation({ status: 'loading', message: 'Memvalidasi...' });
         try {
-            // Ganti URL ini jika endpoint Anda berbeda
             const response = await fetch(`/api/validate-digipos/${formData.idDigipos}`);
             const data = await response.json();
 
             if (!response.ok) {
-                // Handle error dari API (404, 409, dll)
                 setDigiposValidation({ status: 'invalid', message: data.message });
-                // Kosongkan field jika validasi gagal
                 setFormData(prev => ({ ...prev, namaOutlet: '', noRs: '', salesforce: '' }));
             } else {
-                // Handle sukses dari API
                 setDigiposValidation({ status: 'valid', message: 'ID Ditemukan & Valid' });
-                // Isi otomatis form
                 setFormData(prev => ({
                     ...prev,
                     namaOutlet: data.namaOutlet,
@@ -72,51 +66,79 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
             setDigiposValidation({ status: 'invalid', message: 'Gagal terhubung ke server.' });
         }
     }, [formData.idDigipos]);
-    // --- PERUBAHAN SELESAI DI SINI ---
     
-    // ... (sisa kode useMemo, useEffect, handleChange tidak berubah) ...
     const uniqueKabupatens = useMemo(() => {
-        return [...new Set(locations.map(l => l.kabupaten))].sort();
-    }, [locations]);
+        return [...new Set(locations.map(l => l.kabupaten))].sort();
+    }, [locations]);
 
-    const availableKecamatans = useMemo(() => {
-        if (!formData.kabupaten) return [];
-        return locations
-            .filter(l => l.kabupaten === formData.kabupaten)
-            .map(l => l.kecamatan)
-            .sort();
-    }, [locations, formData.kabupaten]);
+    const availableKecamatans = useMemo(() => {
+        if (!formData.kabupaten) return [];
+        return locations
+            .filter(l => l.kabupaten === formData.kabupaten)
+            .map(l => l.kecamatan)
+            .sort();
+    }, [locations, formData.kabupaten]);
 
-    useEffect(() => {
-        const isKecamatanValid = availableKecamatans.includes(formData.kecamatan);
+    useEffect(() => {
+        const isKecamatanValid = availableKecamatans.includes(formData.kecamatan);
         if (!isKecamatanValid) {
             setFormData(prev => ({ ...prev, kecamatan: '' }));
         }
-    }, [formData.kabupaten, availableKecamatans, formData.kecamatan]);
+    }, [formData.kabupaten, availableKecamatans, formData.kecamatan]);
 
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-        // Jika ID Digipos diubah, reset status validasi
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
         if (name === 'idDigipos') {
             setDigiposValidation({ status: 'idle', message: '' });
         }
-    };
+    };
     
     const handleSubmit = async (e: React.FormEvent) => {
-        // ... (fungsi handleSubmit tidak berubah) ...
+        e.preventDefault();
+        setError('');
+
+        if (formData.password !== formData.confirmPassword) {
+            setError('Konfirmasi password tidak cocok.');
+            return;
+        }
+
+        if (formData.password.length < 6) {
+            setError('Password harus minimal 6 karakter.');
+            return;
+        }
+        
+        if (!isDigiposValidated) {
+            setError('Harap validasi ID Digipos Anda terlebih dahulu dengan keluar dari kolom input.');
+            return;
+        }
+
+        setIsLoading(true);
+        const success = await handleRegister(formData);
+        // App.tsx handles success/error modals, so we just need to manage loading state.
+        if (!success) {
+            // The error state in App.tsx will be shown via a modal.
+            // But we can reset the validation here if the error was, for example, "already registered".
+            setDigiposValidation({ status: 'invalid', message: 'Registrasi gagal. Silakan periksa kembali data Anda.' });
+        }
+        setIsLoading(false);
     };
     
     return (
         <div className="min-h-screen neu-bg flex justify-center items-center p-4">
             <div className="w-full max-w-2xl neu-card p-6 z-10 animate-fade-in-down relative">
-                {/* ... (bagian header & tombol kembali tidak berubah) ... */}
+                <button onClick={() => setCurrentPage('landing')} className="absolute top-4 left-4 neu-button-icon text-gray-500 hover:text-red-600 !text-red-600" aria-label="Kembali ke beranda">
+                    <Icon path={ICONS.chevronLeft} className="w-6 h-6" />
+                </button>
+                <div className="text-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-700">Registrasi Mitra Baru</h1>
+                    <p className="text-gray-500 mt-1">Lengkapi data di bawah ini untuk memulai.</p>
+                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         
-                        {/* --- PERUBAHAN PADA INPUT ID DIGIPOS --- */}
                         <div>
                             <InputWrapper icon={ICONS.idCard}>
                                 <input 
@@ -124,14 +146,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                                     name="idDigipos" 
                                     value={formData.idDigipos} 
                                     onChange={handleChange}
-                                    onBlur={handleValidateDigipos} // Panggil validasi saat fokus keluar
+                                    onBlur={handleValidateDigipos}
                                     className="input-field pl-12" 
                                     placeholder="ID Digipos" 
                                     required 
-                                    disabled={isDigiposValidated} // Nonaktifkan setelah valid
+                                    readOnly={isDigiposValidated}
                                 />
                             </InputWrapper>
-                            {/* Tampilkan pesan status validasi */}
                             {digiposValidation.status !== 'idle' && (
                                 <p className={`text-xs mt-1 pl-1 ${
                                     digiposValidation.status === 'valid' ? 'text-green-600' :
@@ -142,18 +163,15 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                             )}
                         </div>
                         
-                        {/* --- PERUBAHAN PADA INPUT OTOMATIS --- */}
                         <InputWrapper icon={ICONS.store}>
-                            <input type="text" name="namaOutlet" value={formData.namaOutlet} onChange={handleChange} className="input-field pl-12" placeholder="Nama Outlet" required readOnly={isDigiposValidated} />
+                            <input type="text" name="namaOutlet" value={formData.namaOutlet} onChange={handleChange} className="input-field pl-12 input-field-disabled" placeholder="Nama Outlet" required readOnly />
                         </InputWrapper>
                         <InputWrapper icon={ICONS.idCard}>
-                            <input type="text" name="noRs" value={formData.noRs} onChange={handleChange} className="input-field pl-12" placeholder="No. RS" required readOnly={isDigiposValidated} />
+                            <input type="text" name="noRs" value={formData.noRs} onChange={handleChange} className="input-field pl-12 input-field-disabled" placeholder="No. RS" required readOnly />
                         </InputWrapper>
                         <InputWrapper icon={ICONS.users}>
-                           <input type="text" name="salesforce" value={formData.salesforce} onChange={handleChange} className="input-field pl-12" placeholder="Nama Salesforce" required readOnly={isDigiposValidated} />
+                           <input type="text" name="salesforce" value={formData.salesforce} onChange={handleChange} className="input-field pl-12 input-field-disabled" placeholder="Nama Salesforce" required readOnly />
                         </InputWrapper>
-
-                        {/* ... (sisa input lainnya tidak berubah, tapi Anda bisa membuatnya disabled sampai ID valid) ... */}
                         
                         <InputWrapper icon={ICONS.location}>
                            <select name="kabupaten" value={formData.kabupaten} onChange={handleChange} className="input-field pl-12" required>
@@ -177,7 +195,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                         {isLoading ? 'Mendaftar...' : 'Registrasi'}
                     </button>
                 </form>
-                {/* ... (bagian footer tidak berubah) ... */}
+                <p className="text-center text-gray-500 text-sm mt-4">
+                    Sudah punya akun? <button onClick={() => setCurrentPage('login')} className="font-bold text-red-600">Login di sini</button>
+                </p>
             </div>
         </div>
     );
