@@ -779,6 +779,65 @@ router.put('/loyalty-programs/:level', async (req, res) => {
     }
 });
 
+// RAFFLE PROGRAM MANAGEMENT
+router.post('/raffle-programs', async (req, res) => {
+    const { name, prize, period, isActive } = req.body;
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        if (isActive) {
+            await connection.execute('UPDATE raffle_programs SET is_active = 0');
+        }
+        const sql = 'INSERT INTO raffle_programs (name, prize, period, is_active) VALUES (?, ?, ?, ?)';
+        const [result] = await connection.execute(sql, [name, prize, period, !!isActive]);
+        await connection.commit();
+        res.status(201).json({ id: result.insertId, name, prize, period, isActive: !!isActive });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Create raffle program error:', error);
+        res.status(500).json({ message: 'Gagal membuat program undian.' });
+    } finally {
+        connection.release();
+    }
+});
+
+router.put('/raffle-programs/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, prize, period, isActive } = req.body;
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        if (isActive) {
+            await connection.execute('UPDATE raffle_programs SET is_active = 0');
+        }
+        const sql = 'UPDATE raffle_programs SET name = ?, prize = ?, period = ?, is_active = ? WHERE id = ?';
+        const [result] = await connection.execute(sql, [name, prize, period, !!isActive, id]);
+        if (result.affectedRows === 0) throw new Error('Program undian tidak ditemukan.');
+        await connection.commit();
+        res.json({ id: parseInt(id, 10), name, prize, period, isActive: !!isActive });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Update raffle program error:', error);
+        res.status(error.message === 'Program undian tidak ditemukan.' ? 404 : 500).json({ message: error.message });
+    } finally {
+        connection.release();
+    }
+});
+
+router.delete('/raffle-programs/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [result] = await db.execute('DELETE FROM raffle_programs WHERE id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Program undian tidak ditemukan.' });
+        }
+        res.json({ message: 'Program undian berhasil dihapus.' });
+    } catch (error) {
+        console.error('Delete raffle program error:', error);
+        res.status(500).json({ message: 'Gagal menghapus program undian.' });
+    }
+});
+
 
 
 module.exports = router;

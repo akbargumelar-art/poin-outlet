@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, RaffleProgram, CouponRedemption } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -46,12 +45,13 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
 interface ManajemenUndianProps {
     users: User[];
     programs: RaffleProgram[];
-    setPrograms: React.Dispatch<React.SetStateAction<RaffleProgram[]>>;
     redemptions: CouponRedemption[];
+    onSave: (program: Omit<RaffleProgram, 'id'> & { id?: number }) => void;
+    onDelete: (id: number) => void;
     isReadOnly?: boolean;
 }
 
-const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, setPrograms, redemptions, isReadOnly }) => {
+const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, redemptions, onSave, onDelete, isReadOnly }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
@@ -113,21 +113,14 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, setP
 
 
     const handleSaveProgram = (program: Omit<RaffleProgram, 'id'> & { id?: number }) => {
-        const newPrograms = programs.map(p => ({ ...p, isActive: program.isActive ? false : p.isActive }));
-        
-        if (program.id) {
-            setPrograms(newPrograms.map(p => p.id === program.id ? { ...program, id: program.id } as RaffleProgram : p));
-        } else {
-            const newProgram = { ...program, id: Date.now() };
-            setPrograms([...newPrograms, newProgram]);
-        }
+        onSave(program);
         setShowFormModal(false);
         setEditingProgram(undefined);
     };
 
     const handleDeleteProgram = (id: number) => {
         if (window.confirm('Anda yakin ingin menghapus program ini?')) {
-            setPrograms(programs.filter(p => p.id !== id));
+            onDelete(id);
         }
     };
     

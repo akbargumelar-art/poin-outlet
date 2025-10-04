@@ -460,6 +460,36 @@ function App() {
         }
     };
 
+    const saveRaffleProgram = async (program: Omit<RaffleProgram, 'id'> & { id?: number }) => {
+        try {
+            const method = program.id ? 'PUT' : 'POST';
+            const url = program.id ? `/api/raffle-programs/${program.id}` : '/api/raffle-programs';
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(program),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            await fetchBootstrapData();
+            setModal({ show: true, title: 'Sukses', content: <p>Program undian berhasil disimpan.</p> });
+        } catch (error: any) {
+            setModal({ show: true, title: 'Error', content: <p>{error.message}</p> });
+        }
+    };
+    
+    const deleteRaffleProgram = async (id: number) => {
+        try {
+            const response = await fetch(`/api/raffle-programs/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            await fetchBootstrapData();
+            setModal({ show: true, title: 'Sukses', content: <p>Program undian berhasil dihapus.</p> });
+        } catch (error: any) {
+            setModal({ show: true, title: 'Error', content: <p>{error.message}</p> });
+        }
+    };
+
     if (isLoading) {
         return <div className="min-h-screen flex justify-center items-center neu-bg"><p className="text-xl font-semibold text-gray-600">Memuat Aplikasi...</p></div>
     }
@@ -495,7 +525,7 @@ function App() {
             manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} isReadOnly={isReadOnly} />,
             manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} isReadOnly={isReadOnly} />,
             manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} />,
-            manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} setPrograms={setRafflePrograms} redemptions={couponRedemptions} isReadOnly={isReadOnly} />
+            manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isReadOnly} />
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
 
