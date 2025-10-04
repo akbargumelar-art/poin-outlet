@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Page, Location } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
@@ -11,7 +10,7 @@ interface RegisterPageProps {
 }
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations }) => {
-    // State for the main form data. `idDigipos` will only be set after successful validation.
+    // Consolidated state object for the entire form
     const [formData, setFormData] = useState({
         idDigipos: '',
         namaOutlet: '',
@@ -25,51 +24,45 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
         confirmPassword: ''
     });
 
-    // --- Isolated state for the ID Digipos input field to prevent re-renders ---
-    const [digiposInput, setDigiposInput] = useState('');
     const [isCheckingDigipos, setIsCheckingDigipos] = useState(false);
     const [digiposError, setDigiposError] = useState('');
     const [isDigiposVerified, setIsDigiposVerified] = useState(false);
-    const debounceTimeout = useRef<number | null>(null);
-
+    
     const [isLoading, setIsLoading] = useState(false);
     const [passwordError, setPasswordError] = useState('');
 
-    // Handler for all inputs EXCEPT the idDigipos field.
+    // Consolidated change handler for all form inputs
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        
+        // Special handling for the ID Digipos input
+        if (name === 'idDigipos') {
+            // As the user types a new ID, reset verification and clear dependent fields
+            if (isDigiposVerified) {
+                setIsDigiposVerified(false);
+            }
+            setDigiposError('');
+            setFormData(prev => ({
+                ...prev,
+                idDigipos: value, // Update the ID being typed
+                namaOutlet: '',   // Clear auto-filled data
+                noRs: '',
+                salesforce: ''
+            }));
+        } else {
+            // Standard handling for all other inputs
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
     
-    // Special handler for the idDigipos input. This only updates the isolated state.
-    const handleDigiposInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setDigiposInput(value);
-        setIsDigiposVerified(false);
-        setDigiposError('');
-        // Also clear related auto-filled fields from the main form data immediately
-        setFormData(prev => ({
-            ...prev,
-            idDigipos: '',
-            namaOutlet: '',
-            noRs: '',
-            salesforce: ''
-        }));
-    };
+    // Validation triggers on losing focus from the ID field
+    const handleDigiposBlur = async () => {
+        const trimmedId = formData.idDigipos.trim();
 
-    // useEffect now watches the isolated `digiposInput` state. This is the core of the fix.
-    useEffect(() => {
-        if (debounceTimeout.current) {
-            clearTimeout(debounceTimeout.current);
-        }
-
-        const trimmedId = digiposInput.trim();
-
-        // New condition: Only trigger validation logic if input is 10 chars or more.
-        if (trimmedId.length < 10) {
-            setIsCheckingDigipos(false);
-            if (trimmedId.length > 0) {
-                setDigiposError('ID Digipos harus minimal 10 karakter.');
+        // Don't re-validate if it's already verified or input is too short
+        if (isDigiposVerified || trimmedId.length < 6) {
+            if (trimmedId.length > 0 && trimmedId.length < 6) {
+                setDigiposError('ID Digipos harus minimal 6 karakter.');
             } else {
                 setDigiposError('');
             }
@@ -79,41 +72,37 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
         setIsCheckingDigipos(true);
         setDigiposError('');
 
-        debounceTimeout.current = setTimeout(async () => {
-            try {
-                const response = await fetch(`/api/digipos-info/${trimmedId}`);
-                const data = await response.json();
+        try {
+            const response = await fetch(`/api/digipos-info/${trimmedId}`);
+            const data = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(data.message || 'Error validasi');
-                }
-
-                // Success! Update the main form data with verified info.
-                setFormData(prev => ({
-                    ...prev,
-                    idDigipos: trimmedId,
-                    namaOutlet: data.namaOutlet,
-                    noRs: data.noRs,
-                    salesforce: data.salesforce
-                }));
-                setIsDigiposVerified(true);
-                setDigiposError('');
-
-            } catch (error: any) {
-                setIsDigiposVerified(false);
-                setDigiposError(error.message);
-            } finally {
-                setIsCheckingDigipos(false);
+            if (!response.ok) {
+                throw new Error(data.message || 'Error validasi ID Digipos');
             }
-        }, 800);
+            
+            // On success, populate the related fields
+            setFormData(prev => ({
+                ...prev,
+                namaOutlet: data.namaOutlet,
+                noRs: data.noRs,
+                salesforce: data.salesforce
+            }));
+            setIsDigiposVerified(true);
 
-        return () => {
-            if (debounceTimeout.current) {
-                clearTimeout(debounceTimeout.current);
-            }
-        };
-
-    }, [digiposInput]); // This effect ONLY runs when the `digiposInput` changes.
+        } catch (error: any) {
+            setIsDigiposVerified(false);
+            setDigiposError(error.message);
+            // Ensure related fields are cleared on error
+            setFormData(prev => ({
+                ...prev,
+                namaOutlet: '',
+                noRs: '',
+                salesforce: ''
+            }));
+        } finally {
+            setIsCheckingDigipos(false);
+        }
+    };
 
     const kabupatenOptions = useMemo(() => [...new Set(locations.map(l => l.kabupaten))].sort(), [locations]);
     const kecamatanOptions = useMemo(() => {
@@ -136,7 +125,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
         e.preventDefault();
         setPasswordError('');
         if (!isDigiposVerified) {
-             alert('Harap masukkan ID Digipos yang valid dan tunggu verifikasi selesai.');
+             alert('Harap selesaikan verifikasi ID Digipos terlebih dahulu.');
              return;
         }
         if (formData.password !== formData.confirmPassword) {
@@ -148,8 +137,19 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
             return;
         }
         setIsLoading(true);
-        // We submit the main `formData`, which now contains the verified ID.
-        await handleRegister(formData);
+        // Create a clean object for the API, excluding `confirmPassword`
+        const apiData = {
+            idDigipos: formData.idDigipos,
+            namaOutlet: formData.namaOutlet,
+            noRs: formData.noRs,
+            kabupaten: formData.kabupaten,
+            kecamatan: formData.kecamatan,
+            namaOwner: formData.namaOwner,
+            noWhatsapp: formData.noWhatsapp,
+            salesforce: formData.salesforce,
+            password: formData.password,
+        };
+        await handleRegister(apiData);
         setIsLoading(false);
     };
     
@@ -173,15 +173,17 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="relative md:col-span-2">
-                             <InputWrapper icon={ICONS.idCard}>
+                        {/* ID Digipos Input and its status message are grouped into one grid cell */}
+                        <div>
+                            <InputWrapper icon={ICONS.idCard}>
                                 <input 
                                     type="text" 
                                     name="idDigipos"
-                                    value={digiposInput}
-                                    onChange={handleDigiposInputChange}
+                                    value={formData.idDigipos}
+                                    onChange={handleChange}
+                                    onBlur={handleDigiposBlur}
                                     className="input-field pl-12" 
-                                    placeholder="Ketik ID Digipos Anda (min. 10 karakter)" 
+                                    placeholder="Ketik ID Digipos (min. 6 char)" 
                                     required 
                                     autoComplete="off"
                                 />
@@ -193,10 +195,14 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                             </div>
                         </div>
 
+                        {/* This field is now auto-filled */}
                         <InputWrapper icon={ICONS.store}><input type="text" name="namaOutlet" value={formData.namaOutlet} readOnly className="input-field-disabled pl-12" placeholder="Nama Outlet" required /></InputWrapper>
+                        
+                        {/* These fields are also auto-filled */}
                         <InputWrapper icon={ICONS.idCard}><input type="text" name="noRs" value={formData.noRs} readOnly className="input-field-disabled pl-12" placeholder="No. RS" /></InputWrapper>
                         <InputWrapper icon={ICONS.users}><input type="text" name="salesforce" value={formData.salesforce} readOnly className="input-field-disabled pl-12" placeholder="Nama Salesforce" /></InputWrapper>
                         
+                        {/* User-filled fields continue in the grid */}
                         <InputWrapper icon={ICONS.location}>
                             <select name="kabupaten" value={formData.kabupaten} onChange={handleChange} className="input-field pl-12" required>
                                 <option value="">-- Pilih Kabupaten --</option>

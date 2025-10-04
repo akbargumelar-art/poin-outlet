@@ -5,7 +5,11 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const xlsx = require('xlsx');
+
+// Create two routers: one for general data, one for file uploads.
 const router = express.Router();
+const uploadRouter = express.Router();
+
 
 // --- MULTER CONFIG FOR FILE UPLOADS ---
 const setupMulter = (subfolder) => {
@@ -44,23 +48,9 @@ const rewardUpload = setupMulter('rewards');
 const programUpload = setupMulter('programs');
 
 // Multer config for Excel file uploads
-const progressUpload = multer({
+const excelUpload = multer({
     storage: multer.memoryStorage(), // Use memory to avoid writing temp files
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-    fileFilter: (req, file, cb) => {
-        const allowedExtensions = ['.xlsx', '.xls'];
-        const ext = path.extname(file.originalname).toLowerCase();
-        if (allowedExtensions.includes(ext)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Invalid file type. Only Excel files (.xlsx, .xls) are allowed.'));
-        }
-    }
-});
-
-const transactionUpload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowedExtensions = ['.xlsx', '.xls'];
         const ext = path.extname(file.originalname).toLowerCase();
@@ -138,7 +128,7 @@ const parseNumerics = (data, fields) => {
 };
 
 
-// --- BOOTSTRAP ENDPOINT ---
+// --- BOOTSTRAP ENDPOINT (on main router) ---
 
 router.get('/bootstrap', async (req, res) => {
     try {
@@ -204,8 +194,210 @@ router.get('/bootstrap', async (req, res) => {
     }
 });
 
+// --- UPLOAD ROUTES (on uploadRouter) ---
 
-// --- API ENDPOINTS ---
+// UPLOAD USER PHOTO
+uploadRouter.post('/users/:id/photo', profileUpload.single('profilePhoto'), async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) {
+        return res.status(400).json({ message: "File tidak ditemukan." });
+    }
+    
+    const photoUrl = `/uploads/profiles/${req.file.filename}`;
+
+    try {
+        await db.execute('UPDATE users SET photo_url = ? WHERE id = ?', [photoUrl, id]);
+        res.json({ message: 'Foto profil berhasil diunggah.', photoUrl });
+    } catch (error) {
+        console.error('Photo upload DB error:', error);
+        res.status(500).json({ message: 'Gagal menyimpan path foto ke database.' });
+    }
+});
+
+// UPLOAD REWARD PHOTO
+uploadRouter.post('/rewards/:id/photo', rewardUpload.single('photo'), async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) return res.status(400).json({ message: 'File tidak ditemukan.' });
+    const imageUrl = `/uploads/rewards/${req.file.filename}`;
+    await db.execute('UPDATE rewards SET image_url = ? WHERE id = ?', [imageUrl, id]);
+    res.json({ message: 'Upload berhasil', imageUrl });
+});
+
+// UPLOAD PROGRAM PHOTO
+uploadRouter.post('/programs/:id/photo', programUpload.single('photo'), async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) {
+        return res.status(400).json({ message: 'File tidak ditemukan.' });
+    }
+    const imageUrl = `/uploads/programs/${req.file.filename}`;
+    try {
+        await db.execute('UPDATE running_programs SET image_url = ? WHERE id = ?', [imageUrl, id]);
+        res.json({ message: 'Upload berhasil', imageUrl });
+    } catch (error) {
+        console.error('Program photo upload DB error:', error);
+        res.status(500).json({ message: 'Gagal menyimpan path foto program ke database.' });
+    }
+});
+
+// BULK TRANSACTION UPLOAD
+uploadRouter.post('/transactions/bulk', excelUpload.single('transactionsFile'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'File tidak ditemukan.' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(worksheet, { cellDates: true });
+
+        if (data.length === 0) {
+            return res.status(400).json({ message: 'File Excel kosong atau format tidak sesuai.' });
+        }
+
+        const headers = Object.keys(data[0]);
+        const requiredHeaders = ['tanggal', 'id_digipos', 'produk', 'harga', 'kuantiti'];
+        if (!requiredHeaders.every(h => headers.includes(h))) {
+            return res.status(400).json({ message: `File Excel harus memiliki kolom: ${requiredHeaders.join(', ')}.` });
+        }
+        
+        await connection.beginTransaction();
+
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+
+        const [levels] = await connection.execute('SELECT level, multiplier FROM loyalty_programs');
+        const multiplierMap = new Map(levels.map(l => [l.level, l.multiplier]));
+
+        const [users] = await connection.execute('SELECT id, level FROM users');
+        const userLevelMap = new Map(users.map(u => [u.id, u.level]));
+
+        for (const row of data) {
+            const userId = String(row.id_digipos);
+            const dateObj = row.tanggal instanceof Date ? row.tanggal : new Date(row.tanggal);
+            const date = dateObj.toISOString().split('T')[0];
+            const produk = row.produk;
+            const harga = parseFloat(row.harga);
+            const kuantiti = parseInt(row.kuantiti, 10);
+
+            if (!userId || !date || !produk || isNaN(harga) || isNaN(kuantiti)) {
+                failCount++;
+                errors.push(`Baris tidak valid untuk ID: ${userId || 'KOSONG'}`);
+                continue;
+            }
+
+            const userLevel = userLevelMap.get(userId);
+            if (!userLevel) {
+                failCount++;
+                errors.push(`User dengan ID ${userId} tidak ditemukan.`);
+                continue;
+            }
+
+            const multiplier = multiplierMap.get(userLevel) || 1.0;
+            const totalPembelian = harga * kuantiti;
+            const pointsEarned = Math.floor((totalPembelian / 1000) * multiplier);
+
+            await connection.execute(
+                'INSERT INTO transactions (user_id, date, produk, harga, kuantiti, total_pembelian, points_earned) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [userId, date, produk, harga, kuantiti, totalPembelian, pointsEarned]
+            );
+            await connection.execute(
+                'UPDATE users SET points = points + ? WHERE id = ?',
+                [pointsEarned, userId]
+            );
+            successCount++;
+        }
+        
+        await connection.commit();
+        res.status(200).json({
+            message: `Proses selesai. ${successCount} transaksi berhasil ditambahkan, ${failCount} gagal.`,
+            successCount,
+            failCount,
+            errors
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Bulk transaction upload error:', error);
+        res.status(500).json({ message: 'Gagal memproses file.', error: error.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// UPLOAD PROGRAM PROGRESS
+uploadRouter.post('/programs/:id/progress', excelUpload.single('progressFile'), async (req, res) => {
+    const { id: programId } = req.params;
+    if (!req.file) {
+        return res.status(400).json({ message: 'File tidak ditemukan.' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(worksheet);
+
+        if (data.length === 0) {
+            return res.status(400).json({ message: 'File Excel kosong atau format tidak sesuai.' });
+        }
+
+        // Validate headers
+        const headers = Object.keys(data[0]);
+        if (!headers.includes('id_digipos') || !headers.includes('progress')) {
+            return res.status(400).json({ message: "File Excel harus memiliki kolom 'id_digipos' dan 'progress'." });
+        }
+        
+        await connection.beginTransaction();
+
+        let updatedCount = 0;
+        let failedCount = 0;
+        const failedIds = [];
+
+        for (const row of data) {
+            const userId = String(row.id_digipos);
+            const progress = parseInt(row.progress, 10);
+
+            if (!userId || isNaN(progress)) {
+                failedCount++;
+                failedIds.push(userId || 'ID KOSONG');
+                continue; // Skip invalid rows
+            }
+
+            const [result] = await connection.execute(
+                'UPDATE running_program_targets SET progress = ? WHERE program_id = ? AND user_id = ?',
+                [progress, programId, userId]
+            );
+
+            if (result.affectedRows > 0) {
+                updatedCount++;
+            } else {
+                failedCount++;
+                failedIds.push(userId);
+            }
+        }
+        
+        await connection.commit();
+        res.json({
+            message: `Proses upload selesai. ${updatedCount} progres diperbarui, ${failedCount} gagal (ID tidak terdaftar sebagai peserta).`,
+            updated: updatedCount,
+            failed: failedCount,
+            failedIds: failedIds
+        });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Program progress upload error:', error);
+        res.status(500).json({ message: 'Gagal memproses file.', error: error.message });
+    } finally {
+        connection.release();
+    }
+});
+
+
+// --- JSON API ENDPOINTS (on main router) ---
 
 // GET DIGIPOS INFO
 router.get('/digipos-info/:id', async (req, res) => {
@@ -279,24 +471,6 @@ router.put('/users/:id/profile', async (req, res) => {
     }
 });
 
-
-// UPLOAD USER PHOTO
-router.post('/users/:id/photo', profileUpload.single('profilePhoto'), async (req, res) => {
-    const { id } = req.params;
-    if (!req.file) {
-        return res.status(400).json({ message: "File tidak ditemukan." });
-    }
-    
-    const photoUrl = `/uploads/profiles/${req.file.filename}`;
-
-    try {
-        await db.execute('UPDATE users SET photo_url = ? WHERE id = ?', [photoUrl, id]);
-        res.json({ message: 'Foto profil berhasil diunggah.', photoUrl });
-    } catch (error) {
-        console.error('Photo upload DB error:', error);
-        res.status(500).json({ message: 'Gagal menyimpan path foto ke database.' });
-    }
-});
 
 // MANUAL POINT ADJUSTMENT
 router.post('/users/:id/points', async (req, res) => {
@@ -438,94 +612,6 @@ router.post('/transactions', async (req, res) => {
     }
 });
 
-// BULK TRANSACTION UPLOAD
-router.post('/transactions/bulk', transactionUpload.single('transactionsFile'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ message: 'File tidak ditemukan.' });
-    }
-
-    const connection = await db.getConnection();
-    try {
-        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const data = xlsx.utils.sheet_to_json(worksheet, { cellDates: true });
-
-        if (data.length === 0) {
-            return res.status(400).json({ message: 'File Excel kosong atau format tidak sesuai.' });
-        }
-
-        const headers = Object.keys(data[0]);
-        const requiredHeaders = ['tanggal', 'id_digipos', 'produk', 'harga', 'kuantiti'];
-        if (!requiredHeaders.every(h => headers.includes(h))) {
-            return res.status(400).json({ message: `File Excel harus memiliki kolom: ${requiredHeaders.join(', ')}.` });
-        }
-        
-        await connection.beginTransaction();
-
-        let successCount = 0;
-        let failCount = 0;
-        const errors = [];
-
-        const [levels] = await connection.execute('SELECT level, multiplier FROM loyalty_programs');
-        const multiplierMap = new Map(levels.map(l => [l.level, l.multiplier]));
-
-        const [users] = await connection.execute('SELECT id, level FROM users');
-        const userLevelMap = new Map(users.map(u => [u.id, u.level]));
-
-        for (const row of data) {
-            const userId = row.id_digipos;
-            const dateObj = row.tanggal instanceof Date ? row.tanggal : new Date(row.tanggal);
-            const date = dateObj.toISOString().split('T')[0];
-            const produk = row.produk;
-            const harga = parseFloat(row.harga);
-            const kuantiti = parseInt(row.kuantiti, 10);
-
-            if (!userId || !date || !produk || isNaN(harga) || isNaN(kuantiti)) {
-                failCount++;
-                errors.push(`Baris tidak valid untuk ID: ${userId || 'KOSONG'}`);
-                continue;
-            }
-
-            const userLevel = userLevelMap.get(userId);
-            if (!userLevel) {
-                failCount++;
-                errors.push(`User dengan ID ${userId} tidak ditemukan.`);
-                continue;
-            }
-
-            const multiplier = multiplierMap.get(userLevel) || 1.0;
-            const totalPembelian = harga * kuantiti;
-            const pointsEarned = Math.floor((totalPembelian / 1000) * multiplier);
-
-            await connection.execute(
-                'INSERT INTO transactions (user_id, date, produk, harga, kuantiti, total_pembelian, points_earned) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [userId, date, produk, harga, kuantiti, totalPembelian, pointsEarned]
-            );
-            await connection.execute(
-                'UPDATE users SET points = points + ? WHERE id = ?',
-                [pointsEarned, userId]
-            );
-            successCount++;
-        }
-        
-        await connection.commit();
-        res.status(200).json({
-            message: `Proses selesai. ${successCount} transaksi berhasil ditambahkan, ${failCount} gagal.`,
-            successCount,
-            failCount,
-            errors
-        });
-    } catch (error) {
-        await connection.rollback();
-        console.error('Bulk transaction upload error:', error);
-        res.status(500).json({ message: 'Gagal memproses file.', error: error.message });
-    } finally {
-        connection.release();
-    }
-});
-
-
 // WHATSAPP NOTIFICATION HELPER
 const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
     try {
@@ -665,14 +751,6 @@ router.delete('/rewards/:id', async (req, res) => {
 });
 
 
-router.post('/rewards/:id/photo', rewardUpload.single('photo'), async (req, res) => {
-    const { id } = req.params;
-    if (!req.file) return res.status(400).json({ message: 'File tidak ditemukan.' });
-    const imageUrl = `/uploads/rewards/${req.file.filename}`;
-    await db.execute('UPDATE rewards SET image_url = ? WHERE id = ?', [imageUrl, id]);
-    res.json({ message: 'Upload berhasil', imageUrl });
-});
-
 // PROGRAM MANAGEMENT
 router.post('/programs', async (req, res) => {
     const { name, mechanism, prizeCategory, prizeDescription, startDate, endDate } = req.body;
@@ -718,21 +796,6 @@ router.delete('/programs/:id', async (req, res) => {
     }
 });
 
-router.post('/programs/:id/photo', programUpload.single('photo'), async (req, res) => {
-    const { id } = req.params;
-    if (!req.file) {
-        return res.status(400).json({ message: 'File tidak ditemukan.' });
-    }
-    const imageUrl = `/uploads/programs/${req.file.filename}`;
-    try {
-        await db.execute('UPDATE running_programs SET image_url = ? WHERE id = ?', [imageUrl, id]);
-        res.json({ message: 'Upload berhasil', imageUrl });
-    } catch (error) {
-        console.error('Program photo upload DB error:', error);
-        res.status(500).json({ message: 'Gagal menyimpan path foto program ke database.' });
-    }
-});
-
 // UPDATE PROGRAM PARTICIPANTS
 router.put('/programs/:id/participants', async (req, res) => {
     const { id: programId } = req.params;
@@ -763,77 +826,6 @@ router.put('/programs/:id/participants', async (req, res) => {
         await connection.rollback();
         console.error('Update participants error:', error);
         res.status(500).json({ message: 'Gagal memperbarui daftar peserta.', error: error.message });
-    } finally {
-        connection.release();
-    }
-});
-
-
-// UPLOAD PROGRAM PROGRESS
-router.post('/programs/:id/progress', progressUpload.single('progressFile'), async (req, res) => {
-    const { id: programId } = req.params;
-    if (!req.file) {
-        return res.status(400).json({ message: 'File tidak ditemukan.' });
-    }
-
-    const connection = await db.getConnection();
-    try {
-        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const data = xlsx.utils.sheet_to_json(worksheet);
-
-        if (data.length === 0) {
-            return res.status(400).json({ message: 'File Excel kosong atau format tidak sesuai.' });
-        }
-
-        // Validate headers
-        const headers = Object.keys(data[0]);
-        if (!headers.includes('id_digipos') || !headers.includes('progress')) {
-            return res.status(400).json({ message: "File Excel harus memiliki kolom 'id_digipos' dan 'progress'." });
-        }
-        
-        await connection.beginTransaction();
-
-        let updatedCount = 0;
-        let failedCount = 0;
-        const failedIds = [];
-
-        for (const row of data) {
-            const userId = row.id_digipos;
-            const progress = parseInt(row.progress, 10);
-
-            if (!userId || isNaN(progress)) {
-                failedCount++;
-                failedIds.push(userId || 'ID KOSONG');
-                continue; // Skip invalid rows
-            }
-
-            const [result] = await connection.execute(
-                'UPDATE running_program_targets SET progress = ? WHERE program_id = ? AND user_id = ?',
-                [progress, programId, userId]
-            );
-
-            if (result.affectedRows > 0) {
-                updatedCount++;
-            } else {
-                failedCount++;
-                failedIds.push(userId);
-            }
-        }
-        
-        await connection.commit();
-        res.json({
-            message: `Proses upload selesai. ${updatedCount} progres diperbarui, ${failedCount} gagal (ID tidak terdaftar sebagai peserta).`,
-            updated: updatedCount,
-            failed: failedCount,
-            failedIds: failedIds
-        });
-
-    } catch (error) {
-        await connection.rollback();
-        console.error('Program progress upload error:', error);
-        res.status(500).json({ message: 'Gagal memproses file.', error: error.message });
     } finally {
         connection.release();
     }
@@ -943,5 +935,5 @@ router.post('/settings/whatsapp', async (req, res) => {
     }
 });
 
-
-module.exports = router;
+// Export both routers
+module.exports = { router, uploadRouter };
