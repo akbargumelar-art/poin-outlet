@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, PrizeCategory, WhatsAppSettings } from './types';
 
 import Modal from './components/common/Modal';
 import MainLayout from './components/layout/MainLayout';
-import PublicLayout from './components/layout/PublicLayout'; // Import the new layout
 import LandingPage from './pages/landing/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
@@ -42,7 +41,7 @@ function App() {
     const [whatsAppSettings, setWhatsAppSettings] = useState<WhatsAppSettings | null>(null);
 
 
-    const fetchBootstrapData = async () => {
+    const fetchBootstrapData = useCallback(async () => {
         try {
             const response = await fetch('/api/bootstrap');
             if (!response.ok) throw new Error('Failed to fetch initial data');
@@ -64,7 +63,7 @@ function App() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         const checkSessionAndBootstrap = async () => {
@@ -85,10 +84,10 @@ function App() {
         };
 
         checkSessionAndBootstrap();
-    }, []);
+    }, [fetchBootstrapData]);
     
     // --- API HANDLERS ---
-    const handleLogin = async (id: string, password: string): Promise<boolean> => {
+    const handleLogin = useCallback(async (id: string, password: string): Promise<boolean> => {
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -108,9 +107,9 @@ function App() {
             console.error("Login failed:", error);
             return false;
         }
-    };
+    }, []);
     
-    const handleRegister = async (formData: any): Promise<boolean> => {
+    const handleRegister = useCallback(async (formData: any): Promise<boolean> => {
         try {
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
@@ -132,9 +131,9 @@ function App() {
             setModal({ show: true, title: 'Registrasi Gagal', content: <p>{error.message}</p> });
             return false;
         }
-    };
+    }, [fetchBootstrapData]);
     
-    const updateUserProfile = async (profile: UserProfile, photoFile: File | null) => {
+    const updateUserProfile = useCallback(async (profile: UserProfile, photoFile: File | null) => {
         if (!currentUser) return;
         try {
             // 1. Update text data first and get the updated user object from server
@@ -172,15 +171,15 @@ function App() {
         } catch (error: any) {
              setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [currentUser, users]);
 
-    const handleLogout = () => {
+    const handleLogout = useCallback(() => {
         setCurrentUser(null);
         localStorage.removeItem('currentUser');
         setCurrentPage('landing');
-    };
+    }, []);
     
-    const redeemReward = async (reward: Reward) => {
+    const redeemReward = useCallback(async (reward: Reward) => {
         if (!currentUser) return;
         try {
             const isKupon = reward.name.includes('Kupon Undian');
@@ -209,9 +208,9 @@ function App() {
         } catch (error: any) {
              setModal({show: true, title: "Gagal", content: <p>{error.message}</p>});
         }
-    };
+    }, [currentUser, fetchBootstrapData]);
     
-    const handleTukarClick = (reward: Reward) => {
+    const handleTukarClick = useCallback((reward: Reward) => {
         if (!currentUser || !currentUser.points) return;
         if (reward.stock === 0) return;
         if (currentUser.points < reward.points) {
@@ -219,9 +218,9 @@ function App() {
             return;
         }
         setModal({show: true, title: "Konfirmasi", content: <div><p className="text-center mb-4">Tukar {reward.points.toLocaleString('id-ID')} poin untuk {reward.name}?</p><div className="flex justify-center gap-4"><button onClick={() => setModal({show: false, title:'', content:<></>})} className="neu-button">Batal</button><button onClick={() => { setModal({show: false, title:'', content:<></>}); redeemReward(reward); }} className="neu-button text-red-600">Ya</button></div></div>});
-    };
+    }, [currentUser, redeemReward]);
     
-    const adminAddUser = async (newUser: User) => {
+    const adminAddUser = useCallback(async (newUser: User) => {
         try {
             const response = await fetch('/api/users', {
                 method: 'POST',
@@ -244,9 +243,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
 
-    const adminAddTransaction = async (data: Omit<Transaction, 'id' | 'pointsEarned' > & {totalPembelian: number}) => {
+    const adminAddTransaction = useCallback(async (data: Omit<Transaction, 'id' | 'pointsEarned' > & {totalPembelian: number}) => {
         try {
             const response = await fetch('/api/transactions', {
                 method: 'POST',
@@ -260,9 +259,9 @@ function App() {
         } catch(error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p>});
         }
-    };
+    }, [fetchBootstrapData]);
 
-    const saveReward = async (rewardData: Omit<Reward, 'id'> & { id?: number }, photoFile: File | null) => {
+    const saveReward = useCallback(async (rewardData: Omit<Reward, 'id'> & { id?: number }, photoFile: File | null) => {
         try {
             const method = rewardData.id ? 'PUT' : 'POST';
             const url = rewardData.id ? `/api/rewards/${rewardData.id}` : '/api/rewards';
@@ -295,9 +294,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
     
-    const adminDeleteReward = async (rewardId: number) => {
+    const adminDeleteReward = useCallback(async (rewardId: number) => {
         try {
             const response = await fetch(`/api/rewards/${rewardId}`, {
                 method: 'DELETE',
@@ -311,9 +310,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
 
-    const adminUpdateLoyaltyProgram = async (program: LoyaltyProgram) => {
+    const adminUpdateLoyaltyProgram = useCallback(async (program: LoyaltyProgram) => {
         try {
             const response = await fetch(`/api/loyalty-programs/${program.level}`, {
                 method: 'PUT',
@@ -329,9 +328,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
 
-    const adminBulkAddTransactions = async (file: File) => {
+    const adminBulkAddTransactions = useCallback(async (file: File) => {
         try {
             const formData = new FormData();
             formData.append('transactionsFile', file);
@@ -366,9 +365,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
     
-    const adminUpdatePointsManual = async (userId: string, points: number, action: 'tambah' | 'kurang') => {
+    const adminUpdatePointsManual = useCallback(async (userId: string, points: number, action: 'tambah' | 'kurang') => {
         try {
             const response = await fetch(`/api/users/${userId}/points`, {
                 method: 'POST',
@@ -383,9 +382,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
 
-    const saveProgram = async (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number; prizeCategory: PrizeCategory; prizeDescription: string; }, photoFile: File | null) => {
+    const saveProgram = useCallback(async (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number; prizeCategory: PrizeCategory; prizeDescription: string; }, photoFile: File | null) => {
         try {
             const method = programData.id ? 'PUT' : 'POST';
             const url = programData.id ? `/api/programs/${programData.id}` : '/api/programs';
@@ -416,9 +415,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
 
-    const adminDeleteProgram = async (programId: number) => {
+    const adminDeleteProgram = useCallback(async (programId: number) => {
         try {
             const response = await fetch(`/api/programs/${programId}`, {
                 method: 'DELETE',
@@ -432,9 +431,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
 
-    const adminUpdateProgramParticipants = async (programId: number, participantIds: string[]) => {
+    const adminUpdateProgramParticipants = useCallback(async (programId: number, participantIds: string[]) => {
         try {
             const response = await fetch(`/api/programs/${programId}/participants`, {
                 method: 'PUT',
@@ -450,9 +449,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
 
-    const adminBulkUpdateProgramProgress = async (programId: number, file: File) => {
+    const adminBulkUpdateProgramProgress = useCallback(async (programId: number, file: File) => {
         try {
             const formData = new FormData();
             formData.append('progressFile', file);
@@ -479,9 +478,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
 
-    const saveRaffleProgram = async (program: Omit<RaffleProgram, 'id'> & { id?: number }) => {
+    const saveRaffleProgram = useCallback(async (program: Omit<RaffleProgram, 'id'> & { id?: number }) => {
         try {
             const method = program.id ? 'PUT' : 'POST';
             const url = program.id ? `/api/raffle-programs/${program.id}` : '/api/raffle-programs';
@@ -497,9 +496,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: 'Error', content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
     
-    const deleteRaffleProgram = async (id: number) => {
+    const deleteRaffleProgram = useCallback(async (id: number) => {
         try {
             const response = await fetch(`/api/raffle-programs/${id}`, { method: 'DELETE' });
             const result = await response.json();
@@ -509,9 +508,9 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: 'Error', content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
 
-    const adminSaveWhatsAppSettings = async (settings: WhatsAppSettings) => {
+    const adminSaveWhatsAppSettings = useCallback(async (settings: WhatsAppSettings) => {
         try {
             const response = await fetch('/api/settings/whatsapp', {
                 method: 'POST',
@@ -525,7 +524,7 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, [fetchBootstrapData]);
 
     if (isLoading) {
         return <div className="min-h-screen flex justify-center items-center neu-bg"><p className="text-xl font-semibold text-gray-600">Memuat Aplikasi...</p></div>
@@ -533,22 +532,15 @@ function App() {
 
     const renderPage = () => {
         if (!currentUser) {
-            const pageToRender = () => {
-                switch (currentPage) {
-                    case 'login':
-                        return <LoginPage handleLogin={handleLogin} setCurrentPage={setCurrentPage} />;
-                    case 'register':
-                        return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} />;
-                    case 'landing':
-                    default:
-                        return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} />;
-                }
-            };
-            return (
-                <PublicLayout setCurrentPage={setCurrentPage}>
-                    {pageToRender()}
-                </PublicLayout>
-            );
+            switch (currentPage) {
+                case 'login':
+                    return <LoginPage handleLogin={handleLogin} setCurrentPage={setCurrentPage} />;
+                case 'register':
+                    return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} />;
+                case 'landing':
+                default:
+                    return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} />;
+            }
         }
         
         const isReadOnly = currentUser.role === 'supervisor';

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { Page, Location } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
@@ -9,12 +9,12 @@ interface RegisterPageProps {
     locations: Location[];
 }
 
-const InputWrapper: React.FC<{icon: string, children: React.ReactNode}> = ({icon, children}) => (
+const InputWrapper: React.FC<{icon: string, children: React.ReactNode}> = memo(({icon, children}) => (
     <div className="relative w-full">
         <Icon path={icon} className="absolute top-1/2 left-4 -translate-y-1/2 w-5 h-5 text-gray-400 z-10"/>
         {children}
     </div>
-);
+));
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations }) => {
     const [formData, setFormData] = useState({
@@ -126,8 +126,11 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     };
     
     return (
-        <div className="min-h-screen flex justify-center items-center p-4 pb-24">
+        <div className="min-h-screen flex justify-center items-center p-4">
             <div className="w-full max-w-2xl neu-card p-6 z-10 relative">
+                <button onClick={() => setCurrentPage('landing')} className="absolute top-4 left-4 text-gray-400 hover:text-red-500 transition-colors" aria-label="Kembali ke Beranda">
+                    <Icon path={ICONS.chevronLeft} className="w-8 h-8"/>
+                </button>
                 <div className="text-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-700">Registrasi Mitra Baru</h1>
                     <p className="text-gray-500 mt-1">Lengkapi data di bawah ini untuk memulai.</p>
