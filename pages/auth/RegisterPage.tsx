@@ -126,11 +126,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     };
     
     return (
-        <div className="min-h-screen neu-bg flex justify-center items-center p-4">
-            <div className="w-full max-w-2xl neu-card p-6 z-10 animate-fade-in-down relative">
-                <button onClick={() => setCurrentPage('landing')} className="absolute top-4 left-4 neu-button-icon text-gray-500 hover:text-red-600 !text-red-600" aria-label="Kembali ke beranda">
-                    <Icon path={ICONS.chevronLeft} className="w-6 h-6" />
-                </button>
+        <div className="min-h-screen flex justify-center items-center p-4 pb-24">
+            <div className="w-full max-w-2xl neu-card p-6 z-10 relative">
                 <div className="text-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-700">Registrasi Mitra Baru</h1>
                     <p className="text-gray-500 mt-1">Lengkapi data di bawah ini untuk memulai.</p>

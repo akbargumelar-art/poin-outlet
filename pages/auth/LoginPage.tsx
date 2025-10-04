@@ -41,7 +41,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ handleLogin, setCurrentPage }) =>
     };
 
     return (
-        <div className="min-h-screen flex flex-col justify-center items-center px-4 py-10 font-sans neu-bg">
+        <div className="min-h-screen flex flex-col justify-center items-center px-4 py-10 pb-24 font-sans">
             <Modal show={showForgotPassword} onClose={closeForgotModal} title="Lupa Password">
                 {!forgotMessage ? (
                     <form onSubmit={handleForgotPassword}>
@@ -60,10 +60,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ handleLogin, setCurrentPage }) =>
                 )}
             </Modal>
 
-            <div className="w-full max-w-md neu-card p-8 z-10 animate-fade-in-down relative">
-                 <button onClick={() => setCurrentPage('landing')} className="absolute top-4 left-4 neu-button-icon text-gray-500 hover:text-red-600 !text-red-600" aria-label="Kembali ke beranda">
-                    <Icon path={ICONS.chevronLeft} className="w-6 h-6" />
-                </button>
+            <div className="w-full max-w-md neu-card p-8 z-10 relative">
                 <div className="text-center mb-8">
                      <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-10 sm:h-12 mx-auto mb-6" />
                     <h1 className="text-2xl font-bold text-gray-700">Program Loyalitas Mitra</h1>

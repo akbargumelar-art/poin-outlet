@@ -3,6 +3,7 @@ import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transactio
 
 import Modal from './components/common/Modal';
 import MainLayout from './components/layout/MainLayout';
+import PublicLayout from './components/layout/PublicLayout'; // Import the new layout
 import LandingPage from './pages/landing/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
@@ -532,15 +533,22 @@ function App() {
 
     const renderPage = () => {
         if (!currentUser) {
-            switch (currentPage) {
-                case 'login':
-                    return <LoginPage handleLogin={handleLogin} setCurrentPage={setCurrentPage} />;
-                case 'register':
-                    return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} />;
-                case 'landing':
-                default:
-                    return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} />;
-            }
+            const pageToRender = () => {
+                switch (currentPage) {
+                    case 'login':
+                        return <LoginPage handleLogin={handleLogin} setCurrentPage={setCurrentPage} />;
+                    case 'register':
+                        return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} />;
+                    case 'landing':
+                    default:
+                        return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} />;
+                }
+            };
+            return (
+                <PublicLayout setCurrentPage={setCurrentPage}>
+                    {pageToRender()}
+                </PublicLayout>
+            );
         }
         
         const isReadOnly = currentUser.role === 'supervisor';
