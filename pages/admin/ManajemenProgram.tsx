@@ -224,16 +224,18 @@ interface ManajemenProgramProps {
     programs: RunningProgram[];
     allUsers: User[];
     onSave: (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => void;
+    onDelete: (id: number) => void;
     adminBulkUpdateProgramProgress: (programId: number, file: File) => void;
     adminUpdateProgramParticipants: (programId: number, participantIds: string[]) => void;
     isReadOnly?: boolean;
 }
 
-const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers, onSave, adminBulkUpdateProgramProgress, adminUpdateProgramParticipants, isReadOnly }) => {
+const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers, onSave, onDelete, adminBulkUpdateProgramProgress, adminUpdateProgramParticipants, isReadOnly }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingProgram, setEditingProgram] = useState<RunningProgram | undefined>(undefined);
     const [uploadingProgram, setUploadingProgram] = useState<RunningProgram | null>(null);
     const [managingParticipantsProgram, setManagingParticipantsProgram] = useState<RunningProgram | null>(null);
+    const [deletingProgram, setDeletingProgram] = useState<RunningProgram | null>(null);
 
     const handleSave = (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number }, photoFile: File | null) => {
         onSave(programData, photoFile);
@@ -241,9 +243,11 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers,
         setEditingProgram(undefined);
     };
 
-    const handleDelete = (id: number) => {
-        // This should be an API call in a real app
-        alert(`Simulasi: Hapus program dengan ID ${id}.`);
+    const handleConfirmDelete = () => {
+        if (deletingProgram) {
+            onDelete(deletingProgram.id);
+            setDeletingProgram(null);
+        }
     };
 
     const openAddModal = () => {
@@ -296,6 +300,19 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers,
                     onSave={handleSaveParticipants}
                 />
             )}
+            
+            {deletingProgram && (
+                <Modal show={true} onClose={() => setDeletingProgram(null)} title="Konfirmasi Hapus">
+                    <div>
+                        <p className="text-center mb-6">Anda yakin ingin menghapus program <b>{deletingProgram.name}</b>? Semua data progres peserta terkait program ini juga akan dihapus.</p>
+                        <div className="flex justify-center gap-4">
+                            <button onClick={() => setDeletingProgram(null)} className="neu-button">Batal</button>
+                            <button onClick={handleConfirmDelete} className="neu-button text-red-600">Ya, Hapus</button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
 
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-700">Manajemen Program Berjalan</h1>
@@ -317,7 +334,7 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers,
                                         <button title="Kelola Peserta" onClick={() => setManagingParticipantsProgram(p)} className="neu-button-icon text-purple-600"><Icon path={ICONS.users} className="w-5 h-5"/></button>
                                         <button title="Upload Pencapaian" onClick={() => setUploadingProgram(p)} className="neu-button-icon text-green-600"><Icon path={ICONS.upload} className="w-5 h-5"/></button>
                                         <button title="Edit Program" onClick={() => openEditModal(p)} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5"/></button>
-                                        <button title="Hapus Program" onClick={() => handleDelete(p.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5"/></button>
+                                        <button title="Hapus Program" onClick={() => setDeletingProgram(p)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5"/></button>
                                     </div>
                                 )}
                             </div>

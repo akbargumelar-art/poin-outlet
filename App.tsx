@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, PrizeCategory } from './types';
+import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, PrizeCategory, WhatsAppSettings } from './types';
 
 import Modal from './components/common/Modal';
 import MainLayout from './components/layout/MainLayout';
@@ -18,6 +18,8 @@ import ManajemenProgram from './pages/admin/ManajemenProgram';
 import ManajemenPoin from './pages/admin/ManajemenPoin';
 import ManajemenHadiah from './pages/admin/ManajemenHadiah';
 import ManajemenUndian from './pages/admin/ManajemenUndian';
+import ManajemenPenukaran from './pages/admin/ManajemenPenukaran';
+import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
 
 function App() {
     const [currentPage, setCurrentPage] = useState<Page>('landing');
@@ -36,6 +38,7 @@ function App() {
     const [couponRedemptions, setCouponRedemptions] = useState<CouponRedemption[]>([]);
     const [raffleWinners, setRaffleWinners] = useState<RaffleWinner[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
+    const [whatsAppSettings, setWhatsAppSettings] = useState<WhatsAppSettings | null>(null);
 
 
     const fetchBootstrapData = async () => {
@@ -53,6 +56,7 @@ function App() {
             setCouponRedemptions(data.couponRedemptions || []);
             setRaffleWinners(data.raffleWinners || []);
             setLocations(data.locations || []);
+            setWhatsAppSettings(data.whatsAppSettings || null);
         } catch (error) {
             console.error("Bootstrap failed:", error);
             setModal({ show: true, title: "Error", content: <p>Gagal memuat data dari server. Silakan coba lagi nanti.</p> });
@@ -413,6 +417,22 @@ function App() {
         }
     };
 
+    const adminDeleteProgram = async (programId: number) => {
+        try {
+            const response = await fetch(`/api/programs/${programId}`, {
+                method: 'DELETE',
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            
+            await fetchBootstrapData();
+            setModal({ show: true, title: "Sukses", content: <p>{result.message}</p> });
+
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    };
+
     const adminUpdateProgramParticipants = async (programId: number, participantIds: string[]) => {
         try {
             const response = await fetch(`/api/programs/${programId}/participants`, {
@@ -490,6 +510,22 @@ function App() {
         }
     };
 
+    const adminSaveWhatsAppSettings = async (settings: WhatsAppSettings) => {
+        try {
+            const response = await fetch('/api/settings/whatsapp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            await fetchBootstrapData();
+            setModal({ show: true, title: "Sukses", content: <p>Pengaturan notifikasi WhatsApp berhasil disimpan.</p> });
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    };
+
     if (isLoading) {
         return <div className="min-h-screen flex justify-center items-center neu-bg"><p className="text-xl font-semibold text-gray-600">Memuat Aplikasi...</p></div>
     }
@@ -508,8 +544,9 @@ function App() {
         }
         
         const isReadOnly = currentUser.role === 'supervisor';
-        if (isReadOnly && (currentPage === 'tambahUser' || currentPage === 'manajemenPoin')) {
-            setCurrentPage('adminDashboard');
+        const restrictedPagesForSupervisor: Page[] = ['tambahUser', 'manajemenPoin', 'manajemenNotifikasi'];
+        if (isReadOnly && restrictedPagesForSupervisor.includes(currentPage)) {
+             setCurrentPage('adminDashboard');
         }
 
 
@@ -522,10 +559,12 @@ function App() {
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms}/>,
             manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
-            manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} isReadOnly={isReadOnly} />,
+            manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} isReadOnly={isReadOnly} />,
             manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} isReadOnly={isReadOnly} />,
             manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} />,
-            manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isReadOnly} />
+            manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isReadOnly} />,
+            manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} isReadOnly={isReadOnly} />,
+            manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isReadOnly} />,
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
 

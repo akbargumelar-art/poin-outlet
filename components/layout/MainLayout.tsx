@@ -18,7 +18,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
         { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
         { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
-        { name: 'Transaksi', icon: ICONS.history, page: 'manajemenPoin' as Page }
+        { name: 'Transaksi', icon: ICONS.calculator, page: 'manajemenPoin' as Page },
+        { name: 'Tukar Poin', icon: ICONS.history, page: 'manajemenPenukaran' as Page },
+        { name: 'Notifikasi', icon: ICONS.whatsapp, page: 'manajemenNotifikasi' as Page },
     ];
 
     const supervisorMenu = [
@@ -27,6 +29,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
         { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
         { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
+        { name: 'Tukar Poin', icon: ICONS.history, page: 'manajemenPenukaran' as Page },
     ];
 
     const MENU_ITEMS = {

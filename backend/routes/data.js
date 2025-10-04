@@ -145,12 +145,12 @@ router.get('/bootstrap', async (req, res) => {
         const [
             users, transactions, rewards, redemptions, loyaltyPrograms, 
             runningPrograms, runningProgramTargets, rafflePrograms, 
-            couponRedemptions, raffleWinners, locations
+            couponRedemptions, raffleWinners, locations, settings
         ] = await Promise.all([
             safeQueryDB('SELECT * FROM users'),
             safeQueryDB('SELECT * FROM transactions ORDER BY date DESC'),
             safeQueryDB('SELECT * FROM rewards ORDER BY points ASC'),
-            safeQueryDB('SELECT r.*, rw.name as reward_name FROM redemptions r LEFT JOIN rewards rw ON r.reward_id = rw.id ORDER BY r.date DESC'),
+            safeQueryDB('SELECT r.*, rw.name as reward_name, u.nama as user_name FROM redemptions r LEFT JOIN rewards rw ON r.reward_id = rw.id LEFT JOIN users u ON r.user_id = u.id ORDER BY r.date DESC'),
             safeQueryDB('SELECT * FROM loyalty_programs ORDER BY points_needed ASC'),
             safeQueryDB('SELECT * FROM running_programs ORDER BY end_date DESC'),
             safeQueryDB('SELECT * FROM running_program_targets'),
@@ -158,6 +158,7 @@ router.get('/bootstrap', async (req, res) => {
             safeQueryDB('SELECT * FROM coupon_redemptions'),
             safeQueryDB('SELECT * FROM raffle_winners'),
             safeQueryDB('SELECT * FROM locations'),
+            safeQueryDB("SELECT setting_value FROM settings WHERE setting_key = 'whatsapp_config'"),
         ]);
 
         const parsedUsers = parseNumerics(users, ['points', 'kupon_undian']);
@@ -174,18 +175,21 @@ router.get('/bootstrap', async (req, res) => {
                 .filter(t => t.program_id === p.id)
                 .map(t => toCamelCase(t))
         }));
+        
+        const whatsAppSettings = settings.length > 0 ? JSON.parse(settings[0].setting_value) : null;
 
         res.json({
             users: structuredUsers,
             transactions: parsedTransactions.map(t => toCamelCase(t)),
             rewards: parsedRewards.map(r => toCamelCase(r)),
-            redemptionHistory: parsedRedemptions.map(r => ({ ...toCamelCase(r), rewardName: r.reward_name || 'Hadiah Dihapus' })),
+            redemptionHistory: parsedRedemptions.map(r => ({ ...toCamelCase(r), rewardName: r.reward_name || 'Hadiah Dihapus', userName: r.user_name || 'User Dihapus' })),
             loyaltyPrograms: parsedLoyalty.map(l => toCamelCase(l)),
             runningPrograms: programsWithTargets,
             rafflePrograms: rafflePrograms.map(r => ({ ...toCamelCase(r), isActive: !!r.is_active })),
             couponRedemptions: couponRedemptions.map(c => toCamelCase(c)),
             raffleWinners: raffleWinners.map(w => toCamelCase(w)),
             locations: locations.map(l => toCamelCase(l)),
+            whatsAppSettings,
         });
     } catch (error) {
         // --- IMPROVED ERROR LOGGING ---
@@ -522,6 +526,44 @@ router.post('/transactions/bulk', transactionUpload.single('transactionsFile'), 
 });
 
 
+// WHATSAPP NOTIFICATION HELPER
+const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
+    try {
+        const [rows] = await db.execute("SELECT setting_value FROM settings WHERE setting_key = 'whatsapp_config'");
+        if (rows.length === 0) {
+            console.log("WhatsApp settings not configured. Skipping notification.");
+            return;
+        }
+
+        const settings = JSON.parse(rows[0].setting_value);
+        if (!settings.webhookUrl || !settings.senderNumber || !settings.recipientId) {
+            console.log("WhatsApp settings are incomplete. Skipping notification.");
+            return;
+        }
+
+        const message = `*🔔 Notifikasi Penukaran Poin 🔔*\n\nMitra baru saja melakukan penukaran poin:\n\n*Nama Mitra:* ${userName}\n*Hadiah:* ${rewardName}\n*Poin Ditukar:* ${pointsSpent.toLocaleString('id-ID')}\n\nTerima kasih.`;
+        
+        const payload = {
+            sender: settings.senderNumber,
+            number: settings.recipientId,
+            message: message
+        };
+
+        // Use node-fetch or axios to send the POST request
+        // Using fetch which is available in Node.js 18+
+        await fetch(settings.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        console.log(`WhatsApp notification sent for ${userName}'s redemption.`);
+
+    } catch (error) {
+        console.error("Failed to send WhatsApp notification:", error);
+    }
+};
+
 // Endpoint untuk penukaran poin
 router.post('/redemptions', async (req, res) => {
     const { userId, rewardId, pointsSpent, isKupon } = req.body;
@@ -535,13 +577,15 @@ router.post('/redemptions', async (req, res) => {
         await connection.beginTransaction();
 
         // 1. Check user points and reward stock
-        const [userRows] = await connection.execute('SELECT points FROM users WHERE id = ?', [userId]);
+        const [userRows] = await connection.execute('SELECT nama, points FROM users WHERE id = ?', [userId]);
         if (userRows.length === 0) throw new Error("User tidak ditemukan.");
         if (userRows[0].points < pointsSpent) throw new Error("Poin tidak cukup.");
+        const userName = userRows[0].nama;
 
-        const [rewardRows] = await connection.execute('SELECT stock FROM rewards WHERE id = ?', [rewardId]);
+        const [rewardRows] = await connection.execute('SELECT name, stock FROM rewards WHERE id = ?', [rewardId]);
         if (rewardRows.length === 0) throw new Error("Hadiah tidak ditemukan.");
         if (rewardRows[0].stock <= 0) throw new Error("Stok hadiah habis.");
+        const rewardName = rewardRows[0].name;
         
         // 2. Insert redemption record
         await connection.execute(
@@ -574,7 +618,12 @@ router.post('/redemptions', async (req, res) => {
         await connection.execute('UPDATE rewards SET stock = stock - 1 WHERE id = ?', [rewardId]);
 
         await connection.commit();
+        
+        // Send response to user first, then trigger notification
         res.status(200).json({ message: "Penukaran berhasil." });
+
+        // Trigger notification asynchronously
+        sendWhatsAppNotification(userName, rewardName, pointsSpent);
 
     } catch (error) {
         await connection.rollback();
@@ -639,6 +688,34 @@ router.put('/programs/:id', async (req, res) => {
     const sql = 'UPDATE running_programs SET name=?, mechanism=?, prize_category=?, prize_description=?, start_date=?, end_date=? WHERE id = ?';
     await db.execute(sql, [name, mechanism, prizeCategory, prizeDescription, startDate, endDate, id]);
     res.json({ id: parseInt(id), name, mechanism, prizeCategory, prizeDescription, startDate, endDate });
+});
+
+router.delete('/programs/:id', async (req, res) => {
+    const { id: programId } = req.params;
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // First, delete associated targets to avoid foreign key constraint errors
+        await connection.execute('DELETE FROM running_program_targets WHERE program_id = ?', [programId]);
+        
+        // Then, delete the program itself
+        const [result] = await connection.execute('DELETE FROM running_programs WHERE id = ?', [programId]);
+
+        if (result.affectedRows === 0) {
+            throw new Error('Program tidak ditemukan.');
+        }
+
+        await connection.commit();
+        res.json({ message: 'Program dan semua data pesertanya berhasil dihapus.' });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Delete program error:', error);
+        res.status(error.message === 'Program tidak ditemukan.' ? 404 : 500).json({ message: error.message || 'Gagal menghapus program.' });
+    } finally {
+        connection.release();
+    }
 });
 
 router.post('/programs/:id/photo', programUpload.single('photo'), async (req, res) => {
@@ -838,6 +915,33 @@ router.delete('/raffle-programs/:id', async (req, res) => {
     }
 });
 
+// WHATSAPP SETTINGS MANAGEMENT
+router.get('/settings/whatsapp', async (req, res) => {
+    try {
+        const [rows] = await db.execute("SELECT setting_value FROM settings WHERE setting_key = 'whatsapp_config'");
+        if (rows.length === 0) {
+            return res.json(null); // No settings found
+        }
+        res.json(JSON.parse(rows[0].setting_value));
+    } catch (error) {
+        console.error("Get WhatsApp settings error:", error);
+        res.status(500).json({ message: "Gagal mengambil pengaturan." });
+    }
+});
+
+router.post('/settings/whatsapp', async (req, res) => {
+    const settings = req.body;
+    const settingsValue = JSON.stringify(settings);
+    try {
+        // Use INSERT ... ON DUPLICATE KEY UPDATE to handle both creation and update
+        const sql = "INSERT INTO settings (setting_key, setting_value) VALUES ('whatsapp_config', ?) ON DUPLICATE KEY UPDATE setting_value = ?";
+        await db.execute(sql, [settingsValue, settingsValue]);
+        res.json({ message: "Pengaturan WhatsApp berhasil disimpan." });
+    } catch (error) {
+        console.error("Save WhatsApp settings error:", error);
+        res.status(500).json({ message: "Gagal menyimpan pengaturan." });
+    }
+});
 
 
 module.exports = router;

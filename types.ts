@@ -15,7 +15,9 @@ export type Page =
     | 'manajemenProgram'
     | 'manajemenPoin'
     | 'manajemenHadiah'
-    | 'manajemenUndian';
+    | 'manajemenUndian'
+    | 'manajemenPenukaran'
+    | 'manajemenNotifikasi';
 
 export interface UserProfile {
     nama: string;
@@ -68,6 +70,7 @@ export interface Redemption {
     rewardName: string; 
     pointsSpent: number;
     date: string;
+    userName?: string; // Ditambahkan untuk halaman admin
 }
 
 // Tipe baru untuk menyatukan history
@@ -135,4 +138,11 @@ export interface Location {
     id: number;
     kabupaten: string;
     kecamatan: string;
+}
+
+export interface WhatsAppSettings {
+    webhookUrl: string;
+    senderNumber: string;
+    recipientType: 'personal' | 'group';
+    recipientId: string;
 }
