@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
@@ -42,7 +41,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ handleLogin, setCurrentPage }) =>
     };
 
     return (
-        <div className="min-h-screen flex flex-col justify-center items-center p-4 font-sans neu-bg">
+        <div className="min-h-screen flex flex-col justify-center items-center px-4 py-10 font-sans neu-bg">
             <Modal show={showForgotPassword} onClose={closeForgotModal} title="Lupa Password">
                 {!forgotMessage ? (
                     <form onSubmit={handleForgotPassword}>
