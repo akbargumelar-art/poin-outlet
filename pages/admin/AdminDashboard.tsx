@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { User, Transaction, RunningProgram, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -76,7 +75,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
             )}
 
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                <h1 className="text-3xl font-bold text-gray-700">Admin Dashboard</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Admin Dashboard</h1>
                 <div className="w-full md:w-auto md:min-w-[200px]">
                     <select value={tapFilter} onChange={e => setTapFilter(e.target.value)} className="input-field">
                         <option value="">Semua TAP</option>
@@ -90,21 +89,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
                     <div className="p-3 neu-card rounded-full"><Icon path={ICONS.users} className="w-8 h-8 text-red-600"/></div>
                     <div>
                         <p className="text-gray-500">Total Mitra Outlet</p>
-                        <p className="text-3xl font-bold text-gray-800">{totalPelanggan}</p>
+                        <p className="text-2xl font-bold text-gray-800">{totalPelanggan}</p>
                     </div>
                 </div>
                  <div className="neu-card p-6 flex items-center gap-4">
                     <div className="p-3 neu-card rounded-full"><Icon path={ICONS.history} className="w-8 h-8 text-green-600"/></div>
                     <div>
                         <p className="text-gray-500">Total Penjualan</p>
-                        <p className="text-3xl font-bold text-gray-800">Rp {totalPenjualan.toLocaleString('id-ID')}</p>
+                        <p className="text-2xl font-bold text-gray-800">Rp {totalPenjualan.toLocaleString('id-ID')}</p>
                     </div>
                 </div>
                  <div className="neu-card p-6 flex items-center gap-4">
                     <div className="p-3 neu-card rounded-full"><Icon path={ICONS.gift} className="w-8 h-8 text-yellow-600"/></div>
                     <div>
                         <p className="text-gray-500">Total Poin Beredar</p>
-                        <p className="text-3xl font-bold text-gray-800">{totalPoin.toLocaleString('id-ID')}</p>
+                        <p className="text-2xl font-bold text-gray-800">{totalPoin.toLocaleString('id-ID')}</p>
                     </div>
                 </div>
             </div>

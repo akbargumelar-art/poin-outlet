@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { User, Transaction, LoyaltyProgram, RunningProgram, Page, RaffleWinner } from '../../types';
 import PemenangUndian from '../../components/PemenangUndian';
@@ -59,11 +58,11 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                 <div className="flex justify-between items-start">
                     <div>
                         <h2 className="text-md font-semibold opacity-80">Total Poin Anda</h2>
-                        <p className="text-4xl md:text-5xl font-bold">{(currentUser.points || 0).toLocaleString('id-ID')}</p>
+                        <p className="text-3xl md:text-4xl font-bold">{(currentUser.points || 0).toLocaleString('id-ID')}</p>
                     </div>
                     <div className="text-right">
                         <h2 className="text-md font-semibold opacity-80">Kupon Undian</h2>
-                        <p className="text-4xl md:text-5xl font-bold">{(currentUser.kuponUndian || 0)}</p>
+                        <p className="text-3xl md:text-4xl font-bold">{(currentUser.kuponUndian || 0)}</p>
                     </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-white/20">

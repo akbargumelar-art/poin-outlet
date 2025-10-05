@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { User, Reward, RaffleProgram, LoyaltyProgram } from '../../types';
 
@@ -33,7 +32,7 @@ const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukar
     return (
          <div className="relative">
             <div className="sticky top-0 bg-neutral-100/80 backdrop-blur-md z-10 py-4 -my-4 -mx-6 px-6 mb-2">
-                 <h1 className="text-3xl font-bold text-gray-700">Katalog Hadiah</h1>
+                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Katalog Hadiah</h1>
                  <p className="text-lg text-gray-600">Poin Anda: <span className="font-bold text-red-600">{userPoints.toLocaleString('id-ID')}</span> | Kupon: <span className="font-bold text-purple-600">{currentUser.kuponUndian || 0}</span></p>
             </div>
 

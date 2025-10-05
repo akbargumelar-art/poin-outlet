@@ -94,7 +94,7 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, loyaltyPrograms, u
                 </Modal>
             )}
 
-            <h1 className="text-3xl font-bold text-gray-700 mb-6">Manajemen Transaksi & Poin</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-700 mb-6">Manajemen Transaksi & Poin</h1>
             
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                 <div className="space-y-8">

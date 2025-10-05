@@ -88,7 +88,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                <h1 className="text-3xl font-bold text-gray-700">Riwayat Penukaran Poin Mitra</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Riwayat Penukaran Poin Mitra</h1>
                 <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
                     <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel
                 </button>

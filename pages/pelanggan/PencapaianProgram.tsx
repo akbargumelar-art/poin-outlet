@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { User, LoyaltyProgram, RunningProgram } from '../../types';
 
@@ -30,7 +29,7 @@ const PencapaianProgram: React.FC<PencapaianProgramProps> = ({ currentUser, loya
 
     return (
         <div>
-            <h1 className="text-3xl font-bold text-gray-700 mb-8">Pencapaian Program</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-700 mb-8">Pencapaian Program</h1>
             
             <div className="space-y-8">
                 {runningPrograms.map(p => {

@@ -128,7 +128,7 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-700">Profil Akun</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Profil Akun</h1>
                 {!isEditing && <button onClick={() => setIsEditing(true)} className="neu-button !w-auto px-6 flex items-center gap-2"><Icon path={ICONS.edit} className="w-5 h-5"/> Edit Profil</button>}
             </div>
             <div className="neu-card p-8 max-w-4xl mx-auto space-y-8">

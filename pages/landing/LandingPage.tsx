@@ -47,7 +47,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 <div className="max-w-3xl mx-auto">
                     {/* Hero Section */}
                     <section id="hero-section" className="text-center my-10 md:my-16">
-                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-700">Program Loyalitas Mitra Outlet</h2>
+                        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-700">Program Loyalitas Mitra Outlet</h2>
                         <p className="text-lg text-gray-500 mt-4 max-w-2xl mx-auto">
                             Bergabunglah dengan program loyalitas kami dan dapatkan poin dari setiap transaksi untuk ditukarkan dengan hadiah-hadiah menarik!
                         </p>
@@ -61,7 +61,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 {/* Rewards Slider Section */}
                 <section id="hadiah-section" className="my-12 md:my-20 overflow-hidden">
                     <div className="max-w-3xl mx-auto">
-                        <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
+                        <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
                     </div>
                     <div className="relative">
                         <div className="max-w-3xl mx-auto relative md:px-12">
@@ -70,9 +70,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                             </button>
                             <div ref={rewardsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                {rewards.map((r) => (
-                                    <div key={r.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 md:w-1/2 p-4">
+                                    <div key={r.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 lg:w-1/3 p-4">
                                         <div className="neu-card overflow-hidden flex flex-col h-full">
-                                            <img src={r.imageUrl} alt={r.name} className="w-full h-48 object-cover"/>
+                                            <img src={r.imageUrl} alt={r.name} className="w-full h-40 md:h-48 object-cover"/>
                                             <div className="p-6 flex flex-col flex-grow text-center">
                                                 <h4 className="text-lg font-bold flex-grow text-gray-800 min-h-[56px]">{r.name}</h4>
                                                 <p className="text-xl font-bold text-red-600 mt-2">{r.points.toLocaleString('id-ID')} Poin</p>
@@ -98,7 +98,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 {runningPrograms && runningPrograms.length > 0 && (
                     <section id="program-section" className="my-12 md:my-20 overflow-hidden">
                         <div className="max-w-3xl mx-auto">
-                            <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Program Berjalan</h3>
+                            <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Program Berjalan</h3>
                         </div>
                         <div className="relative">
                             <div className="max-w-3xl mx-auto relative md:px-12">
@@ -107,9 +107,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                 </button>
                                 <div ref={programsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                    {runningPrograms.map((p) => (
-                                        <div key={p.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 md:w-1/2 p-4">
+                                        <div key={p.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 lg:w-1/3 p-4">
                                             <div className="neu-card overflow-hidden flex flex-col h-full">
-                                                <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-cover" />
+                                                <img src={p.imageUrl} alt={p.name} className="w-full h-40 md:h-48 object-cover" />
                                                 <div className="p-6 flex flex-col flex-grow text-center">
                                                     <h4 className="text-xl font-bold text-gray-800">{p.name}</h4>
                                                     <p className="text-sm text-gray-500 mb-2">{formatDateRange(p.startDate, p.endDate)}</p>
@@ -142,7 +142,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
 
                 {/* About Section */}
                 <section id="tentang-kami-section" className="my-12 md:my-20 max-w-3xl mx-auto">
-                    <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Tentang Kami</h3>
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Tentang Kami</h3>
                      <div className="neu-card p-8 md:p-10">
                         <h4 className="text-2xl font-bold text-red-600">PT Agrabudi Komunika</h4>
                         <p className="mt-4 text-gray-600">

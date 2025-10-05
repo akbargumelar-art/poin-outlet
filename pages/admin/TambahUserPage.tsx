@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User, UserRole, UserProfile } from '../../types';
 
@@ -110,7 +109,7 @@ const TambahUserPage: React.FC<TambahUserPageProps> = ({ adminAddUser }) => {
 
     return (
         <div>
-             <h1 className="text-3xl font-bold text-gray-700 mb-6">Tambah User Baru</h1>
+             <h1 className="text-2xl md:text-3xl font-bold text-gray-700 mb-6">Tambah User Baru</h1>
               <div className="neu-card p-8 max-w-3xl mx-auto">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>

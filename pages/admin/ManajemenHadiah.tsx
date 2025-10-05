@@ -185,7 +185,7 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
             )}
 
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                <h1 className="text-3xl font-bold text-gray-700">Manajemen Hadiah & Level</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Hadiah & Level</h1>
                 <div className="flex gap-2">
                     {!isReadOnly && (
                         <button onClick={handleOpenAdd} className="neu-button !w-auto px-6 flex items-center gap-2">

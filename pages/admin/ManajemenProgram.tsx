@@ -315,7 +315,7 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers,
 
 
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-700">Manajemen Program Berjalan</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Program Berjalan</h1>
                 {!isReadOnly && <button onClick={openAddModal} className="neu-button !w-auto px-6 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5" />Tambah</button>}
             </div>
 

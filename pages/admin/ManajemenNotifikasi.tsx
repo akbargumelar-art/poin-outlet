@@ -49,7 +49,7 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
     
     return (
         <div>
-            <h1 className="text-3xl font-bold text-gray-700 mb-6">Pengaturan Notifikasi WhatsApp</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-700 mb-6">Pengaturan Notifikasi WhatsApp</h1>
             <div className="neu-card p-8 max-w-2xl mx-auto">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>

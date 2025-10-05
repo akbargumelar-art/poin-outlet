@@ -95,7 +95,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                <h1 className="text-3xl font-bold text-gray-700">Riwayat Transaksi & Poin</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Riwayat Transaksi & Poin</h1>
                 <div className="flex items-center gap-2">
                     <input type="date" name="from" value={filter.from} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
                     <span className="text-gray-500">-</span>

@@ -204,7 +204,7 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, rede
                 </Modal>
             )}
 
-            <h1 className="text-3xl font-bold text-gray-700 mb-6">Manajemen Undian</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-700 mb-6">Manajemen Undian</h1>
             
             {/* Active Program Section */}
             <div className="neu-card p-6 mb-8">
