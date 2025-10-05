@@ -25,12 +25,21 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value,
-            // Reset recipientId if type changes
-            recipientId: name === 'recipientType' ? '' : prev.recipientId
-        }));
+        // Correctly handle state updates to fix the input bug.
+        if (name === 'recipientType') {
+            // If the type changes, update it and reset the recipient ID.
+            setFormData(prev => ({
+                ...prev,
+                recipientType: value as 'personal' | 'group',
+                recipientId: '' 
+            }));
+        } else {
+            // For all other fields, just update their respective values.
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {

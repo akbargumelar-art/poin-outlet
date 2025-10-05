@@ -136,7 +136,6 @@ function App() {
     const updateUserProfile = useCallback(async (profile: UserProfile, photoFile: File | null) => {
         if (!currentUser) return;
         try {
-            // 1. Update text data first and get the updated user object from server
             const profileResponse = await fetch(`/api/users/${currentUser.id}/profile`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -148,7 +147,6 @@ function App() {
             }
             let updatedUserFromServer: User = await profileResponse.json();
     
-            // 2. Upload photo if it exists
             if (photoFile) {
                 const formData = new FormData();
                 formData.append('profilePhoto', photoFile);
@@ -156,13 +154,14 @@ function App() {
                     method: 'POST',
                     body: formData,
                 });
-                if (!photoResponse.ok) throw new Error('Gagal mengunggah foto.');
+                if (!photoResponse.ok) {
+                    const errorData = await photoResponse.json();
+                    throw new Error(`Profil teks berhasil disimpan, tetapi: ${errorData.message || 'Gagal mengunggah foto.'}`);
+                }
                 const photoData = await photoResponse.json();
-                // Merge the new photo URL into the user object
                 updatedUserFromServer.profile.photoUrl = photoData.photoUrl;
             }
             
-            // 3. Update state with the final, canonical user object from the server
             setCurrentUser(updatedUserFromServer);
             localStorage.setItem('currentUser', JSON.stringify(updatedUserFromServer));
             setUsers(users.map(u => u.id === currentUser.id ? updatedUserFromServer : u));
@@ -215,16 +214,12 @@ function App() {
                 throw new Error(data.message || "Gagal melakukan penukaran");
             }
 
-            // FIX: Use the updated user object from the response directly instead of full refetch
             const updatedUser: User = data.updatedUser;
             setCurrentUser(updatedUser);
             localStorage.setItem('currentUser', JSON.stringify(updatedUser));
             
-            // Also update the user in the main users list for admin views
             setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
 
-            // Selectively refetch other data like rewards and history for consistency
-            // This is more efficient than a full bootstrap
             Promise.all([
                 fetch('/api/rewards').then(res => res.json()).then(setRewards),
                 fetch('/api/redemptions').then(res => res.json()).then(setRedemptionHistory)
@@ -260,7 +255,6 @@ function App() {
                 throw new Error(data.message || "Gagal menambahkan user.");
             }
     
-            // Successfully added, now refresh data to ensure consistency
             await fetchBootstrapData();
             
             setModal({ show: true, title: "Sukses", content: <p>User baru <b>{data.profile.nama}</b> berhasil ditambahkan ke database.</p> });
@@ -312,7 +306,10 @@ function App() {
                     method: 'POST',
                     body: formData,
                 });
-                if (!photoResponse.ok) throw new Error('Data teks disimpan, tapi gagal mengunggah foto.');
+                if (!photoResponse.ok) {
+                    const errorData = await photoResponse.json();
+                    throw new Error(`Data teks disimpan, tapi: ${errorData.message || 'gagal mengunggah foto.'}`);
+                }
             }
             
             setModal({ show: true, title: "Sukses", content: <p>Data hadiah berhasil disimpan.</p> });
@@ -433,7 +430,10 @@ function App() {
                     method: 'POST',
                     body: formData
                 });
-                if (!photoResponse.ok) throw new Error('Data program disimpan, tapi foto gagal diunggah.');
+                if (!photoResponse.ok) {
+                    const errorData = await photoResponse.json();
+                    throw new Error(`Data program disimpan, tapi: ${errorData.message || 'foto gagal diunggah.'}`);
+                }
             }
             
             setModal({ show: true, title: "Sukses", content: <p>Data program berhasil disimpan.</p> });
