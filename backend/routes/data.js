@@ -628,13 +628,13 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
     try {
         const [rows] = await db.execute("SELECT setting_value FROM settings WHERE setting_key = 'whatsapp_config'");
         if (rows.length === 0) {
-            console.log("WhatsApp settings not configured. Skipping notification.");
+            console.log("[WAHA NOTIF] WhatsApp settings not configured. Skipping notification.");
             return;
         }
 
         const settings = JSON.parse(rows[0].setting_value);
         if (!settings.webhookUrl || !settings.apiKey || !settings.recipientId) {
-            console.log("WAHA settings are incomplete (URL/API Key/Recipient missing). Skipping notification.");
+            console.log("[WAHA NOTIF] WAHA settings are incomplete (URL/API Key/Recipient missing). Skipping notification.");
             return;
         }
 
@@ -681,7 +681,7 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
                 if (res.statusCode >= 200 && res.statusCode < 300) {
                     console.log(`[WAHA NOTIF] WAHA notification sent successfully.`);
                 } else {
-                    console.error(`[WAHA NOTIF] WAHA API Error: Status ${res.statusCode}`);
+                    console.error(`[WAHA NOTIF] WAHA API Error: Status ${res.statusCode}, Body: ${responseData}`);
                 }
             });
         });
