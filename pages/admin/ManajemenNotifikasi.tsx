@@ -14,7 +14,8 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
         webhookUrl: '',
         senderNumber: '',
         recipientType: 'personal',
-        recipientId: ''
+        recipientId: '',
+        apiToken: ''
     });
 
     useEffect(() => {
@@ -25,16 +26,13 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        // Correctly handle state updates to fix the input bug.
         if (name === 'recipientType') {
-            // If the type changes, update it and reset the recipient ID.
             setFormData(prev => ({
                 ...prev,
                 recipientType: value as 'personal' | 'group',
                 recipientId: '' 
             }));
         } else {
-            // For all other fields, just update their respective values.
             setFormData(prev => ({
                 ...prev,
                 [name]: value
@@ -54,19 +52,36 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="block text-gray-600 text-sm font-semibold mb-2 flex items-center gap-2">
-                            <Icon path={ICONS.link} className="w-5 h-5" /> Webhook URL
+                            <Icon path={ICONS.link} className="w-5 h-5" /> Webhook URL (Fonnte)
                         </label>
                         <input 
                             type="url"
                             name="webhookUrl"
                             value={formData.webhookUrl}
                             onChange={handleChange}
-                            placeholder="https://your-whatsapp-gateway.com/api/send"
+                            placeholder="https://api.fonnte.com/send"
                             className="input-field"
                             required
                             disabled={isReadOnly}
                         />
-                         <p className="text-xs text-gray-500 mt-1">URL API dari layanan WhatsApp Gateway Anda untuk mengirim pesan.</p>
+                         <p className="text-xs text-gray-500 mt-1">URL API dari layanan Fonnte untuk mengirim pesan.</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-gray-600 text-sm font-semibold mb-2 flex items-center gap-2">
+                           <Icon path={ICONS.lock} className="w-5 h-5" /> Fonnte API Token
+                        </label>
+                        <input 
+                            type="password"
+                            name="apiToken"
+                            value={formData.apiToken}
+                            onChange={handleChange}
+                            placeholder="Masukkan API Token dari Fonnte"
+                            className="input-field"
+                            required
+                            disabled={isReadOnly}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Token otorisasi dari dashboard Fonnte Anda.</p>
                     </div>
 
                     <div>
@@ -83,7 +98,7 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                             required
                             disabled={isReadOnly}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Nomor WhatsApp yang terdaftar di layanan gateway sebagai pengirim.</p>
+                        <p className="text-xs text-gray-500 mt-1">Nomor WhatsApp yang terdaftar di Fonnte sebagai pengirim.</p>
                     </div>
 
                     <div className="pt-4 border-t">

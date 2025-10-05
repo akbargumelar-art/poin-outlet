@@ -145,4 +145,5 @@ export interface WhatsAppSettings {
     senderNumber: string;
     recipientType: 'personal' | 'group';
     recipientId: string;
+    apiToken: string;
 }
