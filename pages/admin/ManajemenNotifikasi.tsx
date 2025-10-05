@@ -42,7 +42,9 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        // Trim trailing slash if user adds one, to ensure consistency
+        const cleanedUrl = formData.webhookUrl.endsWith('/') ? formData.webhookUrl.slice(0, -1) : formData.webhookUrl;
+        onSave({ ...formData, webhookUrl: cleanedUrl });
     };
     
     return (
@@ -59,12 +61,12 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                             name="webhookUrl"
                             value={formData.webhookUrl}
                             onChange={handleChange}
-                            placeholder="https://waha.domain.com/api/sessions/nama-sesi/sendText"
+                            placeholder="https://waha.abkciraya.cloud"
                             className="input-field"
                             required
                             disabled={isReadOnly}
                         />
-                         <p className="text-xs text-gray-500 mt-1">URL API dari server WAHA Anda untuk mengirim pesan teks, termasuk nama sesinya.</p>
+                         <p className="text-xs text-gray-500 mt-1">URL dasar dari server WAHA Anda (tanpa /api/... di belakangnya).</p>
                     </div>
 
                     <div>

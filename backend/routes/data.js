@@ -638,6 +638,8 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
             return;
         }
 
+        // Construct the full URL and payload based on the successful curl test
+        const fullUrl = `${settings.webhookUrl}/api/sendText`;
         const message = `*🔔 Notifikasi Penukaran Poin 🔔*\n\nMitra baru saja melakukan penukaran poin:\n\n*Nama Mitra:* ${userName}\n*Hadiah:* ${rewardName}\n*Poin Ditukar:* ${pointsSpent.toLocaleString('id-ID')}\n\nTerima kasih.`;
         
         let chatId = settings.recipientId;
@@ -646,8 +648,9 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
         }
 
         const payload = {
+            session: "default", // Hardcoded based on successful test
             chatId: chatId,
-            message: message
+            text: message       // Use 'text' key as per successful test
         };
 
         const config = {
@@ -657,10 +660,10 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
             }
         };
 
-        console.log(`[WAHA NOTIF] Sending to: ${settings.webhookUrl}`);
+        console.log(`[WAHA NOTIF] Sending to: ${fullUrl}`);
         console.log(`[WAHA NOTIF] Payload: ${JSON.stringify(payload)}`);
         
-        await axios.post(settings.webhookUrl, payload, config);
+        await axios.post(fullUrl, payload, config);
 
         console.log(`[WAHA NOTIF] WAHA notification sent successfully.`);
 
