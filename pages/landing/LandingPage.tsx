@@ -38,13 +38,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
     return (
         <div className="relative">
             <header className="p-4 md:p-6">
-                <div className="max-w-2xl mx-auto flex justify-between items-center">
+                <div className="max-w-3xl mx-auto flex justify-between items-center">
                     <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-10" />
                     <button onClick={() => setCurrentPage('login')} className="neu-button !w-auto px-6 py-2 text-sm">Login</button>
                 </div>
             </header>
             <div className="px-4 sm:px-6 md:px-12 pb-24">
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-3xl mx-auto">
                     {/* Hero Section */}
                     <section id="hero-section" className="text-center my-10 md:my-16">
                         <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-700">Program Loyalitas Mitra Outlet</h2>
@@ -60,17 +60,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                     
                 {/* Rewards Slider Section */}
                 <section id="hadiah-section" className="my-12 md:my-20 overflow-hidden">
-                    <div className="max-w-2xl mx-auto">
+                    <div className="max-w-3xl mx-auto">
                         <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
                     </div>
                     <div className="relative">
-                        <div className="max-w-2xl mx-auto relative md:px-12">
+                        <div className="max-w-3xl mx-auto relative md:px-12">
                             <button onClick={() => handleNav('left', 'rewards')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous slide">
                                 <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                             </button>
                             <div ref={rewardsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                {rewards.map((r) => (
-                                    <div key={r.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 md:w-5/12 p-4">
+                                    <div key={r.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 md:w-1/2 p-4">
                                         <div className="neu-card overflow-hidden flex flex-col h-full">
                                             <img src={r.imageUrl} alt={r.name} className="w-full h-48 object-cover"/>
                                             <div className="p-6 flex flex-col flex-grow text-center">
@@ -86,28 +86,28 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                             </button>
                         </div>
                     </div>
-                     <p className="text-center mt-8 text-gray-600 max-w-2xl mx-auto">Dan masih banyak lagi hadiah lainnya!</p>
+                     <p className="text-center mt-8 text-gray-600 max-w-3xl mx-auto">Dan masih banyak lagi hadiah lainnya!</p>
                 </section>
 
                 {/* Simulasi Poin Section */}
-                <section id="kalkulator-section" className="my-12 md:my-20 max-w-2xl mx-auto">
+                <section id="kalkulator-section" className="my-12 md:my-20 max-w-3xl mx-auto">
                     <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
                 </section>
 
                 {/* Running Program Section */}
                 {runningPrograms && runningPrograms.length > 0 && (
                     <section id="program-section" className="my-12 md:my-20 overflow-hidden">
-                        <div className="max-w-2xl mx-auto">
+                        <div className="max-w-3xl mx-auto">
                             <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Program Berjalan</h3>
                         </div>
                         <div className="relative">
-                            <div className="max-w-2xl mx-auto relative md:px-12">
+                            <div className="max-w-3xl mx-auto relative md:px-12">
                                 <button onClick={() => handleNav('left', 'programs')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous program">
                                     <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                                 </button>
                                 <div ref={programsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                    {runningPrograms.map((p) => (
-                                        <div key={p.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 md:w-5/12 p-4">
+                                        <div key={p.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 md:w-1/2 p-4">
                                             <div className="neu-card overflow-hidden flex flex-col h-full">
                                                 <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-cover" />
                                                 <div className="p-6 flex flex-col flex-grow text-center">
@@ -136,12 +136,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                     </section>
                 )}
                 
-                <div id="pemenang-section" className="max-w-2xl mx-auto">
+                <div id="pemenang-section" className="max-w-3xl mx-auto">
                     <PemenangUndian winners={raffleWinners} />
                 </div>
 
                 {/* About Section */}
-                <section id="tentang-kami-section" className="my-12 md:my-20 max-w-2xl mx-auto">
+                <section id="tentang-kami-section" className="my-12 md:my-20 max-w-3xl mx-auto">
                     <h3 className="text-3xl font-bold text-gray-700 text-center mb-10">Tentang Kami</h3>
                      <div className="neu-card p-8 md:p-10">
                         <h4 className="text-2xl font-bold text-red-600">PT Agrabudi Komunika</h4>
@@ -154,7 +154,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                 <p className="text-gray-600 mt-1 pl-7">Jl. Pemuda Raya No.21B, Sunyaragi, Kec. Kesambi, Kota Cirebon, Jawa Barat 45132</p>
                                 <div className="mt-4 rounded-lg overflow-hidden neu-inset">
                                     <iframe 
-                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5494.642449130317!2d108.54520877628357!3d-6.729076865796396!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f1d575c4b4437%3A0xb8e7d858b1f65e0c!2sPT%20Agrabudi%20Komunika%20Cirebon!5e1!3m2!1sen!2sid!4v1759635982623!5m2!1sen!2sid" 
+                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5494.642449130317!2d108.54520877628357!3d-6.729076865796396!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f1d575c4b4437%3A0xb8e7d858b1f65e0c!2sPT%20Agrabudi%20Komunika%20Cirebon!5e1!3m2!1sen!2sid!4v1759635982623!5m2!1sen!2sid"
                                         width="100%" 
                                         height="200" 
                                         style={{ border: 0 }} 
@@ -185,7 +185,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                      </div>
                 </section>
 
-                 <div className="max-w-2xl mx-auto px-4 text-center mt-12">
+                 <div className="max-w-3xl mx-auto px-4 text-center mt-12">
                     <p className="font-bold text-gray-700">Hubungi Kami</p>
                     <div className="flex justify-center gap-6 my-4">
                         <a href="https://instagram.com/agrabudikomunika" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-red-600"><Icon path={ICONS.instagram} className="w-8 h-8"/></a>

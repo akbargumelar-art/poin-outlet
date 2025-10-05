@@ -650,25 +650,35 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
             chatId: chatId,
             message: message
         };
+        
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Api-Key': settings.apiKey // WAHA uses X-Api-Key header
+        };
+        
+        console.log(`[WAHA NOTIF] Sending to: ${settings.webhookUrl}`);
+        console.log(`[WAHA NOTIF] Payload: ${JSON.stringify(payload)}`);
+        console.log(`[WAHA NOTIF] Headers: { 'X-Api-Key': '${(settings.apiKey || '').substring(0, 5)}...' }`);
+
 
         const response = await fetch(settings.webhookUrl, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-Api-Key': settings.apiKey // WAHA uses X-Api-Key header
-            },
+            headers: headers,
             body: JSON.stringify(payload)
         });
         
-        const responseData = await response.json();
+        const responseData = await response.text(); // Get text to handle non-JSON responses
+        console.log(`[WAHA NOTIF] Response Status: ${response.status}`);
+        console.log(`[WAHA NOTIF] Response Body: ${responseData}`);
+        
         if (!response.ok) {
-            console.error(`WAHA API Error: Status ${response.status}`, responseData);
+            console.error(`[WAHA NOTIF] WAHA API Error: Status ${response.status}`);
         } else {
-             console.log(`WAHA notification sent successfully. WAHA Response:`, responseData);
+             console.log(`[WAHA NOTIF] WAHA notification sent successfully.`);
         }
 
     } catch (error) {
-        console.error("Failed to send WAHA notification:", error);
+        console.error("[WAHA NOTIF] Failed to send WAHA notification:", error);
     }
 };
 

@@ -1,6 +1,7 @@
 // Load environment variables from .env file
 require('dotenv').config();
 const path = require('path');
+const multer = require('multer'); // Required for error handling instance check
 
 const express = require('express');
 const cors = require('cors');
@@ -40,6 +41,10 @@ app.use((err, req, res, next) => {
     // Check for Multer's file size error
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ message: 'File terlalu besar. Ukuran maksimal adalah 10MB.' });
+    }
+    // Check for Express's body-parser error for large payloads
+    if (err.type === 'entity.too.large') {
+         return res.status(413).json({ message: 'Request terlalu besar. Ukuran maksimal adalah 10MB.' });
     }
     console.error(err.stack);
     res.status(500).json({ message: 'An unexpected error occurred on the server.' });

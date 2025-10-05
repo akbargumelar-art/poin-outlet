@@ -229,7 +229,7 @@ function App() {
         } catch (error: any) {
              setModal({show: true, title: "Gagal", content: <p>{error.message}</p>});
         }
-    }, [currentUser, users]);
+    }, [currentUser]);
     
     const handleTukarClick = useCallback((reward: Reward) => {
         if (!currentUser || !currentUser.points) return;
