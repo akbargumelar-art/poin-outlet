@@ -624,7 +624,7 @@ router.post('/transactions', async (req, res) => {
 });
 
 // WHATSAPP NOTIFICATION HELPER
-const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
+const sendWhatsAppNotification = async (userId, userName, userTap, rewardName, pointsSpent) => {
     try {
         const [rows] = await db.execute("SELECT setting_value FROM settings WHERE setting_key = 'whatsapp_config'");
         if (rows.length === 0) {
@@ -640,7 +640,15 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
 
         // Construct the full URL and payload based on the successful curl test
         const fullUrl = `${settings.webhookUrl}/api/sendText`;
-        const message = `*🔔 Notifikasi Penukaran Poin 🔔*\n\nMitra baru saja melakukan penukaran poin:\n\n*Nama Mitra:* ${userName}\n*Hadiah:* ${rewardName}\n*Poin Ditukar:* ${pointsSpent.toLocaleString('id-ID')}\n\nTerima kasih.`;
+        const tanggal = new Date().toLocaleString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        const message = `*🔔 Notifikasi Penukaran Poin 🔔*\n\nOutlet baru saja melakukan penukaran poin:\n\n*Tanggal* : ${tanggal}\n*TAP* : ${userTap || 'N/A'}\n*ID Digipos* : ${userId}\n*Nama Mitra* : ${userName}\n*Poin* : ${pointsSpent.toLocaleString('id-ID')}\n*Hadiah* : ${rewardName}\n\nTerima Kasih`;
         
         let chatId = settings.recipientId;
         if (settings.recipientType === 'personal' && !chatId.endsWith('@c.us') && !chatId.endsWith('@g.us')) {
@@ -699,10 +707,12 @@ router.post('/redemptions', async (req, res) => {
         await connection.beginTransaction();
 
         // 1. Check user points and reward stock
-        const [userRows] = await connection.execute('SELECT nama, points FROM users WHERE id = ?', [userId]);
+        const [userRows] = await connection.execute('SELECT id, nama, tap, points FROM users WHERE id = ?', [userId]);
         if (userRows.length === 0) throw new Error("User tidak ditemukan.");
         if (userRows[0].points < pointsSpent) throw new Error("Poin tidak cukup.");
-        const userName = userRows[0].nama;
+        const user = userRows[0];
+        const userName = user.nama;
+        const userTap = user.tap;
 
         const [rewardRows] = await connection.execute('SELECT name, stock FROM rewards WHERE id = ?', [rewardId]);
         if (rewardRows.length === 0) throw new Error("Hadiah tidak ditemukan.");
@@ -748,7 +758,7 @@ router.post('/redemptions', async (req, res) => {
         res.status(200).json({ message: "Penukaran berhasil.", updatedUser: structureUser(updatedUserRows[0]) });
 
         // Trigger notification asynchronously
-        sendWhatsAppNotification(userName, rewardName, pointsSpent);
+        sendWhatsAppNotification(userId, userName, userTap, rewardName, pointsSpent);
 
     } catch (error) {
         await connection.rollback();
