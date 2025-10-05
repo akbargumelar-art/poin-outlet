@@ -220,10 +220,10 @@ function App() {
             
             setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
 
-            Promise.all([
-                fetch('/api/rewards').then(res => res.json()).then(setRewards),
-                fetch('/api/redemptions').then(res => res.json()).then(setRedemptionHistory)
-            ]);
+            // Partially refresh data instead of full bootstrap for performance
+            fetch('/api/rewards').then(res => res.json()).then(setRewards);
+            fetch('/api/redemptions').then(res => res.json()).then(setRedemptionHistory);
+
 
             setModal({ show: true, title: 'Sukses!', content: <p className="text-center text-green-600">Penukaran <b>{reward.name}</b> berhasil.</p> });
         } catch (error: any) {
