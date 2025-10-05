@@ -5,6 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const xlsx = require('xlsx');
+const https = require('https');
 
 // Create two routers: one for general data, one for file uploads.
 const router = express.Router();
@@ -639,43 +640,58 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
 
         const message = `*🔔 Notifikasi Penukaran Poin 🔔*\n\nMitra baru saja melakukan penukaran poin:\n\n*Nama Mitra:* ${userName}\n*Hadiah:* ${rewardName}\n*Poin Ditukar:* ${pointsSpent.toLocaleString('id-ID')}\n\nTerima kasih.`;
         
-        // Format chatId for WAHA
         let chatId = settings.recipientId;
         if (settings.recipientType === 'personal' && !chatId.endsWith('@c.us') && !chatId.endsWith('@g.us')) {
             chatId = `${chatId}@c.us`;
         }
 
-        // Payload format for WAHA API
-        const payload = {
+        const payload = JSON.stringify({
             chatId: chatId,
             message: message
-        };
-        
-        const headers = {
-            'Content-Type': 'application/json',
-            'X-Api-Key': settings.apiKey // WAHA uses X-Api-Key header
-        };
-        
-        console.log(`[WAHA NOTIF] Sending to: ${settings.webhookUrl}`);
-        console.log(`[WAHA NOTIF] Payload: ${JSON.stringify(payload)}`);
-        console.log(`[WAHA NOTIF] Headers: { 'X-Api-Key': '${(settings.apiKey || '').substring(0, 5)}...' }`);
-
-
-        const response = await fetch(settings.webhookUrl, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(payload)
         });
         
-        const responseData = await response.text(); // Get text to handle non-JSON responses
-        console.log(`[WAHA NOTIF] Response Status: ${response.status}`);
-        console.log(`[WAHA NOTIF] Response Body: ${responseData}`);
-        
-        if (!response.ok) {
-            console.error(`[WAHA NOTIF] WAHA API Error: Status ${response.status}`);
-        } else {
-             console.log(`[WAHA NOTIF] WAHA notification sent successfully.`);
-        }
+        const url = new URL(settings.webhookUrl);
+
+        const options = {
+            hostname: url.hostname,
+            port: url.port || (url.protocol === 'https:' ? 443 : 80),
+            path: url.pathname + url.search,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload),
+                'X-Api-Key': settings.apiKey
+            }
+        };
+
+        console.log(`[WAHA NOTIF] Sending to: ${settings.webhookUrl}`);
+        console.log(`[WAHA NOTIF] Payload: ${payload}`);
+        console.log(`[WAHA NOTIF] Headers: { 'X-Api-Key': '${(settings.apiKey || '').substring(0, 5)}...' }`);
+
+        const protocol = url.protocol === 'https:' ? https : require('http');
+
+        const req = protocol.request(options, res => {
+            let responseData = '';
+            console.log(`[WAHA NOTIF] Response Status: ${res.statusCode}`);
+            res.on('data', d => {
+                responseData += d;
+            });
+            res.on('end', () => {
+                console.log(`[WAHA NOTIF] Response Body: ${responseData}`);
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    console.log(`[WAHA NOTIF] WAHA notification sent successfully.`);
+                } else {
+                    console.error(`[WAHA NOTIF] WAHA API Error: Status ${res.statusCode}`);
+                }
+            });
+        });
+
+        req.on('error', error => {
+            console.error('[WAHA NOTIF] Request failed:', error);
+        });
+
+        req.write(payload);
+        req.end();
 
     } catch (error) {
         console.error("[WAHA NOTIF] Failed to send WAHA notification:", error);
