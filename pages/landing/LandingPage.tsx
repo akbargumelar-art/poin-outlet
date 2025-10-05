@@ -70,7 +70,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                             </button>
                             <div ref={rewardsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                {rewards.map((r) => (
-                                    <div key={r.id} className="snap-center flex-shrink-0 w-10/12 md:w-1/3 lg:w-1/4 p-4">
+                                    <div key={r.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 md:w-5/12 p-4">
                                         <div className="neu-card overflow-hidden flex flex-col h-full">
                                             <img src={r.imageUrl} alt={r.name} className="w-full h-48 object-cover"/>
                                             <div className="p-6 flex flex-col flex-grow text-center">
@@ -107,7 +107,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                 </button>
                                 <div ref={programsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                    {runningPrograms.map((p) => (
-                                        <div key={p.id} className="snap-center flex-shrink-0 w-10/12 md:w-1/3 lg:w-1/4 p-4">
+                                        <div key={p.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 md:w-5/12 p-4">
                                             <div className="neu-card overflow-hidden flex flex-col h-full">
                                                 <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-cover" />
                                                 <div className="p-6 flex flex-col flex-grow text-center">

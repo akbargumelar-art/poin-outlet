@@ -25,7 +25,7 @@ const PasswordInput: React.FC<{name: string, value: string, onChange: (e: React.
                 autoComplete={autoComplete}
             />
             <button type="button" onClick={() => setShow(!show)} className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10">
-                <Icon path={show ? ICONS.trash : ICONS.edit} className="w-5 h-5" />
+                <Icon path={show ? ICONS.eyeOff : ICONS.eye} className="w-5 h-5" />
             </button>
         </div>
     );

@@ -47,7 +47,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ handleLogin, setCurrentPage }) =>
                         <Icon path={ICONS.lock} className="absolute top-1/2 left-4 -translate-y-1/2 w-5 h-5 text-gray-400"/>
                         <input className="input-field pl-12 pr-12" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required/>
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                           <Icon path={showPassword ? ICONS.trash : ICONS.edit} className="w-5 h-5" />
+                           <Icon path={showPassword ? ICONS.eyeOff : ICONS.eye} className="w-5 h-5" />
                         </button>
                     </div>
                     <button className="neu-button text-red-600" type="submit" disabled={isLoading}>
