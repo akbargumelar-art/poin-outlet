@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const xlsx = require('xlsx');
-const https = require('https');
+const axios = require('axios'); // Use axios for reliable HTTP requests
 
 // Create two routers: one for general data, one for file uploads.
 const router = express.Router();
@@ -645,56 +645,41 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
             chatId = `${chatId}@c.us`;
         }
 
-        const payload = JSON.stringify({
+        const payload = {
             chatId: chatId,
             message: message
-        });
-        
-        const url = new URL(settings.webhookUrl);
+        };
 
-        const options = {
-            hostname: url.hostname,
-            port: url.port || (url.protocol === 'https:' ? 443 : 80),
-            path: url.pathname + url.search,
-            method: 'POST',
+        const config = {
             headers: {
                 'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(payload),
                 'X-Api-Key': settings.apiKey
             }
         };
 
         console.log(`[WAHA NOTIF] Sending to: ${settings.webhookUrl}`);
-        console.log(`[WAHA NOTIF] Payload: ${payload}`);
-        console.log(`[WAHA NOTIF] Headers: { 'X-Api-Key': '${(settings.apiKey || '').substring(0, 5)}...' }`);
+        console.log(`[WAHA NOTIF] Payload: ${JSON.stringify(payload)}`);
+        
+        await axios.post(settings.webhookUrl, payload, config);
 
-        const protocol = url.protocol === 'https:' ? https : require('http');
-
-        const req = protocol.request(options, res => {
-            let responseData = '';
-            console.log(`[WAHA NOTIF] Response Status: ${res.statusCode}`);
-            res.on('data', d => {
-                responseData += d;
-            });
-            res.on('end', () => {
-                console.log(`[WAHA NOTIF] Response Body: ${responseData}`);
-                if (res.statusCode >= 200 && res.statusCode < 300) {
-                    console.log(`[WAHA NOTIF] WAHA notification sent successfully.`);
-                } else {
-                    console.error(`[WAHA NOTIF] WAHA API Error: Status ${res.statusCode}, Body: ${responseData}`);
-                }
-            });
-        });
-
-        req.on('error', error => {
-            console.error('[WAHA NOTIF] Request failed:', error);
-        });
-
-        req.write(payload);
-        req.end();
+        console.log(`[WAHA NOTIF] WAHA notification sent successfully.`);
 
     } catch (error) {
-        console.error("[WAHA NOTIF] Failed to send WAHA notification:", error);
+        console.error("[WAHA NOTIF] Failed to send WAHA notification.");
+        if (axios.isAxiosError(error)) {
+            console.error(`[WAHA NOTIF] Axios Error: ${error.message}`);
+            if (error.response) {
+                console.error(`[WAHA NOTIF] Status: ${error.response.status}`);
+                console.error(`[WAHA NOTIF] Data: ${JSON.stringify(error.response.data)}`);
+                if (error.response.status === 404) {
+                    console.error("[WAHA NOTIF] Diagnosis: 404 Not Found. This often means the session name in the URL is wrong, the session is not 'WORKING', or your reverse proxy (e.g., Nginx) is misconfigured.");
+                } else if (error.response.status === 401) {
+                     console.error("[WAHA NOTIF] Diagnosis: 401 Unauthorized. Your WAHA API Key is incorrect.");
+                }
+            }
+        } else {
+             console.error("[WAHA NOTIF] Generic Error:", error);
+        }
     }
 };
 
