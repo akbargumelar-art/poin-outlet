@@ -154,7 +154,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                 <p className="text-gray-600 mt-1 pl-7">Jl. Pemuda Raya No.21B, Sunyaragi, Kec. Kesambi, Kota Cirebon, Jawa Barat 45132</p>
                                 <div className="mt-4 rounded-lg overflow-hidden neu-inset">
                                     <iframe 
-                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.33324021798!2d108.5303533759453!3d-6.729113965780183!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f1d87f7a73f6b%3A0x4a737848f07759b!2sPT%20Agrabudi%20Komunika!5e0!3m2!1sen!2sid!4v1727989352726!5m2!1sen!2sid" 
+                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5494.642449130317!2d108.54520877628357!3d-6.729076865796396!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f1d575c4b4437%3A0xb8e7d858b1f65e0c!2sPT%20Agrabudi%20Komunika%20Cirebon!5e1!3m2!1sen!2sid!4v1759635982623!5m2!1sen!2sid" 
                                         width="100%" 
                                         height="200" 
                                         style={{ border: 0 }} 
@@ -170,7 +170,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                 <p className="text-gray-600 mt-1 pl-7">Jl. Siliwangi No.45, Purwawinangun, Kec. Kuningan, Kabupaten Kuningan, Jawa Barat 45512</p>
                                 <div className="mt-4 rounded-lg overflow-hidden neu-inset">
                                     <iframe 
-                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.941913702137!2d108.48003937594685!3d-6.897489867475148!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f17651a5c488d%3A0xb35359042c16f86c!2sTelkomsel%20Authorized%20Partner%20(TAP)%20Kuningan!5e0!3m2!1sen!2sid!4v1727989512035!5m2!1sen!2sid" 
+                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5491.837343327805!2d108.48606749999999!3d-6.9726026!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f16833985c159%3A0x93e4e9830990a491!2sPT.%20Agrabudi%20Komunika%20Kuningan!5e1!3m2!1sen!2sid!4v1759636102299!5m2!1sen!2sid" 
                                         width="100%" 
                                         height="200" 
                                         style={{ border: 0 }} 
