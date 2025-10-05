@@ -16,6 +16,27 @@ const InputWrapper: React.FC<{icon: string, children: React.ReactNode}> = memo((
     </div>
 ));
 
+const PasswordInput: React.FC<{name: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, placeholder: string}> = ({ name, value, onChange, placeholder }) => {
+    const [show, setShow] = useState(false);
+    return (
+        <div className="relative w-full">
+            <Icon path={ICONS.lock} className="absolute top-1/2 left-4 -translate-y-1/2 w-5 h-5 text-gray-400 z-10"/>
+            <input 
+                type={show ? "text" : "password"} 
+                name={name} 
+                value={value} 
+                onChange={onChange} 
+                className="input-field pl-12 pr-12" 
+                placeholder={placeholder} 
+                required 
+            />
+            <button type="button" onClick={() => setShow(!show)} className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10">
+                <Icon path={show ? ICONS.trash : ICONS.edit} className="w-5 h-5" />
+            </button>
+        </div>
+    );
+};
+
 const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentPage, locations }) => {
     const [formData, setFormData] = useState({
         idDigipos: '',
@@ -127,7 +148,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
     
     return (
         <div className="min-h-screen flex justify-center items-center p-4">
-            <div className="w-full max-w-2xl neu-card p-6 z-10 relative">
+            <div className="w-full max-w-lg neu-card p-6 z-10 relative">
                 <button onClick={() => setCurrentPage('landing')} className="absolute top-4 left-4 text-gray-400 hover:text-red-500 transition-colors" aria-label="Kembali ke Beranda">
                     <Icon path={ICONS.chevronLeft} className="w-8 h-8"/>
                 </button>
@@ -186,9 +207,21 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister, setCurrentP
                            </select>
                         </InputWrapper>
                         <InputWrapper icon={ICONS.user}><input type="text" name="namaOwner" value={formData.namaOwner} onChange={handleChange} className="input-field pl-12" placeholder="Nama Owner" required /></InputWrapper>
-                        <InputWrapper icon={ICONS.phone}><input type="tel" name="noWhatsapp" value={formData.noWhatsapp} onChange={handleChange} className="input-field pl-12" required placeholder="Nomor WhatsApp"/></InputWrapper>
-                        <InputWrapper icon={ICONS.lock}><input type="password" name="password" value={formData.password} onChange={handleChange} className="input-field pl-12" placeholder="Buat Password" required /></InputWrapper>
-                        <InputWrapper icon={ICONS.lock}><input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className="input-field pl-12" placeholder="Konfirmasi Password" required /></InputWrapper>
+                        <InputWrapper icon={ICONS.phone}>
+                            <input 
+                                type="tel" 
+                                name="noWhatsapp" 
+                                value={formData.noWhatsapp} 
+                                onChange={handleChange} 
+                                className="input-field pl-12" 
+                                required 
+                                placeholder="Nomor WhatsApp"
+                                minLength={10}
+                                pattern="[0-9]*"
+                            />
+                        </InputWrapper>
+                        <PasswordInput name="password" value={formData.password} onChange={handleChange} placeholder="Buat Password" />
+                        <PasswordInput name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Konfirmasi Password" />
                     </div>
                      {error && <p className="text-sm text-red-600 mt-2 text-center">{error}</p>}
                     <button type="submit" className="neu-button text-red-600" disabled={isLoading || !isDigiposValidated}>

@@ -58,8 +58,8 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
             const cleanUserName = `"${(r.userName || 'N/A').replace(/"/g, '""')}"`;
             const formattedDate = new Date(r.date).toLocaleString('id-ID', {
                 year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit'
-            });
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            }).replace(/\./g, ':');
 
             return [
                 formattedDate,
@@ -113,25 +113,25 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
             </div>
 
             <div className="neu-card-flat overflow-x-auto">
-                <table className="w-full text-left min-w-[800px]">
+                <table className="w-full text-left">
                     <thead className="bg-slate-200/50">
                         <tr>
-                            <th className="p-4 font-semibold text-gray-600">Tanggal</th>
-                            <th className="p-4 font-semibold text-gray-600">Nama Mitra</th>
-                            <th className="p-4 font-semibold text-gray-600">Hadiah</th>
-                            <th className="p-4 font-semibold text-gray-600 text-right">Poin Digunakan</th>
+                            <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
+                            <th className="p-4 font-semibold text-gray-600 w-full">Nama Mitra</th>
+                            <th className="p-4 font-semibold text-gray-600 w-full">Hadiah</th>
+                            <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin Digunakan</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredRedemptions.length > 0 ? filteredRedemptions.map((item, index) => (
                             <tr key={item.id || index} className="border-t border-slate-200/80">
-                                <td className="p-4">{new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                                <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                                 <td className="p-4">
                                     <p className="font-semibold text-gray-800">{item.userName || 'Nama Tidak Ditemukan'}</p>
                                     <p className="text-xs text-gray-500 font-mono">{item.userId}</p>
                                 </td>
                                 <td className="p-4 font-semibold">{item.rewardName}</td>
-                                <td className="p-4 font-bold text-right text-red-600">{item.pointsSpent.toLocaleString('id-ID')}</td>
+                                <td className="p-4 font-bold text-right text-red-600 whitespace-nowrap">{item.pointsSpent.toLocaleString('id-ID')}</td>
                             </tr>
                         )) : (
                              <tr>

@@ -173,6 +173,26 @@ function App() {
         }
     }, [currentUser, users]);
 
+    const handleChangePassword = useCallback(async (oldPassword: string, newPassword: string): Promise<boolean> => {
+        if (!currentUser) return false;
+        try {
+            const response = await fetch(`/api/users/${currentUser.id}/change-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ oldPassword, newPassword }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Gagal mengubah password.');
+            }
+            setModal({ show: true, title: "Berhasil", content: <p className="text-center text-green-600">{data.message}</p> });
+            return true;
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+            return false;
+        }
+    }, [currentUser]);
+
     const handleLogout = useCallback(() => {
         setCurrentUser(null);
         localStorage.removeItem('currentUser');
@@ -189,26 +209,32 @@ function App() {
                 body: JSON.stringify({ userId: currentUser.id, rewardId: reward.id, pointsSpent: reward.points, isKupon })
             });
 
+            const data = await response.json();
+
             if(!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Gagal melakukan penukaran");
+                throw new Error(data.message || "Gagal melakukan penukaran");
             }
 
-            // Optimistic UI update and then full refresh
-            const updatedUser: User = { 
-                ...currentUser, 
-                points: (currentUser.points || 0) - reward.points,
-                kuponUndian: isKupon ? (currentUser.kuponUndian || 0) + 1 : currentUser.kuponUndian,
-            };
+            // FIX: Use the updated user object from the response directly instead of full refetch
+            const updatedUser: User = data.updatedUser;
             setCurrentUser(updatedUser);
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
             
-            await fetchBootstrapData(); // Full refresh to ensure consistency
+            // Also update the user in the main users list for admin views
+            setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
+
+            // Selectively refetch other data like rewards and history for consistency
+            // This is more efficient than a full bootstrap
+            Promise.all([
+                fetch('/api/rewards').then(res => res.json()).then(setRewards),
+                fetch('/api/redemptions').then(res => res.json()).then(setRedemptionHistory)
+            ]);
 
             setModal({ show: true, title: 'Sukses!', content: <p className="text-center text-green-600">Penukaran <b>{reward.name}</b> berhasil.</p> });
         } catch (error: any) {
              setModal({show: true, title: "Gagal", content: <p>{error.message}</p>});
         }
-    }, [currentUser, fetchBootstrapData]);
+    }, [currentUser, users]);
     
     const handleTukarClick = useCallback((reward: Reward) => {
         if (!currentUser || !currentUser.points) return;
@@ -555,7 +581,7 @@ function App() {
             historyPembelian: <HistoryPembelian currentUser={currentUser} transactions={transactions} redemptionHistory={redemptionHistory} />,
             pencapaianProgram: <PencapaianProgram currentUser={currentUser} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} />,
             tukarPoin: <TukarPoin currentUser={currentUser} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} loyaltyPrograms={loyaltyPrograms} />,
-            editProfile: <EditProfilePage currentUser={currentUser} updateUserProfile={updateUserProfile} handleLogout={handleLogout} />,
+            editProfile: <EditProfilePage currentUser={currentUser} updateUserProfile={updateUserProfile} handleLogout={handleLogout} handleChangePassword={handleChangePassword} />,
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms}/>,
             manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,

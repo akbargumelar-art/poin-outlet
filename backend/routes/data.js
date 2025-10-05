@@ -30,15 +30,13 @@ const setupMulter = (subfolder) => {
 
     return multer({
         storage: storage,
-        limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+        limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
         fileFilter: (req, file, cb) => {
-            const filetypes = /jpeg|jpg|png|gif|webp/;
-            const mimetype = filetypes.test(file.mimetype);
-            const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-            if (mimetype && extname) {
-                return cb(null, true);
+            if (file.mimetype.startsWith('image/')) { // Allow any image type
+                cb(null, true);
+            } else {
+                cb(new Error("Error: Hanya file gambar yang diizinkan!"));
             }
-            cb(new Error("Error: File upload only supports the following filetypes - " + filetypes));
         }
     });
 };
@@ -448,6 +446,41 @@ router.put('/users/:id/profile', async (req, res) => {
     }
 });
 
+// CHANGE USER PASSWORD
+router.post('/users/:id/change-password', async (req, res) => {
+    const { id } = req.params;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+        return res.status(400).json({ message: "Password lama dan baru dibutuhkan." });
+    }
+    if (newPassword.length < 6) {
+        return res.status(400).json({ message: 'Password baru harus minimal 6 karakter.' });
+    }
+
+    try {
+        const [rows] = await db.execute('SELECT password FROM users WHERE id = ?', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'User tidak ditemukan.' });
+        }
+        const user = rows[0];
+
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) {
+            return res.status(403).json({ message: 'Password lama salah.' });
+        }
+
+        const newHashedPassword = await bcrypt.hash(newPassword, 10);
+        await db.execute('UPDATE users SET password = ? WHERE id = ?', [newHashedPassword, id]);
+
+        res.json({ message: 'Password berhasil diubah.' });
+
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    }
+});
+
 
 // MANUAL POINT ADJUSTMENT
 router.post('/users/:id/points', async (req, res) => {
@@ -679,11 +712,14 @@ router.post('/redemptions', async (req, res) => {
 
         // 5. Decrement reward stock
         await connection.execute('UPDATE rewards SET stock = stock - 1 WHERE id = ?', [rewardId]);
+        
+        // 6. Get the updated user data to send back to the frontend
+        const [updatedUserRows] = await connection.execute('SELECT * FROM users WHERE id = ?', [userId]);
 
         await connection.commit();
         
         // Send response to user first, then trigger notification
-        res.status(200).json({ message: "Penukaran berhasil." });
+        res.status(200).json({ message: "Penukaran berhasil.", updatedUser: structureUser(updatedUserRows[0]) });
 
         // Trigger notification asynchronously
         sendWhatsAppNotification(userName, rewardName, pointsSpent);
@@ -911,6 +947,19 @@ router.post('/settings/whatsapp', async (req, res) => {
         res.status(500).json({ message: "Gagal menyimpan pengaturan." });
     }
 });
+
+router.get('/rewards', async (req, res) => {
+    const rewards = await safeQueryDB('SELECT * FROM rewards ORDER BY points ASC');
+    const parsedRewards = parseNumerics(rewards, ['points', 'stock']);
+    res.json(parsedRewards.map(r => toCamelCase(r)));
+});
+
+router.get('/redemptions', async (req, res) => {
+    const redemptions = await safeQueryDB('SELECT r.*, rw.name as reward_name, u.nama as user_name FROM redemptions r LEFT JOIN rewards rw ON r.reward_id = rw.id LEFT JOIN users u ON r.user_id = u.id ORDER BY r.date DESC');
+    const parsedRedemptions = parseNumerics(redemptions, ['points_spent']);
+    res.json(parsedRedemptions.map(r => ({ ...toCamelCase(r), rewardName: r.reward_name || 'Hadiah Dihapus', userName: r.user_name || 'User Dihapus' })));
+});
+
 
 // Export both routers
 module.exports = { router, uploadRouter };

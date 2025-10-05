@@ -133,27 +133,27 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
             )}
             
             <div className="neu-card-flat overflow-x-auto">
-                <table className="w-full text-left min-w-[600px]">
+                <table className="w-full text-left">
                     <thead className="bg-slate-200/50">
                         <tr>
-                            <th className="p-4 font-semibold text-gray-600">Tanggal</th>
-                            <th className="p-4 font-semibold text-gray-600">Keterangan</th>
-                            <th className="p-4 font-semibold text-gray-600 text-right">Nominal</th>
-                            <th className="p-4 font-semibold text-gray-600 text-right">Poin</th>
+                            <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
+                            <th className="p-4 font-semibold text-gray-600 w-full">Keterangan</th>
+                            <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Nominal</th>
+                            <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredHistory.length > 0 ? filteredHistory.map((item, index) => (
                             <tr key={index} className="border-t border-slate-200/80">
-                                <td className="p-4">{new Date(item.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                                 <td className="p-4">
                                     <p className="font-semibold text-gray-800">{item.description}</p>
                                     <p className="text-xs text-gray-500">{item.type}</p>
                                 </td>
-                                <td className="p-4 text-right">
+                                <td className="p-4 text-right whitespace-nowrap">
                                     {item.amount > 0 ? `Rp ${item.amount.toLocaleString('id-ID')}` : '-'}
                                 </td>
-                                <td className={`p-4 font-bold text-right ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                <td className={`p-4 font-bold text-right whitespace-nowrap ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                     {item.points > 0 ? '+' : ''}{item.points.toLocaleString('id-ID')}
                                 </td>
                             </tr>

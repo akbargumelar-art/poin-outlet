@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { User, UserProfile } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -8,13 +7,40 @@ interface EditProfilePageProps {
     currentUser: User;
     updateUserProfile: (profile: UserProfile, photoFile: File | null) => void;
     handleLogout: () => void;
+    handleChangePassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
 }
 
-const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUserProfile, handleLogout }) => {
+const PasswordInput: React.FC<{name: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, placeholder: string, autoComplete?: string}> = ({ name, value, onChange, placeholder, autoComplete="off" }) => {
+    const [show, setShow] = useState(false);
+    return (
+        <div className="relative w-full">
+            <input 
+                type={show ? "text" : "password"} 
+                name={name} 
+                value={value} 
+                onChange={onChange} 
+                className="input-field pr-12" 
+                placeholder={placeholder} 
+                required 
+                autoComplete={autoComplete}
+            />
+            <button type="button" onClick={() => setShow(!show)} className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10">
+                <Icon path={show ? ICONS.trash : ICONS.edit} className="w-5 h-5" />
+            </button>
+        </div>
+    );
+};
+
+
+const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUserProfile, handleLogout, handleChangePassword }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [profile, setProfile] = useState<UserProfile>(currentUser.profile);
     const [photoPreview, setPhotoPreview] = useState<string | null>(currentUser.profile.photoUrl || null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
+
+    const [passwordData, setPasswordData] = useState({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
+    const [passwordError, setPasswordError] = useState('');
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
 
     const allTaps = useMemo(() => {
         return ['CIREBON', 'KUNINGAN', 'MAJALENGKA', 'INDRAMAYU', 'Palimanan', 'Lemahabang', 'Luragung', 'Pemuda'].sort();
@@ -25,6 +51,10 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setProfile(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setPasswordData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
     
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,6 +73,25 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
         e.preventDefault(); 
         updateUserProfile(profile, photoFile); 
         setIsEditing(false);
+    };
+
+    const handlePasswordSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordError('');
+        if (passwordData.newPassword.length < 6) {
+            setPasswordError('Password baru harus minimal 6 karakter.');
+            return;
+        }
+        if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+            setPasswordError('Konfirmasi password baru tidak cocok.');
+            return;
+        }
+        setIsChangingPassword(true);
+        const success = await handleChangePassword(passwordData.oldPassword, passwordData.newPassword);
+        setIsChangingPassword(false);
+        if (success) {
+            setPasswordData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
+        }
     };
 
     const handleCancel = () => {
@@ -82,7 +131,7 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
                 <h1 className="text-3xl font-bold text-gray-700">Profil Akun</h1>
                 {!isEditing && <button onClick={() => setIsEditing(true)} className="neu-button !w-auto px-6 flex items-center gap-2"><Icon path={ICONS.edit} className="w-5 h-5"/> Edit Profil</button>}
             </div>
-            <div className="neu-card p-8 max-w-4xl mx-auto">
+            <div className="neu-card p-8 max-w-4xl mx-auto space-y-8">
                 <form onSubmit={handleSubmit}>
                      <div className="flex flex-col md:flex-row items-center gap-8 mb-6">
                         <div className="flex-shrink-0">
@@ -139,6 +188,19 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
                         </div>
                     )}
                 </form>
+
+                <div className="pt-6 border-t border-gray-200/80">
+                    <h3 className="font-semibold text-gray-700 text-lg mb-4">Ganti Password</h3>
+                    <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
+                        <PasswordInput name="oldPassword" value={passwordData.oldPassword} onChange={handlePasswordChange} placeholder="Password Lama" autoComplete="current-password" />
+                        <PasswordInput name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} placeholder="Password Baru" autoComplete="new-password" />
+                        <PasswordInput name="confirmNewPassword" value={passwordData.confirmNewPassword} onChange={handlePasswordChange} placeholder="Konfirmasi Password Baru" autoComplete="new-password" />
+                        {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+                        <button type="submit" className="neu-button text-red-600 !w-auto px-6" disabled={isChangingPassword}>
+                            {isChangingPassword ? 'Memproses...' : 'Ubah Password'}
+                        </button>
+                    </form>
+                </div>
 
                 <div className="pt-6 mt-6 border-t border-gray-200/80">
                      <button type="button" onClick={handleLogout} className="w-full md:w-auto md:px-6 neu-button flex items-center justify-center gap-2">

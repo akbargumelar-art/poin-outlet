@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { User, Page, Transaction } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -181,28 +180,28 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             </div>
             
             <div className="neu-card-flat overflow-x-auto">
-                <table className="w-full text-left min-w-[900px]">
+                <table className="w-full text-left">
                     <thead className="bg-slate-200/50">
                         <tr>
-                            <th className="p-4 font-semibold">Nama Outlet</th>
-                            <th className="p-4 font-semibold">ID Digipos</th>
-                            <th className="p-4 font-semibold">TAP</th>
-                            <th className="p-4 font-semibold">Salesforce</th>
-                            <th className="p-4 font-semibold text-right">Total Pembelian</th>
-                            <th className="p-4 font-semibold text-right">Poin</th>
-                            <th className="p-4 font-semibold">Level</th>
+                            <th className="p-4 font-semibold w-full">Nama Outlet</th>
+                            <th className="p-4 font-semibold whitespace-nowrap">ID Digipos</th>
+                            <th className="p-4 font-semibold whitespace-nowrap">TAP</th>
+                            <th className="p-4 font-semibold whitespace-nowrap">Salesforce</th>
+                            <th className="p-4 font-semibold text-right whitespace-nowrap">Total Pembelian</th>
+                            <th className="p-4 font-semibold text-right whitespace-nowrap">Poin</th>
+                            <th className="p-4 font-semibold whitespace-nowrap">Level</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredUsers.map(user => (
                             <tr key={user.id} className="border-t border-slate-200/80">
                                 <td className="p-4 font-semibold">{user.profile.nama}</td>
-                                <td className="p-4 font-mono text-sm">{user.id}</td>
-                                <td className="p-4">{user.profile.tap}</td>
-                                <td className="p-4">{user.profile.salesforce}</td>
-                                <td className="p-4 text-right">Rp {(userTotals.get(user.id)?.totalPembelian || 0).toLocaleString('id-ID')}</td>
-                                <td className="p-4 text-right font-bold text-red-600">{(user.points || 0).toLocaleString('id-ID')}</td>
-                                <td className="p-4">{user.level}</td>
+                                <td className="p-4 font-mono text-sm whitespace-nowrap">{user.id}</td>
+                                <td className="p-4 whitespace-nowrap">{user.profile.tap}</td>
+                                <td className="p-4 whitespace-nowrap">{user.profile.salesforce}</td>
+                                <td className="p-4 text-right whitespace-nowrap">Rp {(userTotals.get(user.id)?.totalPembelian || 0).toLocaleString('id-ID')}</td>
+                                <td className="p-4 text-right font-bold text-red-600 whitespace-nowrap">{(user.points || 0).toLocaleString('id-ID')}</td>
+                                <td className="p-4 whitespace-nowrap">{user.level}</td>
                             </tr>
                         ))}
                     </tbody>

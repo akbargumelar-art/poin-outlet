@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Reward, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -69,9 +68,14 @@ const RewardForm: React.FC<RewardFormProps> = ({ reward, onSave, onCancel }) => 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <input name="name" value={formData.name} onChange={handleChange} placeholder="Nama Hadiah" className="input-field" required />
-            <input name="points" type="number" value={formData.points} onChange={handleChange} placeholder="Poin Dibutuhkan" className="input-field" required />
-            <input name="stock" type="number" value={formData.stock} onChange={handleChange} placeholder="Jumlah Stok" className="input-field" required />
-            
+            <div>
+                <input name="points" type="number" value={formData.points} onChange={handleChange} placeholder="Poin yang Dibutuhkan" className="input-field" required />
+                <p className="text-xs text-gray-500 mt-1 pl-1">Contoh: 10000</p>
+            </div>
+             <div>
+                <input name="stock" type="number" value={formData.stock} onChange={handleChange} placeholder="Jumlah Stok" className="input-field" required />
+                <p className="text-xs text-gray-500 mt-1 pl-1">Contoh: 50</p>
+            </div>
             <div>
                  <label className="block text-gray-600 text-sm font-semibold mb-2">Gambar Hadiah</label>
                  <div className="flex items-center gap-4">
@@ -132,6 +136,20 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
         updateLoyaltyProgram(level);
         setEditingLevel(null);
     };
+    
+    const handleExport = () => {
+        const csvHeader = ['ID', 'Nama Hadiah', 'Poin', 'Stok', 'URL Gambar'].join(',');
+        const csvRows = rewards.map(r => 
+            [r.id, `"${r.name.replace(/"/g, '""')}"`, r.points, r.stock, r.imageUrl].join(',')
+        );
+        const csv = [csvHeader, ...csvRows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'daftar_hadiah.csv';
+        link.click();
+    };
+
 
     const levelCardStyles: { [key: string]: string } = {
         Bronze: 'bg-amber-100/50 border-amber-600',
@@ -166,13 +184,18 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
                 </Modal>
             )}
 
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-3xl font-bold text-gray-700">Manajemen Hadiah & Level</h1>
-                {!isReadOnly && (
-                    <button onClick={handleOpenAdd} className="neu-button !w-auto px-6 flex items-center gap-2">
-                        <Icon path={ICONS.plus} className="w-5 h-5"/>Tambah Hadiah
+                <div className="flex gap-2">
+                    {!isReadOnly && (
+                        <button onClick={handleOpenAdd} className="neu-button !w-auto px-6 flex items-center gap-2">
+                            <Icon path={ICONS.plus} className="w-5 h-5"/>Tambah Hadiah
+                        </button>
+                    )}
+                    <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
+                        <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel
                     </button>
-                )}
+                </div>
             </div>
             
             <div className="neu-card p-6 mb-8">
@@ -196,22 +219,22 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
             </div>
             
             <div className="neu-card-flat overflow-x-auto">
-                <table className="w-full text-left min-w-[800px]">
+                <table className="w-full text-left">
                     <thead className="bg-slate-200/50">
                         <tr>
-                            <th className="p-4 font-semibold">Gambar</th>
-                            <th className="p-4 font-semibold">Nama Hadiah</th>
-                            <th className="p-4 font-semibold">Poin</th>
-                            <th className="p-4 font-semibold">Stok</th>
-                            {!isReadOnly && <th className="p-4 font-semibold">Aksi</th>}
+                            <th className="p-4 font-semibold w-auto">Gambar</th>
+                            <th className="p-4 font-semibold w-full">Nama Hadiah</th>
+                            <th className="p-4 font-semibold w-auto whitespace-nowrap">Poin</th>
+                            <th className="p-4 font-semibold w-auto">Stok</th>
+                            {!isReadOnly && <th className="p-4 font-semibold w-auto">Aksi</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {rewards.map(r => (
                             <tr key={r.id} className="border-t border-slate-200/80">
-                                <td className="p-4"><img src={r.imageUrl} alt={r.name} className="w-16 h-12 object-cover rounded-md neu-inset p-1"/></td>
+                                <td className="p-4"><img src={r.imageUrl} alt={r.name} className="w-20 h-20 object-contain rounded-md neu-inset p-1 bg-white"/></td>
                                 <td className="p-4 font-semibold">{r.name}</td>
-                                <td className="p-4 font-bold text-red-600">{r.points.toLocaleString('id-ID')}</td>
+                                <td className="p-4 font-bold text-red-600 whitespace-nowrap">{r.points.toLocaleString('id-ID')}</td>
                                 <td className="p-4">{r.stock}</td>
                                 {!isReadOnly && (
                                     <td className="p-4">

@@ -152,7 +152,29 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, rede
         setIsDrawing(false);
     }
     
-    const handleExport = () => alert("Simulasi ekspor data rekap kupon ke file Excel berhasil.");
+    const handleExport = () => {
+        if (!activeProgram || participantData.length === 0) {
+            alert('Tidak ada data peserta untuk program aktif saat ini.');
+            return;
+        }
+
+        const csvHeader = ['ID Mitra', 'Nama Mitra', 'Salesforce', 'TAP', 'Jumlah Kupon'].join(',');
+        const csvRows = participantData.map(({ user, couponCount }) => 
+            [
+                user!.id,
+                `"${user!.profile.nama.replace(/"/g, '""')}"`,
+                user!.profile.salesforce || '',
+                user!.profile.tap || '',
+                couponCount
+            ].join(',')
+        );
+        const csv = [csvHeader, ...csvRows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `rekap_undian_${activeProgram.name.replace(/ /g, '_')}.csv`;
+        link.click();
+    };
 
     return (
         <div>
@@ -229,12 +251,12 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, rede
                                 <select value={salesforceFilter} onChange={e => setSalesforceFilter(e.target.value)} className="input-field"><option value="">Semua Salesforce</option>{allSalesforce.map(s => <option key={s} value={s}>{s}</option>)}</select>
                             </div>
                              <div className="neu-inset overflow-y-auto max-h-[40vh]">
-                                <table className="w-full text-left min-w-[600px]">
+                                <table className="w-full text-left">
                                     <thead className="sticky top-0 bg-slate-200/80 backdrop-blur-sm">
                                         <tr>
-                                            <th className="p-3 font-semibold">Nama Mitra</th>
-                                            <th className="p-3 font-semibold">Salesforce / TAP</th>
-                                            <th className="p-3 font-semibold text-right">Jumlah Kupon</th>
+                                            <th className="p-3 font-semibold w-full">Nama Mitra</th>
+                                            <th className="p-3 font-semibold w-auto">Salesforce / TAP</th>
+                                            <th className="p-3 font-semibold text-right whitespace-nowrap">Jumlah Kupon</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -242,7 +264,7 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, rede
                                             <tr key={user.id} className="border-t border-slate-200/80">
                                                 <td className="p-3"><p className="font-semibold">{user.profile.nama}</p><p className="text-xs font-mono text-gray-500">{user.id}</p></td>
                                                 <td className="p-3"><p className="font-semibold">{user.profile.salesforce}</p><p className="text-xs text-gray-500">{user.profile.tap}</p></td>
-                                                <td className="p-3 text-right font-bold text-red-600 text-lg">{couponCount}</td>
+                                                <td className="p-3 text-right font-bold text-red-600 text-lg whitespace-nowrap">{couponCount}</td>
                                             </tr>
                                         ))}
                                     </tbody>
