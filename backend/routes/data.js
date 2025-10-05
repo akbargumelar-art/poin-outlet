@@ -632,16 +632,22 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
         }
 
         const settings = JSON.parse(rows[0].setting_value);
-        if (!settings.webhookUrl || !settings.apiToken || !settings.recipientId) {
-            console.log("WhatsApp settings are incomplete (URL/Token/Recipient missing). Skipping notification.");
+        if (!settings.webhookUrl || !settings.apiKey || !settings.recipientId) {
+            console.log("WAHA settings are incomplete (URL/API Key/Recipient missing). Skipping notification.");
             return;
         }
 
         const message = `*🔔 Notifikasi Penukaran Poin 🔔*\n\nMitra baru saja melakukan penukaran poin:\n\n*Nama Mitra:* ${userName}\n*Hadiah:* ${rewardName}\n*Poin Ditukar:* ${pointsSpent.toLocaleString('id-ID')}\n\nTerima kasih.`;
         
-        // Payload format for Fonnte API
+        // Format chatId for WAHA
+        let chatId = settings.recipientId;
+        if (settings.recipientType === 'personal' && !chatId.endsWith('@c.us') && !chatId.endsWith('@g.us')) {
+            chatId = `${chatId}@c.us`;
+        }
+
+        // Payload format for WAHA API
         const payload = {
-            target: settings.recipientId,
+            chatId: chatId,
             message: message
         };
 
@@ -649,21 +655,20 @@ const sendWhatsAppNotification = async (userName, rewardName, pointsSpent) => {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': settings.apiToken // Fonnte uses Authorization header
+                'X-Api-Key': settings.apiKey // WAHA uses X-Api-Key header
             },
             body: JSON.stringify(payload)
         });
         
         const responseData = await response.json();
         if (!response.ok) {
-            // Log the detailed error from Fonnte
-            console.error(`Fonnte API Error: Status ${response.status}`, responseData);
+            console.error(`WAHA API Error: Status ${response.status}`, responseData);
         } else {
-             console.log(`WhatsApp notification sent successfully. Fonnte Response:`, responseData);
+             console.log(`WAHA notification sent successfully. WAHA Response:`, responseData);
         }
 
     } catch (error) {
-        console.error("Failed to send WhatsApp notification:", error);
+        console.error("Failed to send WAHA notification:", error);
     }
 };
 

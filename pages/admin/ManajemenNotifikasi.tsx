@@ -15,7 +15,7 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
         senderNumber: '',
         recipientType: 'personal',
         recipientId: '',
-        apiToken: ''
+        apiKey: ''
     });
 
     useEffect(() => {
@@ -52,36 +52,36 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="block text-gray-600 text-sm font-semibold mb-2 flex items-center gap-2">
-                            <Icon path={ICONS.link} className="w-5 h-5" /> Webhook URL (Fonnte)
+                            <Icon path={ICONS.link} className="w-5 h-5" /> Webhook URL (WAHA)
                         </label>
                         <input 
                             type="url"
                             name="webhookUrl"
                             value={formData.webhookUrl}
                             onChange={handleChange}
-                            placeholder="https://api.fonnte.com/send"
+                            placeholder="https://waha.domain.com/api/sessions/nama-sesi/sendText"
                             className="input-field"
                             required
                             disabled={isReadOnly}
                         />
-                         <p className="text-xs text-gray-500 mt-1">URL API dari layanan Fonnte untuk mengirim pesan.</p>
+                         <p className="text-xs text-gray-500 mt-1">URL API dari server WAHA Anda untuk mengirim pesan teks, termasuk nama sesinya.</p>
                     </div>
 
                     <div>
                         <label className="block text-gray-600 text-sm font-semibold mb-2 flex items-center gap-2">
-                           <Icon path={ICONS.lock} className="w-5 h-5" /> Fonnte API Token
+                           <Icon path={ICONS.lock} className="w-5 h-5" /> WAHA API Key
                         </label>
                         <input 
                             type="password"
-                            name="apiToken"
-                            value={formData.apiToken}
+                            name="apiKey"
+                            value={formData.apiKey}
                             onChange={handleChange}
-                            placeholder="Masukkan API Token dari Fonnte"
+                            placeholder="Masukkan API Key dari WAHA"
                             className="input-field"
                             required
                             disabled={isReadOnly}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Token otorisasi dari dashboard Fonnte Anda.</p>
+                        <p className="text-xs text-gray-500 mt-1">API Key yang Anda atur saat instalasi WAHA (Header: X-Api-Key).</p>
                     </div>
 
                     <div>
@@ -98,7 +98,7 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                             required
                             disabled={isReadOnly}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Nomor WhatsApp yang terdaftar di Fonnte sebagai pengirim.</p>
+                        <p className="text-xs text-gray-500 mt-1">Nomor WhatsApp yang terhubung ke sesi WAHA sebagai pengirim.</p>
                     </div>
 
                     <div className="pt-4 border-t">
@@ -131,8 +131,8 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                         />
                         <p className="text-xs text-gray-500 mt-1">
                             {formData.recipientType === 'personal' 
-                                ? 'Nomor yang akan menerima notifikasi penukaran poin.' 
-                                : 'ID Grup WhatsApp yang akan menerima notifikasi. Dapatkan dari detail info grup.'
+                                ? 'Nomor yang akan menerima notifikasi. Awali dengan 62.' 
+                                : 'ID Grup WhatsApp yang akan menerima notifikasi. Biasanya diakhiri dengan @g.us'
                             }
                         </p>
                     </div>
