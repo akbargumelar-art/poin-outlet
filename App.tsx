@@ -664,15 +664,13 @@ function App() {
                 body: JSON.stringify({ isSold })
             });
     
-            const result = await response.json();
             if (!response.ok) {
+                const result = await response.json();
                 throw new Error(result.message || 'Gagal memperbarui status.');
             }
     
-            // Show success message from the server response
-            setModal({ show: true, title: "Sukses", content: <p>{result.message || 'Status nomor berhasil diperbarui.'}</p> });
+            setModal({ show: true, title: "Sukses", content: <p>Status nomor berhasil diperbarui.</p> });
     
-            // Re-fetch all data to ensure the UI is in sync with the database
             await fetchBootstrapData();
     
         } catch (error: any) {
