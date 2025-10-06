@@ -16,6 +16,7 @@ interface NomorSpesialPageProps {
 const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, numbers, recipientNumber, specialNumberBannerUrl }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
+    const [locationFilter, setLocationFilter] = useState<string>('');
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'price', direction: 'asc' });
 
@@ -25,11 +26,19 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
         // FIX: Explicitly convert sort parameters to numbers to satisfy TypeScript's strict arithmetic operation rules.
         return [...new Set(numbers.map(n => n.price))].sort((a, b) => Number(a) - Number(b));
     }, [numbers]);
+    
+    const allLocations = useMemo(() => {
+        return [...new Set(numbers.map(n => n.lokasi).filter(Boolean))].sort() as string[];
+    }, [numbers]);
+
 
     const sortedAndFilteredNumbers = useMemo(() => {
         let filtered = [...numbers];
         if (selectedPrice) {
             filtered = filtered.filter(n => n.price === selectedPrice);
+        }
+        if (isSupervisor && locationFilter) {
+            filtered = filtered.filter(n => n.lokasi === locationFilter);
         }
         if (searchTerm) {
             filtered = filtered.filter(n => n.phoneNumber.includes(searchTerm));
@@ -53,7 +62,7 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
             });
         }
         return filtered;
-    }, [numbers, searchTerm, selectedPrice, sortConfig]);
+    }, [numbers, searchTerm, selectedPrice, sortConfig, isSupervisor, locationFilter]);
 
     const requestSort = (key: SortableKeys) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -114,7 +123,21 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
                             Tampilkan Semua
                         </button>
                     </div>
-                    <input type="text" placeholder="Cari nomor... (e.g., 888)" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="input-field w-full" />
+                     <div className={`grid grid-cols-1 ${isSupervisor ? 'md:grid-cols-2' : ''} gap-4`}>
+                        <input type="text" placeholder="Cari nomor... (e.g., 888)" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="input-field w-full" />
+                         {isSupervisor && (
+                            <select
+                                value={locationFilter}
+                                onChange={(e) => setLocationFilter(e.target.value)}
+                                className="input-field w-full"
+                            >
+                                <option value="">Semua Lokasi</option>
+                                {allLocations.map(loc => (
+                                    <option key={loc} value={loc}>{loc}</option>
+                                ))}
+                            </select>
+                        )}
+                    </div>
                     <div className="mt-4 pt-4 border-t border-gray-200/80 flex justify-between items-center">
                         <div>
                             <p className="font-bold text-gray-800">{totalSelected.length} nomor dipilih</p>
@@ -156,7 +179,7 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={isSupervisor ? 6 : 4} className="p-8 text-center text-gray-500">Tidak ada nomor yang cocok.</td>
+                                <td colSpan={isSupervisor ? 5 : 3} className="p-8 text-center text-gray-500">Tidak ada nomor yang cocok.</td>
                             </tr>
                         )}
                     </tbody>
