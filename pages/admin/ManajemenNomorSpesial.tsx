@@ -4,7 +4,7 @@ import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
 
-type SortableKeys = keyof SpecialNumber | 'phoneNumber' | 'sn' | 'lokasi' | 'price' | 'isSold';
+type SortableKeys = keyof SpecialNumber;
 
 // --- Form Component ---
 interface NumberFormProps {
@@ -188,7 +188,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
                 </div>
             </div>
 
-            <div className="flex-grow overflow-auto neu-card-flat">
+            <div className="flex-1 overflow-y-auto neu-card-flat min-h-0">
                 <table className="w-full text-left">
                     <thead className="bg-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
                         <tr>

@@ -128,7 +128,7 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
                 </div>
             </div>
             
-            <div className="flex-grow overflow-auto neu-card-flat">
+            <div className="flex-1 overflow-y-auto neu-card-flat min-h-0">
                 <table className="w-full text-left">
                     <thead className="bg-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
                         <tr>
