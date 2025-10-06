@@ -38,13 +38,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
     return (
         <div className="relative">
             <header className="p-4 md:p-6">
-                <div className="max-w-3xl mx-auto flex justify-between items-center">
+                <div className="w-full max-w-3xl xl:max-w-7xl mx-auto flex justify-between items-center">
                     <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-10" />
                     <button onClick={() => setCurrentPage('login')} className="neu-button !w-auto px-6 py-2 text-sm">Login</button>
                 </div>
             </header>
             <div className="px-4 sm:px-6 md:px-12 pb-24">
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-3xl xl:max-w-7xl mx-auto">
                     {/* Hero Section */}
                     <section id="hero-section" className="text-center my-10 md:my-16">
                         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-700">Program Loyalitas Mitra Outlet</h2>
@@ -60,11 +60,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                     
                 {/* Rewards Slider Section */}
                 <section id="hadiah-section" className="my-12 md:my-20 overflow-hidden">
-                    <div className="max-w-3xl mx-auto">
+                    <div className="max-w-3xl xl:max-w-7xl mx-auto">
                         <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
                     </div>
                     <div className="relative">
-                        <div className="max-w-3xl mx-auto relative md:px-12">
+                        <div className="max-w-3xl xl:max-w-7xl mx-auto relative md:px-12">
                             <button onClick={() => handleNav('left', 'rewards')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous slide">
                                 <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                             </button>
@@ -86,22 +86,22 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                             </button>
                         </div>
                     </div>
-                     <p className="text-center mt-8 text-gray-600 max-w-3xl mx-auto">Dan masih banyak lagi hadiah lainnya!</p>
+                     <p className="text-center mt-8 text-gray-600 max-w-3xl xl:max-w-7xl mx-auto">Dan masih banyak lagi hadiah lainnya!</p>
                 </section>
 
                 {/* Simulasi Poin Section */}
-                <section id="kalkulator-section" className="my-12 md:my-20 max-w-3xl mx-auto">
+                <section id="kalkulator-section" className="my-12 md:my-20 max-w-3xl xl:max-w-7xl mx-auto">
                     <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
                 </section>
 
                 {/* Running Program Section */}
                 {runningPrograms && runningPrograms.length > 0 && (
                     <section id="program-section" className="my-12 md:my-20 overflow-hidden">
-                        <div className="max-w-3xl mx-auto">
+                        <div className="max-w-3xl xl:max-w-7xl mx-auto">
                             <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Program Berjalan</h3>
                         </div>
                         <div className="relative">
-                            <div className="max-w-3xl mx-auto relative md:px-12">
+                            <div className="max-w-3xl xl:max-w-7xl mx-auto relative md:px-12">
                                 <button onClick={() => handleNav('left', 'programs')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous program">
                                     <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                                 </button>
@@ -136,12 +136,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                     </section>
                 )}
                 
-                <div id="pemenang-section" className="max-w-3xl mx-auto">
+                <div id="pemenang-section" className="max-w-3xl xl:max-w-7xl mx-auto">
                     <PemenangUndian winners={raffleWinners} />
                 </div>
 
                 {/* About Section */}
-                <section id="tentang-kami-section" className="my-12 md:my-20 max-w-3xl mx-auto">
+                <section id="tentang-kami-section" className="my-12 md:my-20 max-w-3xl xl:max-w-7xl mx-auto">
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Tentang Kami</h3>
                      <div className="neu-card p-8 md:p-10">
                         <h4 className="text-2xl font-bold text-red-600">PT Agrabudi Komunika</h4>
@@ -185,7 +185,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                      </div>
                 </section>
 
-                 <div className="max-w-3xl mx-auto px-4 text-center mt-12">
+                 <div className="max-w-3xl xl:max-w-7xl mx-auto px-4 text-center mt-12">
                     <p className="font-bold text-gray-700">Hubungi Kami</p>
                     <div className="flex justify-center gap-6 my-4">
                         <a href="https://instagram.com/agrabudikomunika" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-red-600"><Icon path={ICONS.instagram} className="w-8 h-8"/></a>
