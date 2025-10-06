@@ -4,7 +4,7 @@ import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
 
-type SortableKeys = keyof SpecialNumber;
+type SortableKeys = keyof SpecialNumber | 'status';
 
 // --- Form Component ---
 interface NumberFormProps {
@@ -61,6 +61,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [recipientNumber, setRecipientNumber] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'isSold', direction: 'asc' });
 
 
@@ -99,21 +100,32 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
         }
     };
 
-    const sortedNumbers = useMemo(() => {
-        let sortableItems = [...numbers];
+    const filteredAndSortedNumbers = useMemo(() => {
+        let filteredItems = [...numbers];
+        if (searchTerm) {
+            const lowercasedSearch = searchTerm.toLowerCase();
+            filteredItems = filteredItems.filter(n => 
+                n.phoneNumber.toLowerCase().includes(lowercasedSearch) ||
+                (n.sn && n.sn.toLowerCase().includes(lowercasedSearch)) ||
+                (n.lokasi && n.lokasi.toLowerCase().includes(lowercasedSearch))
+            );
+        }
+
         if (sortConfig !== null) {
-            sortableItems.sort((a, b) => {
-                const aValue = a[sortConfig.key];
-                const bValue = b[sortConfig.key];
+            filteredItems.sort((a, b) => {
+                const aValue = a[sortConfig.key as keyof SpecialNumber];
+                const bValue = b[sortConfig.key as keyof SpecialNumber];
+                
                 if (aValue === undefined || aValue === null) return 1;
                 if (bValue === undefined || bValue === null) return -1;
+                
                 if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
             });
         }
-        return sortableItems;
-    }, [numbers, sortConfig]);
+        return filteredItems;
+    }, [numbers, searchTerm, sortConfig]);
 
     const requestSort = (key: SortableKeys) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -186,6 +198,15 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
                         </div>
                     </div>
                 </div>
+                 <div className="neu-card-flat p-4 mb-6">
+                    <input
+                        type="text"
+                        placeholder="Cari berdasarkan nomor, SN, atau lokasi..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="input-field w-full"
+                    />
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto neu-card-flat min-h-0">
@@ -201,7 +222,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedNumbers.map(n => (
+                        {filteredAndSortedNumbers.map(n => (
                             <tr key={n.id} className="border-t border-slate-200/80">
                                 <td className="p-4 font-bold text-gray-800">{n.phoneNumber}</td>
                                 <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>
@@ -225,7 +246,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
                         ))}
                     </tbody>
                 </table>
-                 {sortedNumbers.length === 0 && <p className="p-8 text-center text-gray-500">Tidak ada nomor untuk ditampilkan.</p>}
+                 {filteredAndSortedNumbers.length === 0 && <p className="p-8 text-center text-gray-500">Tidak ada nomor untuk ditampilkan.</p>}
             </div>
         </div>
     );
