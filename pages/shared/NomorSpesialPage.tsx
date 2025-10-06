@@ -7,9 +7,10 @@ interface NomorSpesialPageProps {
     currentUser: User;
     numbers: SpecialNumber[];
     recipientNumber: string;
+    specialNumberBannerUrl: string | null;
 }
 
-const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, numbers, recipientNumber }) => {
+const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, numbers, recipientNumber, specialNumberBannerUrl }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -81,7 +82,11 @@ Rp ${totalSelectedPrice.toLocaleString('id-ID')} / ${totalSelected.length} pcs`;
     return (
         <div className="pb-24">
             <div className="neu-card overflow-hidden mb-6">
-                 <img src="https://i.ibb.co/pnvBFV5/nomor-spesial-banner.png" alt="Nomor Spesial Banner" className="w-full h-auto object-cover"/>
+                 <img 
+                    src={specialNumberBannerUrl || "https://i.ibb.co/pnvBFV5/nomor-spesial-banner.png"} 
+                    alt="Nomor Spesial Banner" 
+                    className="w-full h-auto object-cover aspect-[3/1]"
+                 />
             </div>
 
             <div className="neu-card p-4">

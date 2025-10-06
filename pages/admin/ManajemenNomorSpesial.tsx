@@ -47,9 +47,10 @@ interface ManajemenNomorProps {
     onDelete: (id: number) => void;
     onStatusChange: (id: number, isSold: boolean) => void;
     onBulkUpload: (file: File) => void;
+    adminUploadSpecialNumberBanner: (file: File) => void;
 }
 
-const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave, onDelete, onStatusChange, onBulkUpload }) => {
+const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave, onDelete, onStatusChange, onBulkUpload, adminUploadSpecialNumberBanner }) => {
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingNumber, setEditingNumber] = useState<SpecialNumber | undefined>(undefined);
     const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -75,6 +76,13 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
             setUploadFile(null);
         }
     };
+    
+    const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            adminUploadSpecialNumberBanner(e.target.files[0]);
+        }
+    };
+
 
     return (
         <div>
@@ -100,6 +108,21 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
                     <button onClick={() => setShowUploadModal(true)} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.upload} className="w-5 h-5" /> Upload Massal</button>
                     <button onClick={() => { setEditingNumber(undefined); setShowFormModal(true); }} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5" /> Tambah</button>
                 </div>
+            </div>
+
+            <div className="neu-card p-6 mb-6">
+                <h2 className="font-bold text-gray-700 text-lg mb-2">Pengaturan Banner Halaman Nomor Spesial</h2>
+                <p className="text-sm text-gray-600 mb-4">Upload gambar baru untuk mengganti banner yang ditampilkan di halaman Nomor Spesial. Disarankan menggunakan gambar dengan rasio 3:1 (melebar).</p>
+                <label className="neu-button !w-auto px-4 flex items-center gap-2 cursor-pointer">
+                    <Icon path={ICONS.upload} className="w-5 h-5" /> 
+                    <span>Pilih & Upload Banner Baru</span>
+                    <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={handleBannerFileChange}
+                    />
+                </label>
             </div>
 
             <div className="neu-card-flat overflow-x-auto">

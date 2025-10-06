@@ -25,7 +25,8 @@ const setupMulter = (subfolder) => {
         },
         filename: (req, file, cb) => {
             const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-            cb(null, `${subfolder.slice(0, -1)}-${req.params.id}-${uniqueSuffix}${path.extname(file.originalname)}`);
+            const entityId = req.params.id || 'setting';
+            cb(null, `${subfolder.slice(0, -1)}-${entityId}-${uniqueSuffix}${path.extname(file.originalname)}`);
         }
     });
 
@@ -45,6 +46,8 @@ const setupMulter = (subfolder) => {
 const profileUpload = setupMulter('profiles');
 const rewardUpload = setupMulter('rewards');
 const programUpload = setupMulter('programs');
+const bannerUpload = setupMulter('banners');
+
 
 // Multer config for Excel file uploads
 const excelUpload = multer({
@@ -147,7 +150,7 @@ router.get('/bootstrap', async (req, res) => {
             safeQueryDB('SELECT * FROM coupon_redemptions'),
             safeQueryDB('SELECT * FROM raffle_winners'),
             safeQueryDB('SELECT * FROM locations'),
-            safeQueryDB("SELECT setting_value FROM settings WHERE setting_key = 'whatsapp_config'"),
+            safeQueryDB("SELECT setting_key, setting_value FROM settings"),
             safeQueryDB('SELECT * FROM special_numbers ORDER BY price ASC, phone_number ASC'),
         ]);
 
@@ -168,7 +171,10 @@ router.get('/bootstrap', async (req, res) => {
                 .map(t => toCamelCase(t))
         }));
         
-        const whatsAppSettings = settings.length > 0 ? JSON.parse(settings[0].setting_value) : null;
+        const settingsMap = new Map(settings.map(s => [s.setting_key, s.setting_value]));
+        const whatsAppSettings = settingsMap.has('whatsapp_config') ? JSON.parse(settingsMap.get('whatsapp_config')) : null;
+        const specialNumberBannerUrl = settingsMap.get('special_number_banner_url') || null;
+
 
         res.json({
             users: structuredUsers,
@@ -183,6 +189,7 @@ router.get('/bootstrap', async (req, res) => {
             locations: locations.map(l => toCamelCase(l)),
             whatsAppSettings,
             specialNumbers: parsedSpecialNumbers.map(n => ({...toCamelCase(n), isSold: !!n.is_sold})),
+            specialNumberBannerUrl,
         });
     } catch (error) {
         // --- IMPROVED ERROR LOGGING ---
@@ -239,6 +246,24 @@ uploadRouter.post('/programs/:id/photo', programUpload.single('photo'), async (r
     } catch (error) {
         console.error('Program photo upload DB error:', error);
         res.status(500).json({ message: 'Gagal menyimpan path foto program ke database.' });
+    }
+});
+
+// UPLOAD SPECIAL NUMBER BANNER
+uploadRouter.post('/settings/special-number-banner', bannerUpload.single('bannerFile'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: "File banner tidak ditemukan." });
+    }
+
+    const bannerUrl = `/uploads/banners/${req.file.filename}`;
+    
+    try {
+        const sql = "INSERT INTO settings (setting_key, setting_value) VALUES ('special_number_banner_url', ?) ON DUPLICATE KEY UPDATE setting_value = ?";
+        await db.execute(sql, [bannerUrl, bannerUrl]);
+        res.json({ message: 'Banner berhasil diunggah.', bannerUrl });
+    } catch (error) {
+        console.error('Banner upload DB error:', error);
+        res.status(500).json({ message: 'Gagal menyimpan URL banner ke database.' });
     }
 });
 

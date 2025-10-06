@@ -43,6 +43,7 @@ function App() {
     const [locations, setLocations] = useState<Location[]>([]);
     const [whatsAppSettings, setWhatsAppSettings] = useState<WhatsAppSettings | null>(null);
     const [specialNumbers, setSpecialNumbers] = useState<SpecialNumber[]>([]);
+    const [specialNumberBannerUrl, setSpecialNumberBannerUrl] = useState<string | null>(null);
 
 
     const fetchBootstrapData = useCallback(async () => {
@@ -62,6 +63,7 @@ function App() {
             setLocations(data.locations || []);
             setWhatsAppSettings(data.whatsAppSettings || null);
             setSpecialNumbers(data.specialNumbers || []);
+            setSpecialNumberBannerUrl(data.specialNumberBannerUrl || null);
         } catch (error) {
             console.error("Bootstrap failed:", error);
             setModal({ show: true, title: "Error", content: <p>Gagal memuat data dari server. Silakan coba lagi nanti.</p> });
@@ -698,6 +700,29 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
+    const adminUploadSpecialNumberBanner = useCallback(async (file: File) => {
+        try {
+            const formData = new FormData();
+            formData.append('bannerFile', file);
+            const response = await fetch('/api/settings/special-number-banner', {
+                method: 'POST',
+                body: formData,
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            
+            await fetchBootstrapData(); // Re-fetch all data to get the new banner URL
+            
+            setModal({
+                show: true,
+                title: "Sukses",
+                content: <p>Banner berhasil diunggah dan diperbarui.</p>
+            });
+        } catch (error: any) {
+            setModal({ show: true, title: "Error Upload", content: <p>{error.message || "Terjadi kesalahan."}</p> });
+        }
+    }, [fetchBootstrapData]);
+
     if (isLoading) {
         return <div className="min-h-screen flex justify-center items-center neu-bg"><p className="text-xl font-semibold text-gray-600">Memuat Aplikasi...</p></div>
     }
@@ -737,8 +762,8 @@ function App() {
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isReadOnly} />,
             manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} isReadOnly={isReadOnly} />,
             manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isReadOnly} />,
-            nomorSpesial: <NomorSpesialPage currentUser={currentUser} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} />,
-            manajemenNomor: <ManajemenNomor numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} />,
+            nomorSpesial: <NomorSpesialPage currentUser={currentUser} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} specialNumberBannerUrl={specialNumberBannerUrl} />,
+            manajemenNomor: <ManajemenNomor numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} adminUploadSpecialNumberBanner={adminUploadSpecialNumberBanner} />,
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
 
