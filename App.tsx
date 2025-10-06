@@ -676,7 +676,7 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    }, [specialNumbers]); // Dependency on specialNumbers to prevent stale state issues.
+    }, []);
 
     const adminBulkUploadNumbers = useCallback(async (file: File) => {
         try {
