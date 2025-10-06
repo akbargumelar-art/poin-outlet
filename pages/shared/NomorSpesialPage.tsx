@@ -81,7 +81,7 @@ Rp ${totalSelectedPrice.toLocaleString('id-ID')} / ${totalSelected.length} pcs`;
     return (
         <div className="pb-24">
             <div className="neu-card overflow-hidden mb-6">
-                 <img src="https://i.ibb.co/L5wVbZk/nomor-spesial-banner.png" alt="Nomor Spesial Banner" className="w-full h-auto object-cover"/>
+                 <img src="https://i.ibb.co/pnvBFV5/nomor-spesial-banner.png" alt="Nomor Spesial Banner" className="w-full h-auto object-cover"/>
             </div>
 
             <div className="neu-card p-4">
