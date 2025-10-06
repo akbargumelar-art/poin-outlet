@@ -147,6 +147,8 @@ export interface SpecialNumber {
     phoneNumber: string;
     price: number;
     isSold: boolean;
+    sn?: string;
+    lokasi?: string;
 }
 
 export interface WhatsAppSettings {

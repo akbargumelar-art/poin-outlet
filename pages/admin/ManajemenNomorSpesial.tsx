@@ -14,6 +14,8 @@ const NumberForm: React.FC<NumberFormProps> = ({ number, onSave, onCancel }) => 
     const [formData, setFormData] = useState({
         phoneNumber: number?.phoneNumber || '',
         price: number?.price || 0,
+        sn: number?.sn || '',
+        lokasi: number?.lokasi || '',
         id: number?.id
     });
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,6 +29,8 @@ const NumberForm: React.FC<NumberFormProps> = ({ number, onSave, onCancel }) => 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="Nomor Telepon" className="input-field" required />
+            <input name="sn" value={formData.sn} onChange={handleChange} placeholder="SN (Serial Number)" className="input-field" />
+            <input name="lokasi" value={formData.lokasi} onChange={handleChange} placeholder="Lokasi (e.g., Cirebon)" className="input-field" />
             <input type="number" name="price" value={formData.price} onChange={handleChange} placeholder="Harga" className="input-field" required />
             <div className="flex gap-4 pt-4">
                 <button type="button" onClick={onCancel} className="neu-button">Batal</button>
@@ -78,7 +82,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
             {deletingId && <Modal show={true} onClose={() => setDeletingId(null)} title="Konfirmasi Hapus"><div className="text-center"><p className="mb-6">Yakin ingin menghapus nomor ini?</p><div className="flex gap-4 justify-center"><button onClick={() => setDeletingId(null)} className="neu-button">Batal</button><button onClick={handleConfirmDelete} className="neu-button text-red-600">Ya, Hapus</button></div></div></Modal>}
             {showUploadModal && <Modal show={true} onClose={() => setShowUploadModal(false)} title="Upload Nomor Massal">
                  <div>
-                    <p className="mb-4">Pastikan file Excel Anda memiliki kolom: <b>nomor</b> dan <b>harga</b>.</p>
+                    <p className="mb-4">Pastikan file Excel Anda memiliki kolom: <b>nomor</b>, <b>harga</b>, <b>sn</b> (opsional), dan <b>lokasi</b> (opsional).</p>
                      <a href="/template_nomor_spesial.xlsx" download className="neu-button !w-auto px-4 flex items-center gap-2 mb-6">
                         <Icon path={ICONS.download} className="w-5 h-5"/> Download Template
                     </a>
@@ -103,6 +107,8 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
                     <thead className="bg-slate-200/50">
                         <tr>
                             <th className="p-4 font-semibold">Nomor</th>
+                            <th className="p-4 font-semibold">SN</th>
+                            <th className="p-4 font-semibold">Lokasi</th>
                             <th className="p-4 font-semibold">Harga</th>
                             <th className="p-4 font-semibold">Status</th>
                             <th className="p-4 font-semibold">Aksi</th>
@@ -112,6 +118,8 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
                         {numbers.map(n => (
                             <tr key={n.id} className="border-t border-slate-200/80">
                                 <td className="p-4 font-bold text-gray-800">{n.phoneNumber}</td>
+                                <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>
+                                <td className="p-4">{n.lokasi || '-'}</td>
                                 <td className="p-4">Rp {n.price.toLocaleString('id-ID')}</td>
                                 <td className="p-4">
                                     <span className={`px-2 py-1 text-xs font-bold rounded-full ${n.isSold ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>

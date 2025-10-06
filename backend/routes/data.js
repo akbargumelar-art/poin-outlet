@@ -503,19 +503,21 @@ uploadRouter.post('/special-numbers/bulk', excelUpload.single('specialNumbersFil
         await connection.beginTransaction();
         const errors = [];
         let successCount = 0;
-        const insertSql = 'INSERT INTO special_numbers (phone_number, price) VALUES ?';
+        const insertSql = 'INSERT INTO special_numbers (phone_number, price, sn, lokasi) VALUES ?';
         const values = [];
 
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
             const phoneNumber = String(row.nomor).replace(/[^0-9]/g, '');
             const price = parseFloat(row.harga);
+            const sn = row.sn ? String(row.sn) : null;
+            const lokasi = row.lokasi ? String(row.lokasi) : null;
 
             if (!phoneNumber || isNaN(price)) {
                 errors.push(`Baris ${i + 2}: Nomor atau harga tidak valid.`);
                 continue;
             }
-            values.push([phoneNumber, price]);
+            values.push([phoneNumber, price, sn, lokasi]);
         }
         
         if (values.length > 0) {
@@ -1169,20 +1171,20 @@ router.get('/special-numbers/all', async (req, res) => {
 });
 
 router.post('/special-numbers', async (req, res) => {
-    const { phoneNumber, price } = req.body;
+    const { phoneNumber, price, sn, lokasi } = req.body;
     if (!phoneNumber || !price) return res.status(400).json({message: 'Nomor dan harga dibutuhkan.'});
     try {
-        const [result] = await db.execute('INSERT INTO special_numbers (phone_number, price) VALUES (?, ?)', [phoneNumber, price]);
-        res.status(201).json({ id: result.insertId, phoneNumber, price, isSold: false });
+        const [result] = await db.execute('INSERT INTO special_numbers (phone_number, price, sn, lokasi) VALUES (?, ?, ?, ?)', [phoneNumber, price, sn || null, lokasi || null]);
+        res.status(201).json({ id: result.insertId, phoneNumber, price, isSold: false, sn: sn || null, lokasi: lokasi || null });
     } catch (e) { res.status(500).json({message: e.message}); }
 });
 
 router.put('/special-numbers/:id', async (req, res) => {
     const { id } = req.params;
-    const { phoneNumber, price } = req.body;
+    const { phoneNumber, price, sn, lokasi } = req.body;
     if (!phoneNumber || !price) return res.status(400).json({message: 'Nomor dan harga dibutuhkan.'});
     try {
-        await db.execute('UPDATE special_numbers SET phone_number = ?, price = ? WHERE id = ?', [phoneNumber, price, id]);
+        await db.execute('UPDATE special_numbers SET phone_number = ?, price = ?, sn = ?, lokasi = ? WHERE id = ?', [phoneNumber, price, sn || null, lokasi || null, id]);
         res.json({ message: 'Nomor berhasil diperbarui.'});
     } catch (e) { res.status(500).json({message: e.message}); }
 });

@@ -619,7 +619,7 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
-    const adminManageSpecialNumber = useCallback(async (numberData: Omit<SpecialNumber, 'id'> & { id?: number }) => {
+    const adminManageSpecialNumber = useCallback(async (numberData: Omit<SpecialNumber, 'id' | 'isSold'> & { id?: number }) => {
         try {
             const method = numberData.id ? 'PUT' : 'POST';
             const url = numberData.id ? `/api/special-numbers/${numberData.id}` : '/api/special-numbers';
@@ -716,7 +716,7 @@ function App() {
         }
         
         const isReadOnly = currentUser.role === 'supervisor';
-        const restrictedPagesForSupervisor: Page[] = ['tambahUser', 'manajemenPoin', 'manajemenNotifikasi', 'manajemenNomor'];
+        const restrictedPagesForSupervisor: Page[] = ['tambahUser', 'manajemenPoin', 'manajemenNotifikasi'];
         if (isReadOnly && restrictedPagesForSupervisor.includes(currentPage)) {
              setCurrentPage('adminDashboard');
         }
