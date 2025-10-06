@@ -763,7 +763,7 @@ function App() {
             manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} isReadOnly={isReadOnly} />,
             manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isReadOnly} />,
             nomorSpesial: <NomorSpesialPage currentUser={currentUser} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} specialNumberBannerUrl={specialNumberBannerUrl} />,
-            manajemenNomor: <ManajemenNomor numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} adminUploadSpecialNumberBanner={adminUploadSpecialNumberBanner} />,
+            manajemenNomor: <ManajemenNomor numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} adminUploadSpecialNumberBanner={adminUploadSpecialNumberBanner} settings={whatsAppSettings} onSaveSettings={adminSaveWhatsAppSettings} />,
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
 

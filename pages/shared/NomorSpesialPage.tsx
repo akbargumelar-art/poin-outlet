@@ -113,7 +113,7 @@ Rp ${totalSelectedPrice.toLocaleString('id-ID')} / ${totalSelected.length} pcs`;
                             <p className="font-bold text-gray-800">{totalSelected.length} nomor dipilih</p>
                             <p className="text-sm font-semibold text-red-600">Total: Rp {totalSelectedPrice.toLocaleString('id-ID')}</p>
                         </div>
-                        <button onClick={handleBeli} disabled={!recipientNumber || totalSelected.length === 0} className="neu-button !w-auto px-4 flex items-center gap-2 text-green-600">
+                        <button onClick={handleBeli} disabled={!recipientNumber || totalSelected.length === 0} className="neu-button !w-auto px-4 flex items-center gap-2 bg-green-600 !text-white hover:bg-green-700">
                              <Icon path={ICONS.whatsapp} className="w-5 h-5"/>
                             Beli via WhatsApp
                         </button>
@@ -127,6 +127,7 @@ Rp ${totalSelectedPrice.toLocaleString('id-ID')} / ${totalSelected.length} pcs`;
                         <thead className="bg-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
                             <tr>
                                 <th className="p-4 font-semibold">Nomor</th>
+                                {currentUser.role === 'supervisor' && <th className="p-4 font-semibold">Lokasi</th>}
                                 <th className="p-4 font-semibold whitespace-nowrap">
                                     <button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} className="flex items-center gap-1">
                                         Harga
@@ -148,6 +149,7 @@ Rp ${totalSelectedPrice.toLocaleString('id-ID')} / ${totalSelected.length} pcs`;
                                 filteredNumbers.map(n => (
                                      <tr key={n.id} className="border-t border-slate-200/80">
                                         <td className="p-4 font-bold text-lg text-gray-800 tracking-wider">{n.phoneNumber}</td>
+                                        {currentUser.role === 'supervisor' && <td className="p-4">{n.lokasi || '-'}</td>}
                                         <td className="p-4 font-semibold text-red-600">Rp {n.price.toLocaleString('id-ID')}</td>
                                         <td className="p-4">
                                             <input 
@@ -161,7 +163,7 @@ Rp ${totalSelectedPrice.toLocaleString('id-ID')} / ${totalSelected.length} pcs`;
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={3} className="p-8 text-center text-gray-500">Tidak ada nomor yang cocok.</td>
+                                    <td colSpan={currentUser.role === 'supervisor' ? 4 : 3} className="p-8 text-center text-gray-500">Tidak ada nomor yang cocok.</td>
                                 </tr>
                             )}
                         </tbody>

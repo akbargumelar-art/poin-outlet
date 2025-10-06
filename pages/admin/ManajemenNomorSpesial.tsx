@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { SpecialNumber } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { SpecialNumber, WhatsAppSettings } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
@@ -48,14 +48,26 @@ interface ManajemenNomorProps {
     onStatusChange: (id: number, isSold: boolean) => void;
     onBulkUpload: (file: File) => void;
     adminUploadSpecialNumberBanner: (file: File) => void;
+    settings: WhatsAppSettings | null;
+    onSaveSettings: (settings: WhatsAppSettings) => void;
 }
 
-const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave, onDelete, onStatusChange, onBulkUpload, adminUploadSpecialNumberBanner }) => {
+const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave, onDelete, onStatusChange, onBulkUpload, adminUploadSpecialNumberBanner, settings, onSaveSettings }) => {
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingNumber, setEditingNumber] = useState<SpecialNumber | undefined>(undefined);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
+    const [recipientNumber, setRecipientNumber] = useState('');
+
+    useEffect(() => {
+        setRecipientNumber(settings?.specialNumberRecipient || '');
+    }, [settings]);
+
+    const handleSaveRecipient = () => {
+        const newSettings = { ...settings, specialNumberRecipient: recipientNumber };
+        onSaveSettings(newSettings as WhatsAppSettings);
+    };
 
     const handleSave = (numberData: Omit<SpecialNumber, 'id' | 'isSold'> & { id?: number }) => {
         onSave(numberData);
@@ -85,7 +97,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
 
 
     return (
-        <div>
+        <div className="flex flex-col h-full">
             {showFormModal && <Modal show={true} onClose={() => setShowFormModal(false)} title={editingNumber ? 'Edit Nomor' : 'Tambah Nomor Baru'}><NumberForm number={editingNumber} onSave={handleSave} onCancel={() => setShowFormModal(false)} /></Modal>}
             {deletingId && <Modal show={true} onClose={() => setDeletingId(null)} title="Konfirmasi Hapus"><div className="text-center"><p className="mb-6">Yakin ingin menghapus nomor ini?</p><div className="flex gap-4 justify-center"><button onClick={() => setDeletingId(null)} className="neu-button">Batal</button><button onClick={handleConfirmDelete} className="neu-button text-red-600">Ya, Hapus</button></div></div></Modal>}
             {showUploadModal && <Modal show={true} onClose={() => setShowUploadModal(false)} title="Upload Nomor Massal">
@@ -102,66 +114,81 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
                  </div>
             </Modal>}
 
-            <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Nomor Spesial</h1>
-                <div className="flex gap-2">
-                    <button onClick={() => setShowUploadModal(true)} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.upload} className="w-5 h-5" /> Upload Massal</button>
-                    <button onClick={() => { setEditingNumber(undefined); setShowFormModal(true); }} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5" /> Tambah</button>
+            <div className="flex-shrink-0">
+                <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Nomor Spesial</h1>
+                    <div className="flex gap-2">
+                        <button onClick={() => setShowUploadModal(true)} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.upload} className="w-5 h-5" /> Upload Massal</button>
+                        <button onClick={() => { setEditingNumber(undefined); setShowFormModal(true); }} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5" /> Tambah</button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div className="neu-card p-6">
+                        <h2 className="font-bold text-gray-700 text-lg mb-2">Pengaturan Banner</h2>
+                        <p className="text-sm text-gray-600 mb-4">Upload gambar (3:1) untuk banner di halaman Nomor Spesial.</p>
+                        <label className="neu-button !w-auto px-4 flex items-center gap-2 cursor-pointer">
+                            <Icon path={ICONS.upload} className="w-5 h-5" /> 
+                            <span>Ganti Banner</span>
+                            <input type="file" accept="image/*" className="hidden" onChange={handleBannerFileChange} />
+                        </label>
+                    </div>
+                     <div className="neu-card p-6">
+                        <h2 className="font-bold text-gray-700 text-lg mb-2">Pengaturan Penerima WhatsApp</h2>
+                        <p className="text-sm text-gray-600 mb-4">Masukkan nomor tujuan untuk pesanan (awali dengan 62).</p>
+                        <div className="flex gap-2">
+                             <input 
+                                type="text"
+                                value={recipientNumber}
+                                onChange={(e) => setRecipientNumber(e.target.value)}
+                                placeholder="e.g., 628123456789"
+                                className="input-field"
+                            />
+                            <button onClick={handleSaveRecipient} className="neu-button !w-auto px-4">Simpan</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="neu-card p-6 mb-6">
-                <h2 className="font-bold text-gray-700 text-lg mb-2">Pengaturan Banner Halaman Nomor Spesial</h2>
-                <p className="text-sm text-gray-600 mb-4">Upload gambar baru untuk mengganti banner yang ditampilkan di halaman Nomor Spesial. Disarankan menggunakan gambar dengan rasio 3:1 (melebar).</p>
-                <label className="neu-button !w-auto px-4 flex items-center gap-2 cursor-pointer">
-                    <Icon path={ICONS.upload} className="w-5 h-5" /> 
-                    <span>Pilih & Upload Banner Baru</span>
-                    <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={handleBannerFileChange}
-                    />
-                </label>
-            </div>
-
-            <div className="neu-card-flat overflow-x-auto">
-                <table className="w-full text-left">
-                    <thead className="bg-slate-200/50">
-                        <tr>
-                            <th className="p-4 font-semibold">Nomor</th>
-                            <th className="p-4 font-semibold">SN</th>
-                            <th className="p-4 font-semibold">Lokasi</th>
-                            <th className="p-4 font-semibold">Harga</th>
-                            <th className="p-4 font-semibold">Status</th>
-                            <th className="p-4 font-semibold">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {numbers.map(n => (
-                            <tr key={n.id} className="border-t border-slate-200/80">
-                                <td className="p-4 font-bold text-gray-800">{n.phoneNumber}</td>
-                                <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>
-                                <td className="p-4">{n.lokasi || '-'}</td>
-                                <td className="p-4">Rp {n.price.toLocaleString('id-ID')}</td>
-                                <td className="p-4">
-                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${n.isSold ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                        {n.isSold ? 'Terjual' : 'Tersedia'}
-                                    </span>
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex gap-2">
-                                        <button onClick={() => onStatusChange(n.id, !n.isSold)} className="neu-button-icon" title={n.isSold ? 'Tandai Tersedia' : 'Tandai Terjual'}>
-                                            <Icon path={n.isSold ? ICONS.eye : ICONS.eyeOff} className="w-5 h-5" />
-                                        </button>
-                                        <button onClick={() => { setEditingNumber(n); setShowFormModal(true); }} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5" /></button>
-                                        <button onClick={() => setDeletingId(n.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5" /></button>
-                                    </div>
-                                </td>
+            <div className="neu-card-flat overflow-hidden flex-grow">
+                 <div className="h-full overflow-y-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
+                            <tr>
+                                <th className="p-4 font-semibold">Nomor</th>
+                                <th className="p-4 font-semibold">SN</th>
+                                <th className="p-4 font-semibold">Lokasi</th>
+                                <th className="p-4 font-semibold">Harga</th>
+                                <th className="p-4 font-semibold">Status</th>
+                                <th className="p-4 font-semibold">Aksi</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {numbers.map(n => (
+                                <tr key={n.id} className="border-t border-slate-200/80">
+                                    <td className="p-4 font-bold text-gray-800">{n.phoneNumber}</td>
+                                    <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>
+                                    <td className="p-4">{n.lokasi || '-'}</td>
+                                    <td className="p-4">Rp {n.price.toLocaleString('id-ID')}</td>
+                                    <td className="p-4">
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${n.isSold ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                            {n.isSold ? 'Terjual' : 'Tersedia'}
+                                        </span>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex gap-2">
+                                            <button onClick={() => onStatusChange(n.id, !n.isSold)} className="neu-button-icon" title={n.isSold ? 'Tandai Tersedia' : 'Tandai Terjual'}>
+                                                <Icon path={n.isSold ? ICONS.eye : ICONS.eyeOff} className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => { setEditingNumber(n); setShowFormModal(true); }} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5" /></button>
+                                            <button onClick={() => setDeletingId(n.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5" /></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

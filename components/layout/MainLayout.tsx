@@ -35,7 +35,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
         { name: 'Tukar Poin', icon: ICONS.history, page: 'manajemenPenukaran' as Page },
         { name: 'Nomor Spesial', icon: ICONS.simCard, page: 'nomorSpesial' as Page },
-        { name: 'Manajemen Nomor', icon: ICONS.edit, page: 'manajemenNomor' as Page },
         { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
         { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
     ];
