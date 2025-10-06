@@ -58,7 +58,8 @@ const setupDatabase = async () => {
     const connection = await db.getConnection();
     try {
         console.log('Checking database schema...');
-        // Check for special_numbers table
+        
+        // --- Check for special_numbers table ---
         const [tables] = await connection.execute("SHOW TABLES LIKE 'special_numbers'");
         if (tables.length === 0) {
             console.log("Table 'special_numbers' not found. Creating it...");
@@ -79,6 +80,25 @@ const setupDatabase = async () => {
         } else {
              console.log("Table 'special_numbers' already exists.");
         }
+
+        // --- Check for 'operator' role in users table ---
+        const [userColumns] = await connection.execute("SHOW COLUMNS FROM users LIKE 'role'");
+        if (userColumns.length > 0) {
+            const roleColumn = userColumns[0];
+            // Type will be like "enum('admin','pelanggan','supervisor')"
+            const currentEnumValues = roleColumn.Type.match(/'(.*?)'/g)?.map(v => v.replace(/'/g, '')) || [];
+            
+            if (!currentEnumValues.includes('operator')) {
+                console.log("Column 'users.role' is missing 'operator' value. Altering table...");
+                // Note: Ensure all existing and new roles are included in the ENUM list.
+                const alterQuery = "ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'pelanggan', 'supervisor', 'operator') NOT NULL";
+                await connection.execute(alterQuery);
+                console.log("Table 'users' altered successfully to include 'operator' role.");
+            } else {
+                console.log("Column 'users.role' already includes 'operator' role.");
+            }
+        }
+
     } catch (err) {
         console.error('Database setup failed:', err);
         process.exit(1); // Exit if setup fails
