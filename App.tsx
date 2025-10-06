@@ -666,18 +666,13 @@ function App() {
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);
             
-            // Update state locally for instant UI feedback
-            setSpecialNumbers(prevNumbers =>
-                prevNumbers.map(number =>
-                    number.id === id ? { ...number, isSold } : number
-                )
-            );
+            await fetchBootstrapData(); // Re-fetch all data to ensure consistency
 
             setModal({ show: true, title: "Sukses", content: <p>Status nomor berhasil diperbarui.</p> });
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    }, []);
+    }, [fetchBootstrapData]);
 
     const adminBulkUploadNumbers = useCallback(async (file: File) => {
         try {
