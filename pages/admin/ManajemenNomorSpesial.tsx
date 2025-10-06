@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { SpecialNumber, WhatsAppSettings } from '../../types';
+import { SpecialNumber, WhatsAppSettings, User } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
@@ -11,8 +12,9 @@ interface NumberFormProps {
     number?: SpecialNumber;
     onSave: (number: Omit<SpecialNumber, 'id' | 'isSold'> & { id?: number }) => void;
     onCancel: () => void;
+    isOperator?: boolean;
 }
-const NumberForm: React.FC<NumberFormProps> = ({ number, onSave, onCancel }) => {
+const NumberForm: React.FC<NumberFormProps> = ({ number, onSave, onCancel, isOperator }) => {
     const [formData, setFormData] = useState({
         phoneNumber: number?.phoneNumber || '',
         price: number?.price || 0,
@@ -30,10 +32,10 @@ const NumberForm: React.FC<NumberFormProps> = ({ number, onSave, onCancel }) => 
     };
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="Nomor Telepon" className="input-field" required />
+            <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="Nomor Telepon" className={isOperator ? "input-field-disabled" : "input-field"} required readOnly={isOperator} />
             <input name="sn" value={formData.sn} onChange={handleChange} placeholder="SN (Serial Number)" className="input-field" />
             <input name="lokasi" value={formData.lokasi} onChange={handleChange} placeholder="Lokasi (e.g., Cirebon)" className="input-field" />
-            <input type="number" name="price" value={formData.price} onChange={handleChange} placeholder="Harga" className="input-field" required />
+            <input type="number" name="price" value={formData.price} onChange={handleChange} placeholder="Harga" className={isOperator ? "input-field-disabled" : "input-field"} required readOnly={isOperator} />
             <div className="flex gap-4 pt-4">
                 <button type="button" onClick={onCancel} className="neu-button">Batal</button>
                 <button type="submit" className="neu-button text-red-600">Simpan</button>
@@ -44,6 +46,7 @@ const NumberForm: React.FC<NumberFormProps> = ({ number, onSave, onCancel }) => 
 
 // --- Main Component ---
 interface ManajemenNomorProps {
+    currentUser: User;
     numbers: SpecialNumber[];
     onSave: (number: Omit<SpecialNumber, 'id' | 'isSold'> & { id?: number }) => void;
     onDelete: (id: number) => void;
@@ -54,7 +57,7 @@ interface ManajemenNomorProps {
     onSaveSettings: (settings: WhatsAppSettings) => void;
 }
 
-const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave, onDelete, onStatusChange, onBulkUpload, adminUploadSpecialNumberBanner, settings, onSaveSettings }) => {
+const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, numbers, onSave, onDelete, onStatusChange, onBulkUpload, adminUploadSpecialNumberBanner, settings, onSaveSettings }) => {
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingNumber, setEditingNumber] = useState<SpecialNumber | undefined>(undefined);
     const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -64,6 +67,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'isSold', direction: 'asc' });
 
+    const isOperator = currentUser.role === 'operator';
 
     useEffect(() => {
         setRecipientNumber(settings?.specialNumberRecipient || '');
@@ -148,7 +152,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
 
     return (
         <div className="flex flex-col h-full">
-            {showFormModal && <Modal show={true} onClose={() => setShowFormModal(false)} title={editingNumber ? 'Edit Nomor' : 'Tambah Nomor Baru'}><NumberForm number={editingNumber} onSave={handleSave} onCancel={() => setShowFormModal(false)} /></Modal>}
+            {showFormModal && <Modal show={true} onClose={() => setShowFormModal(false)} title={editingNumber ? 'Edit Nomor' : 'Tambah Nomor Baru'}><NumberForm number={editingNumber} onSave={handleSave} onCancel={() => setShowFormModal(false)} isOperator={isOperator} /></Modal>}
             {deletingId && <Modal show={true} onClose={() => setDeletingId(null)} title="Konfirmasi Hapus"><div className="text-center"><p className="mb-6">Yakin ingin menghapus nomor ini?</p><div className="flex gap-4 justify-center"><button onClick={() => setDeletingId(null)} className="neu-button">Batal</button><button onClick={handleConfirmDelete} className="neu-button text-red-600">Ya, Hapus</button></div></div></Modal>}
             {showUploadModal && <Modal show={true} onClose={() => setShowUploadModal(false)} title="Upload Nomor Massal">
                  <div>
@@ -166,38 +170,42 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
 
             <div className="flex-shrink-0">
                 <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Nomor Spesial</h1>
-                    <div className="flex gap-2">
-                        <button onClick={() => setShowUploadModal(true)} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.upload} className="w-5 h-5" /> Upload Massal</button>
-                        <button onClick={() => { setEditingNumber(undefined); setShowFormModal(true); }} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5" /> Tambah</button>
-                    </div>
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-700">{isOperator ? 'Status Nomor Spesial' : 'Manajemen Nomor Spesial'}</h1>
+                    {!isOperator && (
+                        <div className="flex gap-2">
+                            <button onClick={() => setShowUploadModal(true)} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.upload} className="w-5 h-5" /> Upload Massal</button>
+                            <button onClick={() => { setEditingNumber(undefined); setShowFormModal(true); }} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5" /> Tambah</button>
+                        </div>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div className="neu-card p-6">
-                        <h2 className="font-bold text-gray-700 text-lg mb-2">Pengaturan Banner</h2>
-                        <p className="text-sm text-gray-600 mb-4">Upload gambar (3:1) untuk banner di halaman Nomor Spesial.</p>
-                        <label className="neu-button !w-auto px-4 flex items-center gap-2 cursor-pointer">
-                            <Icon path={ICONS.upload} className="w-5 h-5" /> 
-                            <span>Ganti Banner</span>
-                            <input type="file" accept="image/*" className="hidden" onChange={handleBannerFileChange} />
-                        </label>
-                    </div>
-                     <div className="neu-card p-6">
-                        <h2 className="font-bold text-gray-700 text-lg mb-2">Pengaturan Penerima WhatsApp</h2>
-                        <p className="text-sm text-gray-600 mb-4">Masukkan nomor tujuan untuk pesanan (awali dengan 62).</p>
-                        <div className="flex gap-2">
-                             <input 
-                                type="text"
-                                value={recipientNumber}
-                                onChange={(e) => setRecipientNumber(e.target.value)}
-                                placeholder="e.g., 628123456789"
-                                className="input-field"
-                            />
-                            <button onClick={handleSaveRecipient} className="neu-button !w-auto px-4">Simpan</button>
+                {!isOperator && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div className="neu-card p-6">
+                            <h2 className="font-bold text-gray-700 text-lg mb-2">Pengaturan Banner</h2>
+                            <p className="text-sm text-gray-600 mb-4">Upload gambar (3:1) untuk banner di halaman Nomor Spesial.</p>
+                            <label className="neu-button !w-auto px-4 flex items-center gap-2 cursor-pointer">
+                                <Icon path={ICONS.upload} className="w-5 h-5" /> 
+                                <span>Ganti Banner</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={handleBannerFileChange} />
+                            </label>
+                        </div>
+                         <div className="neu-card p-6">
+                            <h2 className="font-bold text-gray-700 text-lg mb-2">Pengaturan Penerima WhatsApp</h2>
+                            <p className="text-sm text-gray-600 mb-4">Masukkan nomor tujuan untuk pesanan (awali dengan 62).</p>
+                            <div className="flex gap-2">
+                                 <input 
+                                    type="text"
+                                    value={recipientNumber}
+                                    onChange={(e) => setRecipientNumber(e.target.value)}
+                                    placeholder="e.g., 628123456789"
+                                    className="input-field"
+                                />
+                                <button onClick={handleSaveRecipient} className="neu-button !w-auto px-4">Simpan</button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
                  <div className="neu-card-flat p-4 mb-6">
                     <input
                         type="text"
@@ -239,7 +247,9 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
                                             <Icon path={n.isSold ? ICONS.eye : ICONS.eyeOff} className="w-5 h-5" />
                                         </button>
                                         <button onClick={() => { setEditingNumber(n); setShowFormModal(true); }} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5" /></button>
-                                        <button onClick={() => setDeletingId(n.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5" /></button>
+                                        {!isOperator && (
+                                            <button onClick={() => setDeletingId(n.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5" /></button>
+                                        )}
                                     </div>
                                 </td>
                             </tr>

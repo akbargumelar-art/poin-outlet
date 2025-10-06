@@ -19,8 +19,7 @@ export type Page =
     | 'manajemenPenukaran'
     | 'manajemenNotifikasi'
     | 'nomorSpesial'
-    | 'manajemenNomor'
-    | 'operatorDashboard';
+    | 'manajemenNomor';
 
 export interface UserProfile {
     nama: string;

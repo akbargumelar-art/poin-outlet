@@ -49,9 +49,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
     ];
 
     const operatorMenu = [
-        { name: 'Home', icon: ICONS.dashboard, page: 'operatorDashboard' as Page },
-        { name: 'Nomor Spesial', icon: ICONS.simCard, page: 'manajemenNomor' as Page },
-        { name: 'Transaksi', icon: ICONS.calculator, page: 'manajemenPoin' as Page },
+        { name: 'Home', icon: ICONS.simCard, page: 'manajemenNomor' as Page },
     ];
 
     const MENU_ITEMS: { [key in User['role'] | 'default']?: any[] } = {

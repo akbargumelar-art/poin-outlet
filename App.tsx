@@ -23,7 +23,6 @@ import ManajemenPenukaran from './pages/admin/ManajemenPenukaran';
 import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
 import NomorSpesialPage from './pages/shared/NomorSpesialPage';
 import ManajemenNomor from './pages/admin/ManajemenNomorSpesial';
-import OperatorDashboard from './pages/operator/OperatorDashboard';
 
 
 function App() {
@@ -83,7 +82,7 @@ function App() {
                     const user: User = JSON.parse(storedUser);
                     setCurrentUser(user);
                     if (user.role === 'pelanggan') setCurrentPage('pelangganDashboard');
-                    else if (user.role === 'operator') setCurrentPage('operatorDashboard');
+                    else if (user.role === 'operator') setCurrentPage('manajemenNomor');
                     else setCurrentPage('adminDashboard');
                 } catch (e) {
                     console.error("Failed to parse stored user data, clearing session.", e);
@@ -110,7 +109,7 @@ function App() {
                 setCurrentUser(data);
                 localStorage.setItem('currentUser', JSON.stringify(data));
                 if (data.role === 'pelanggan') setCurrentPage('pelangganDashboard');
-                else if (data.role === 'operator') setCurrentPage('operatorDashboard');
+                else if (data.role === 'operator') setCurrentPage('manajemenNomor');
                 else setCurrentPage('adminDashboard');
                 return true;
             } else {
@@ -756,9 +755,9 @@ function App() {
         }
 
         // Operator access restrictions
-        const allowedPagesForOperator: Page[] = ['operatorDashboard', 'manajemenNomor', 'manajemenPoin', 'editProfile'];
+        const allowedPagesForOperator: Page[] = ['manajemenNomor', 'editProfile'];
         if(isOperator && !allowedPagesForOperator.includes(currentPage)){
-            setCurrentPage('operatorDashboard');
+            setCurrentPage('manajemenNomor');
         }
 
         const pageMap: {[key in Page]?: React.ReactNode} = {
@@ -777,8 +776,7 @@ function App() {
             manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} isReadOnly={isSupervisor} />,
             manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isSupervisor} />,
             nomorSpesial: <NomorSpesialPage currentUser={currentUser} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} specialNumberBannerUrl={specialNumberBannerUrl} />,
-            manajemenNomor: <ManajemenNomor numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} adminUploadSpecialNumberBanner={adminUploadSpecialNumberBanner} settings={whatsAppSettings} onSaveSettings={adminSaveWhatsAppSettings} />,
-            operatorDashboard: <OperatorDashboard setCurrentPage={setCurrentPage} />
+            manajemenNomor: <ManajemenNomor currentUser={currentUser} numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} adminUploadSpecialNumberBanner={adminUploadSpecialNumberBanner} settings={whatsAppSettings} onSaveSettings={adminSaveWhatsAppSettings} />,
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
 
