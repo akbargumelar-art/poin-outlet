@@ -134,7 +134,7 @@ router.get('/bootstrap', async (req, res) => {
         const [
             users, transactions, rewards, redemptions, loyaltyPrograms, 
             runningPrograms, runningProgramTargets, rafflePrograms, 
-            couponRedemptions, raffleWinners, locations, settings
+            couponRedemptions, raffleWinners, locations, settings, specialNumbers
         ] = await Promise.all([
             safeQueryDB('SELECT * FROM users'),
             safeQueryDB('SELECT * FROM transactions ORDER BY date DESC'),
@@ -148,6 +148,7 @@ router.get('/bootstrap', async (req, res) => {
             safeQueryDB('SELECT * FROM raffle_winners'),
             safeQueryDB('SELECT * FROM locations'),
             safeQueryDB("SELECT setting_value FROM settings WHERE setting_key = 'whatsapp_config'"),
+            safeQueryDB('SELECT * FROM special_numbers ORDER BY price ASC, phone_number ASC'),
         ]);
 
         const parsedUsers = parseNumerics(users, ['points', 'kupon_undian']);
@@ -155,6 +156,8 @@ router.get('/bootstrap', async (req, res) => {
         const parsedRewards = parseNumerics(rewards, ['points', 'stock']);
         const parsedRedemptions = parseNumerics(redemptions, ['points_spent']);
         const parsedLoyalty = parseNumerics(loyaltyPrograms, ['points_needed', 'multiplier']);
+        const parsedSpecialNumbers = parseNumerics(specialNumbers, ['price']);
+
 
         const structuredUsers = parsedUsers.map(structureUser);
         
@@ -179,6 +182,7 @@ router.get('/bootstrap', async (req, res) => {
             raffleWinners: raffleWinners.map(w => toCamelCase(w)),
             locations: locations.map(l => toCamelCase(l)),
             whatsAppSettings,
+            specialNumbers: parsedSpecialNumbers.map(n => ({...toCamelCase(n), isSold: !!n.is_sold})),
         });
     } catch (error) {
         // --- IMPROVED ERROR LOGGING ---
@@ -473,6 +477,63 @@ uploadRouter.post('/users/bulk-level-update', excelUpload.single('levelFile'), a
     } catch (error) {
         await connection.rollback();
         console.error('Bulk level update error:', error);
+        res.status(500).json({ message: 'Gagal memproses file.', error: error.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// BULK SPECIAL NUMBER UPLOAD
+uploadRouter.post('/special-numbers/bulk', excelUpload.single('specialNumbersFile'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'File tidak ditemukan.' });
+    }
+    const connection = await db.getConnection();
+    try {
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        if (data.length === 0) return res.status(400).json({ message: 'File kosong.' });
+
+        const headers = Object.keys(data[0]);
+        const required = ['nomor', 'harga'];
+        if (!required.every(h => headers.includes(h))) {
+            return res.status(400).json({ message: `File harus punya kolom: ${required.join(', ')}` });
+        }
+
+        await connection.beginTransaction();
+        const errors = [];
+        let successCount = 0;
+        const insertSql = 'INSERT INTO special_numbers (phone_number, price) VALUES ?';
+        const values = [];
+
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            const phoneNumber = String(row.nomor).replace(/[^0-9]/g, '');
+            const price = parseFloat(row.harga);
+
+            if (!phoneNumber || isNaN(price)) {
+                errors.push(`Baris ${i + 2}: Nomor atau harga tidak valid.`);
+                continue;
+            }
+            values.push([phoneNumber, price]);
+        }
+        
+        if (values.length > 0) {
+            const [result] = await connection.query(insertSql, [values]);
+            successCount = result.affectedRows;
+        }
+
+        if (errors.length > 0) {
+             await connection.rollback();
+             return res.status(400).json({ message: 'Upload gagal. Ada error di file.', errors });
+        }
+
+        await connection.commit();
+        res.status(200).json({ message: `Upload berhasil. ${successCount} nomor ditambahkan.` });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Bulk special number upload error:', error);
         res.status(500).json({ message: 'Gagal memproses file.', error: error.message });
     } finally {
         connection.release();
@@ -1098,6 +1159,53 @@ router.post('/settings/whatsapp', async (req, res) => {
         res.status(500).json({ message: "Gagal menyimpan pengaturan." });
     }
 });
+
+// SPECIAL NUMBER MANAGEMENT
+router.get('/special-numbers/all', async (req, res) => {
+    try {
+        const [rows] = await db.execute('SELECT * FROM special_numbers ORDER BY is_sold ASC, price ASC, phone_number ASC');
+        res.json(rows.map(r => ({...toCamelCase(r), isSold: !!r.is_sold})));
+    } catch (e) { res.status(500).json({message: e.message}); }
+});
+
+router.post('/special-numbers', async (req, res) => {
+    const { phoneNumber, price } = req.body;
+    if (!phoneNumber || !price) return res.status(400).json({message: 'Nomor dan harga dibutuhkan.'});
+    try {
+        const [result] = await db.execute('INSERT INTO special_numbers (phone_number, price) VALUES (?, ?)', [phoneNumber, price]);
+        res.status(201).json({ id: result.insertId, phoneNumber, price, isSold: false });
+    } catch (e) { res.status(500).json({message: e.message}); }
+});
+
+router.put('/special-numbers/:id', async (req, res) => {
+    const { id } = req.params;
+    const { phoneNumber, price } = req.body;
+    if (!phoneNumber || !price) return res.status(400).json({message: 'Nomor dan harga dibutuhkan.'});
+    try {
+        await db.execute('UPDATE special_numbers SET phone_number = ?, price = ? WHERE id = ?', [phoneNumber, price, id]);
+        res.json({ message: 'Nomor berhasil diperbarui.'});
+    } catch (e) { res.status(500).json({message: e.message}); }
+});
+
+router.patch('/special-numbers/:id/status', async (req, res) => {
+    const { id } = req.params;
+    const { isSold } = req.body;
+    if (typeof isSold !== 'boolean') return res.status(400).json({message: 'Status `isSold` (boolean) dibutuhkan.'});
+    try {
+        await db.execute('UPDATE special_numbers SET is_sold = ? WHERE id = ?', [isSold, id]);
+        res.json({ message: 'Status berhasil diperbarui.'});
+    } catch (e) { res.status(500).json({message: e.message}); }
+});
+
+router.delete('/special-numbers/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [result] = await db.execute('DELETE FROM special_numbers WHERE id = ?', [id]);
+        if (result.affectedRows === 0) return res.status(404).json({ message: 'Nomor tidak ditemukan.'});
+        res.json({ message: 'Nomor berhasil dihapus.'});
+    } catch (e) { res.status(500).json({message: e.message}); }
+});
+
 
 router.get('/rewards', async (req, res) => {
     const rewards = await safeQueryDB('SELECT * FROM rewards ORDER BY points ASC');

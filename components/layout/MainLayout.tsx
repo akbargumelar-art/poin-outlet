@@ -21,6 +21,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
         { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
         { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
+        { name: 'Nomor', icon: ICONS.phone, page: 'manajemenNomor' as Page },
         { name: 'Tukar Poin', icon: ICONS.history, page: 'manajemenPenukaran' as Page },
         { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
         { name: 'Transaksi', icon: ICONS.calculator, page: 'manajemenPoin' as Page },
@@ -33,18 +34,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
         { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
         { name: 'Tukar Poin', icon: ICONS.history, page: 'manajemenPenukaran' as Page },
+        { name: 'Nomor', icon: ICONS.phone, page: 'nomorSpesial' as Page },
         { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
         { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
     ];
+    
+    const pelangganMenu = [
+        { name: 'Program', icon: ICONS.trophy, page: 'pencapaianProgram' as Page },
+        { name: 'Hadiah', icon: ICONS.gift, page: 'tukarPoin' as Page },
+        { name: 'Home', icon: ICONS.dashboard, page: 'pelangganDashboard' as Page },
+        { name: 'Nomor', icon: ICONS.phone, page: 'nomorSpesial' as Page },
+        { name: 'History', icon: ICONS.history, page: 'historyPembelian' as Page },
+        { name: 'Logout', icon: ICONS.logout, action: handleLogout }
+    ];
 
     const MENU_ITEMS = {
-        pelanggan: [
-            { name: 'Program', icon: ICONS.trophy, page: 'pencapaianProgram' as Page },
-            { name: 'Hadiah', icon: ICONS.gift, page: 'tukarPoin' as Page },
-            { name: 'Home', icon: ICONS.dashboard, page: 'pelangganDashboard' as Page },
-            { name: 'History', icon: ICONS.history, page: 'historyPembelian' as Page },
-            { name: 'Logout', icon: ICONS.logout, action: handleLogout }
-        ],
+        pelanggan: pelangganMenu,
         admin: adminMenu,
         supervisor: supervisorMenu,
     };
@@ -52,7 +57,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
     const navItems = MENU_ITEMS[currentUser.role] || [];
     const isPelanggan = currentUser.role === 'pelanggan';
 
-    const shouldCollapseMenu = !isPelanggan && navItems.length > 5;
+    const shouldCollapseMenu = navItems.length > 5;
     const mainItems = shouldCollapseMenu ? navItems.slice(0, 4) : navItems;
     const dropdownItems = shouldCollapseMenu ? navItems.slice(4) : [];
 

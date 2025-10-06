@@ -15,7 +15,8 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
         senderNumber: '',
         recipientType: 'personal',
         recipientId: '',
-        apiKey: ''
+        apiKey: '',
+        specialNumberRecipient: ''
     });
 
     useEffect(() => {
@@ -104,7 +105,11 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                     </div>
 
                     <div className="pt-4 border-t">
-                        <label className="block text-gray-600 text-sm font-semibold mb-2">Tujuan Penerima Notifikasi</label>
+                         <h3 className="text-lg font-bold text-gray-700">Tujuan Notifikasi</h3>
+                    </div>
+
+                    <div>
+                        <label className="block text-gray-600 text-sm font-semibold mb-2">Tujuan Notifikasi Penukaran Poin</label>
                         <select 
                             name="recipientType"
                             value={formData.recipientType}
@@ -115,27 +120,34 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                             <option value="personal">Nomor Personal</option>
                             <option value="group">Grup WhatsApp</option>
                         </select>
-                    </div>
-                    
-                    <div>
-                        <label className="block text-gray-600 text-sm font-semibold mb-2">
-                           {formData.recipientType === 'personal' ? 'Nomor WhatsApp Penerima' : 'ID Grup Penerima'}
-                        </label>
-                        <input 
+                         <input 
                             type="text"
                             name="recipientId"
                             value={formData.recipientId}
                             onChange={handleChange}
                             placeholder={formData.recipientType === 'personal' ? 'Contoh: 6289876543210' : 'Contoh: 12036304@g.us'}
+                            className="input-field mt-2"
+                            required
+                            disabled={isReadOnly}
+                        />
+                    </div>
+                    
+                    <div>
+                        <label className="block text-gray-600 text-sm font-semibold mb-2">
+                           Nomor Penerima Pesanan Nomor Spesial
+                        </label>
+                        <input 
+                            type="text"
+                            name="specialNumberRecipient"
+                            value={formData.specialNumberRecipient}
+                            onChange={handleChange}
+                            placeholder="Contoh: 628123456789 (tanpa + atau 0 di depan)"
                             className="input-field"
                             required
                             disabled={isReadOnly}
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            {formData.recipientType === 'personal' 
-                                ? 'Nomor yang akan menerima notifikasi. Awali dengan 62.' 
-                                : 'ID Grup WhatsApp yang akan menerima notifikasi. Biasanya diakhiri dengan @g.us'
-                            }
+                            Nomor yang akan menerima pesanan nomor spesial dari mitra. Awali dengan kode negara (62).
                         </p>
                     </div>
                     

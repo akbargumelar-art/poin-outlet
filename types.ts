@@ -17,7 +17,9 @@ export type Page =
     | 'manajemenHadiah'
     | 'manajemenUndian'
     | 'manajemenPenukaran'
-    | 'manajemenNotifikasi';
+    | 'manajemenNotifikasi'
+    | 'nomorSpesial'
+    | 'manajemenNomor';
 
 export interface UserProfile {
     nama: string;
@@ -140,10 +142,18 @@ export interface Location {
     kecamatan: string;
 }
 
+export interface SpecialNumber {
+    id: number;
+    phoneNumber: string;
+    price: number;
+    isSold: boolean;
+}
+
 export interface WhatsAppSettings {
     webhookUrl: string;
     senderNumber: string;
     recipientType: 'personal' | 'group';
     recipientId: string;
     apiKey: string;
+    specialNumberRecipient: string;
 }

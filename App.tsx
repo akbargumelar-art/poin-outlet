@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, PrizeCategory, WhatsAppSettings } from './types';
+import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, PrizeCategory, WhatsAppSettings, SpecialNumber } from './types';
 
 import Modal from './components/common/Modal';
 import MainLayout from './components/layout/MainLayout';
@@ -20,6 +20,9 @@ import ManajemenHadiah from './pages/admin/ManajemenHadiah';
 import ManajemenUndian from './pages/admin/ManajemenUndian';
 import ManajemenPenukaran from './pages/admin/ManajemenPenukaran';
 import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
+import NomorSpesialPage from './pages/shared/NomorSpesialPage';
+import ManajemenNomor from './pages/admin/ManajemenNomorSpesial';
+
 
 function App() {
     const [currentPage, setCurrentPage] = useState<Page>('landing');
@@ -39,6 +42,7 @@ function App() {
     const [raffleWinners, setRaffleWinners] = useState<RaffleWinner[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
     const [whatsAppSettings, setWhatsAppSettings] = useState<WhatsAppSettings | null>(null);
+    const [specialNumbers, setSpecialNumbers] = useState<SpecialNumber[]>([]);
 
 
     const fetchBootstrapData = useCallback(async () => {
@@ -57,6 +61,7 @@ function App() {
             setRaffleWinners(data.raffleWinners || []);
             setLocations(data.locations || []);
             setWhatsAppSettings(data.whatsAppSettings || null);
+            setSpecialNumbers(data.specialNumbers || []);
         } catch (error) {
             console.error("Bootstrap failed:", error);
             setModal({ show: true, title: "Error", content: <p>Gagal memuat data dari server. Silakan coba lagi nanti.</p> });
@@ -614,6 +619,85 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
+    const adminManageSpecialNumber = useCallback(async (numberData: Omit<SpecialNumber, 'id'> & { id?: number }) => {
+        try {
+            const method = numberData.id ? 'PUT' : 'POST';
+            const url = numberData.id ? `/api/special-numbers/${numberData.id}` : '/api/special-numbers';
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(numberData)
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            await fetchBootstrapData();
+            setModal({ show: true, title: "Sukses", content: <p>Nomor spesial berhasil disimpan.</p> });
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    }, [fetchBootstrapData]);
+
+    const adminDeleteSpecialNumber = useCallback(async (id: number) => {
+        try {
+            const response = await fetch(`/api/special-numbers/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            await fetchBootstrapData();
+            setModal({ show: true, title: "Sukses", content: <p>{result.message}</p> });
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    }, [fetchBootstrapData]);
+
+    const adminUpdateSpecialNumberStatus = useCallback(async (id: number, isSold: boolean) => {
+        try {
+            const response = await fetch(`/api/special-numbers/${id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isSold })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            await fetchBootstrapData();
+            setModal({ show: true, title: "Sukses", content: <p>Status nomor berhasil diperbarui.</p> });
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    }, [fetchBootstrapData]);
+
+    const adminBulkUploadNumbers = useCallback(async (file: File) => {
+        try {
+            const formData = new FormData();
+            formData.append('specialNumbersFile', file);
+            const response = await fetch('/api/special-numbers/bulk', {
+                method: 'POST',
+                body: formData,
+            });
+            const result = await response.json();
+            if (!response.ok) throw result;
+            await fetchBootstrapData();
+            setModal({
+                show: true,
+                title: "Upload Selesai",
+                content: (
+                    <div>
+                        <p>{result.message}</p>
+                        {result.errors && result.errors.length > 0 && (
+                            <div className="mt-4 text-xs text-left bg-red-50 p-2 rounded max-h-40 overflow-y-auto">
+                                <strong>Detail Kegagalan:</strong>
+                                <ul className="list-disc pl-5">
+                                    {result.errors.map((e: string, i: number) => <li key={i}>{e}</li>)}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )
+            });
+        } catch (error: any) {
+            setModal({ show: true, title: "Error Upload", content: <p>{error.message || "Terjadi kesalahan."}</p> });
+        }
+    }, [fetchBootstrapData]);
+
     if (isLoading) {
         return <div className="min-h-screen flex justify-center items-center neu-bg"><p className="text-xl font-semibold text-gray-600">Memuat Aplikasi...</p></div>
     }
@@ -632,7 +716,7 @@ function App() {
         }
         
         const isReadOnly = currentUser.role === 'supervisor';
-        const restrictedPagesForSupervisor: Page[] = ['tambahUser', 'manajemenPoin', 'manajemenNotifikasi'];
+        const restrictedPagesForSupervisor: Page[] = ['tambahUser', 'manajemenPoin', 'manajemenNotifikasi', 'manajemenNomor'];
         if (isReadOnly && restrictedPagesForSupervisor.includes(currentPage)) {
              setCurrentPage('adminDashboard');
         }
@@ -653,6 +737,8 @@ function App() {
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isReadOnly} />,
             manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} isReadOnly={isReadOnly} />,
             manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isReadOnly} />,
+            nomorSpesial: <NomorSpesialPage currentUser={currentUser} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} />,
+            manajemenNomor: <ManajemenNomor numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} />,
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
 
