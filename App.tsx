@@ -656,29 +656,34 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
-    const adminUpdateSpecialNumberStatus = useCallback(async (id: number, isSold: boolean) => {
-        try {
-            const response = await fetch(`/api/special-numbers/${id}/status`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isSold })
-            });
-            const result = await response.json();
+    const adminUpdateSpecialNumberStatus = useCallback((id: number, isSold: boolean) => {
+        // Optimistic UI update first
+        setSpecialNumbers(currentNumbers =>
+            currentNumbers.map(num =>
+                num.id === id ? { ...num, isSold } : num
+            )
+        );
+
+        // Then send request to server
+        fetch(`/api/special-numbers/${id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isSold })
+        })
+        .then(async response => {
             if (!response.ok) {
+                const result = await response.json();
                 throw new Error(result.message || 'Gagal memperbarui status dari server.');
             }
-            
-            setSpecialNumbers(currentNumbers =>
-                currentNumbers.map(num =>
-                    num.id === id ? { ...num, isSold } : num
-                )
-            );
-
+            // Success is already reflected, show a success modal.
             setModal({ show: true, title: "Sukses", content: <p>Status nomor berhasil diperbarui.</p> });
-        } catch (error: any) {
+        })
+        .catch(error => {
+            // If the server update fails, revert the optimistic change
+            setSpecialNumbers(specialNumbers); // Revert to the original state
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
-        }
-    }, []);
+        });
+    }, [specialNumbers]);
 
     const adminBulkUploadNumbers = useCallback(async (file: File) => {
         try {
