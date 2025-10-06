@@ -12,16 +12,21 @@ interface ManajemenPoinProps {
     adminAddTransaction: (data: Omit<Transaction, 'id' | 'pointsEarned'>) => void;
     adminBulkAddTransactions: (file: File) => void;
     adminUpdatePointsManual: (userId: string, points: number, action: 'tambah' | 'kurang') => void;
+    adminBulkUpdateLevels: (file: File) => void;
     isReadOnly?: boolean;
 }
 
-const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, loyaltyPrograms, updateLoyaltyProgram, adminAddTransaction, adminBulkAddTransactions, adminUpdatePointsManual, isReadOnly }) => {
+const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, loyaltyPrograms, updateLoyaltyProgram, adminAddTransaction, adminBulkAddTransactions, adminUpdatePointsManual, adminBulkUpdateLevels, isReadOnly }) => {
     const [manualUserId, setManualUserId] = useState('');
     const [manualPoints, setManualPoints] = useState(0);
     const [manualAction, setManualAction] = useState<'tambah' | 'kurang'>('tambah');
     const [txData, setTxData] = useState({ userId: '', produk: '', harga: 0, kuantiti: 0, date: new Date().toISOString().split('T')[0]});
-    const [showUploadModal, setShowUploadModal] = useState(false);
-    const [uploadFile, setUploadFile] = useState<File | null>(null);
+    
+    const [showTxUploadModal, setShowTxUploadModal] = useState(false);
+    const [txUploadFile, setTxUploadFile] = useState<File | null>(null);
+    
+    const [showLevelUploadModal, setShowLevelUploadModal] = useState(false);
+    const [levelUploadFile, setLevelUploadFile] = useState<File | null>(null);
 
     const selectedUser = users.find(u => u.id === txData.userId);
     const loyaltyLevel = loyaltyPrograms.find(p => p.level === selectedUser?.level);
@@ -50,24 +55,38 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, loyaltyPrograms, u
         setManualUserId('');
     };
     
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleTxFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setUploadFile(e.target.files[0]);
+            setTxUploadFile(e.target.files[0]);
         }
     };
 
-    const handleBulkUpload = () => {
-        if (uploadFile) {
-            adminBulkAddTransactions(uploadFile);
-            setShowUploadModal(false);
-            setUploadFile(null);
+    const handleBulkTxUpload = () => {
+        if (txUploadFile) {
+            adminBulkAddTransactions(txUploadFile);
+            setShowTxUploadModal(false);
+            setTxUploadFile(null);
+        }
+    }
+
+    const handleLevelFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setLevelUploadFile(e.target.files[0]);
+        }
+    };
+
+    const handleBulkLevelUpload = () => {
+        if (levelUploadFile) {
+            adminBulkUpdateLevels(levelUploadFile);
+            setShowLevelUploadModal(false);
+            setLevelUploadFile(null);
         }
     }
     
     return (
         <div>
-            {showUploadModal && (
-                 <Modal show={true} onClose={() => setShowUploadModal(false)} title="Upload Transaksi Massal">
+            {showTxUploadModal && (
+                 <Modal show={true} onClose={() => setShowTxUploadModal(false)} title="Upload Transaksi Massal">
                     <div>
                         <p className="mb-4">Pastikan file Excel Anda memiliki kolom berikut dengan urutan yang benar:</p>
                         <div className="bg-gray-100 p-3 rounded-lg text-sm font-mono mb-4">
@@ -82,13 +101,41 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, loyaltyPrograms, u
                             <input 
                                 type="file" 
                                 accept=".xlsx, .xls"
-                                onChange={handleFileChange}
+                                onChange={handleTxFileChange}
                                 className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
                             />
                         </div>
                         <div className="flex justify-center gap-4">
-                            <button onClick={() => setShowUploadModal(false)} className="neu-button">Batal</button>
-                            <button onClick={handleBulkUpload} className="neu-button text-red-600" disabled={!uploadFile}>Proses Upload</button>
+                            <button onClick={() => setShowTxUploadModal(false)} className="neu-button">Batal</button>
+                            <button onClick={handleBulkTxUpload} className="neu-button text-red-600" disabled={!txUploadFile}>Proses Upload</button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {showLevelUploadModal && (
+                 <Modal show={true} onClose={() => setShowLevelUploadModal(false)} title="Upload Level Mitra Massal">
+                    <div>
+                        <p className="mb-4">Pastikan file Excel Anda memiliki kolom berikut dengan urutan yang benar:</p>
+                        <div className="bg-gray-100 p-3 rounded-lg text-sm font-mono mb-4">
+                            id_digipos, level
+                        </div>
+                        <a href="/template_level.xlsx" download className="neu-button !w-auto px-4 flex items-center gap-2 mb-6">
+                            <Icon path={ICONS.download} className="w-5 h-5"/>
+                            Download Template
+                        </a>
+                        <div className="mb-6">
+                            <label className="block text-gray-600 text-sm font-semibold mb-2">Pilih File Excel</label>
+                            <input 
+                                type="file" 
+                                accept=".xlsx, .xls"
+                                onChange={handleLevelFileChange}
+                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                            />
+                        </div>
+                        <div className="flex justify-center gap-4">
+                            <button onClick={() => setShowLevelUploadModal(false)} className="neu-button">Batal</button>
+                            <button onClick={handleBulkLevelUpload} className="neu-button text-red-600" disabled={!levelUploadFile}>Proses Upload</button>
                         </div>
                     </div>
                 </Modal>
@@ -152,9 +199,12 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, loyaltyPrograms, u
                     </div>
 
                     <div className="neu-card p-6">
-                         <h2 className="text-xl font-bold text-gray-700 mb-4">Upload Transaksi Massal</h2>
-                         <p className="text-sm text-gray-600 mb-4">Gunakan fitur ini untuk meng-upload banyak data transaksi sekaligus dari file Excel.</p>
-                         <button onClick={() => setShowUploadModal(true)} className="neu-button w-full" disabled={isReadOnly}>Upload File Excel</button>
+                         <h2 className="text-xl font-bold text-gray-700 mb-4">Upload Massal</h2>
+                         <p className="text-sm text-gray-600 mb-4">Gunakan fitur ini untuk meng-upload banyak data sekaligus dari file Excel.</p>
+                         <div className="flex flex-col md:flex-row gap-4">
+                            <button onClick={() => setShowTxUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Transaksi</button>
+                            <button onClick={() => setShowLevelUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Level Mitra</button>
+                         </div>
                     </div>
 
                 </div>

@@ -551,6 +551,68 @@ function App() {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
     }, [fetchBootstrapData]);
+    
+    const adminUpdateUserLevel = useCallback(async (userId: string, level: string) => {
+        try {
+            const response = await fetch(`/api/users/${userId}/level`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            
+            await fetchBootstrapData();
+            setModal({ show: true, title: "Sukses", content: <p>Level untuk user <b>{result.profile.nama}</b> berhasil diubah menjadi <b>{result.level}</b>.</p> });
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    }, [fetchBootstrapData]);
+
+    const adminBulkUpdateLevels = useCallback(async (file: File) => {
+        try {
+            const formData = new FormData();
+            formData.append('levelFile', file);
+
+            const response = await fetch('/api/users/bulk-level-update', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw result;
+
+            await fetchBootstrapData();
+
+            setModal({
+                show: true,
+                title: "Upload Selesai",
+                content: (
+                    <div>
+                        <p>{result.message}</p>
+                    </div>
+                )
+            });
+        } catch (error: any) {
+            setModal({
+                show: true,
+                title: "Error Upload",
+                content: (
+                    <div>
+                        <p>{error.message || "Terjadi kesalahan yang tidak diketahui."}</p>
+                        {error.errors && Array.isArray(error.errors) && error.errors.length > 0 && (
+                             <div className="mt-4 text-xs text-left bg-red-50 p-2 rounded max-h-40 overflow-y-auto">
+                                <strong>Detail Kegagalan:</strong>
+                                <ul className="list-disc pl-5">
+                                    {error.errors.map((e: string, i: number) => <li key={i}>{e}</li>)}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )
+            });
+        }
+    }, [fetchBootstrapData]);
 
     if (isLoading) {
         return <div className="min-h-screen flex justify-center items-center neu-bg"><p className="text-xl font-semibold text-gray-600">Memuat Aplikasi...</p></div>
@@ -583,10 +645,10 @@ function App() {
             tukarPoin: <TukarPoin currentUser={currentUser} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} loyaltyPrograms={loyaltyPrograms} />,
             editProfile: <EditProfilePage currentUser={currentUser} updateUserProfile={updateUserProfile} handleLogout={handleLogout} handleChangePassword={handleChangePassword} />,
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms}/>,
-            manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} />,
+            manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
             manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} isReadOnly={isReadOnly} />,
-            manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} isReadOnly={isReadOnly} />,
+            manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} adminBulkUpdateLevels={adminBulkUpdateLevels} isReadOnly={isReadOnly} />,
             manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} />,
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isReadOnly} />,
             manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} isReadOnly={isReadOnly} />,

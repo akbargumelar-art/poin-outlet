@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { User, Page, Transaction } from '../../types';
+import { User, Page, Transaction, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
@@ -9,12 +9,16 @@ interface ManajemenPelangganProps {
     transactions: Transaction[];
     setCurrentPage: (page: Page) => void;
     isReadOnly?: boolean;
+    loyaltyPrograms: LoyaltyProgram[];
+    adminUpdateUserLevel: (userId: string, level: string) => void;
 }
 
-const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, setCurrentPage, isReadOnly }) => {
+const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
+    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [selectedLevel, setSelectedLevel] = useState('');
 
     const pelangganUsers = useMemo(() => users.filter(u => u.role === 'pelanggan'), [users]);
     const allTaps = useMemo(() => [...new Set(pelangganUsers.map(u => u.profile.tap).filter((tap): tap is string => !!tap))].sort(), [pelangganUsers]);
@@ -53,6 +57,23 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
         setSearchTerm('');
         setTapFilter('');
         setSalesforceFilter('');
+    };
+
+    const handleEditUser = (user: User) => {
+        setEditingUser(user);
+        setSelectedLevel(user.level || '');
+    };
+
+    const handleCloseModal = () => {
+        setEditingUser(null);
+        setSelectedLevel('');
+    };
+    
+    const handleLevelUpdate = () => {
+        if (editingUser && selectedLevel) {
+            adminUpdateUserLevel(editingUser.id, selectedLevel);
+            handleCloseModal();
+        }
     };
     
     const handleExport = () => {
@@ -123,6 +144,30 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
 
     return (
         <div>
+            {editingUser && (
+                <Modal show={true} onClose={handleCloseModal} title={`Ubah Level: ${editingUser.profile.nama}`}>
+                    <div className="space-y-4">
+                        <p>Pilih level baru untuk mitra ini. Perubahan ini tidak dipengaruhi oleh jumlah poin saat ini.</p>
+                        <div>
+                            <label className="block text-gray-600 text-sm font-semibold mb-2">Level Loyalitas</label>
+                            <select 
+                                value={selectedLevel} 
+                                onChange={(e) => setSelectedLevel(e.target.value)} 
+                                className="input-field"
+                            >
+                                {loyaltyPrograms.map(p => (
+                                    <option key={p.level} value={p.level}>{p.level}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex justify-end gap-4 pt-4">
+                            <button onClick={handleCloseModal} className="neu-button">Batal</button>
+                            <button onClick={handleLevelUpdate} className="neu-button text-red-600">Simpan Perubahan</button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Mitra Outlet</h1>
                 <div className="flex gap-2">
@@ -190,6 +235,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                             <th className="p-4 font-semibold text-right whitespace-nowrap">Total Pembelian</th>
                             <th className="p-4 font-semibold text-right whitespace-nowrap">Poin</th>
                             <th className="p-4 font-semibold whitespace-nowrap">Level</th>
+                            {!isReadOnly && <th className="p-4 font-semibold whitespace-nowrap">Aksi</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -202,6 +248,13 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                                 <td className="p-4 text-right whitespace-nowrap">Rp {(userTotals.get(user.id)?.totalPembelian || 0).toLocaleString('id-ID')}</td>
                                 <td className="p-4 text-right font-bold text-red-600 whitespace-nowrap">{(user.points || 0).toLocaleString('id-ID')}</td>
                                 <td className="p-4 whitespace-nowrap">{user.level}</td>
+                                {!isReadOnly && (
+                                    <td className="p-4">
+                                        <button onClick={() => handleEditUser(user)} className="neu-button-icon text-blue-600" title="Ubah Level">
+                                            <Icon path={ICONS.edit} className="w-5 h-5"/>
+                                        </button>
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>

@@ -395,6 +395,90 @@ uploadRouter.post('/programs/:id/progress', excelUpload.single('progressFile'), 
     }
 });
 
+// BULK LEVEL UPDATE
+uploadRouter.post('/users/bulk-level-update', excelUpload.single('levelFile'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'File tidak ditemukan.' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(worksheet);
+
+        if (data.length === 0) {
+            return res.status(400).json({ message: 'File Excel kosong atau format tidak sesuai.' });
+        }
+
+        const headers = Object.keys(data[0]);
+        const requiredHeaders = ['id_digipos', 'level'];
+        if (!requiredHeaders.every(h => headers.includes(h))) {
+            return res.status(400).json({ message: `File Excel harus memiliki kolom: ${requiredHeaders.join(', ')}.` });
+        }
+
+        await connection.beginTransaction();
+
+        let successCount = 0;
+        const errors = [];
+
+        const [validLevelsRows] = await connection.execute('SELECT level FROM loyalty_programs');
+        const validLevels = validLevelsRows.map(l => l.level);
+
+        for (const row of data) {
+            const userId = String(row.id_digipos);
+            const newLevel = row.level;
+
+            if (!userId || !newLevel) {
+                errors.push(`Baris tidak valid: ID atau Level kosong untuk ID: ${userId || 'KOSONG'}`);
+                continue;
+            }
+
+            if (!validLevels.includes(newLevel)) {
+                errors.push(`Level '${newLevel}' tidak valid untuk ID: ${userId}. Level yang valid: ${validLevels.join(', ')}`);
+                continue;
+            }
+            
+            const [result] = await connection.execute(
+                "UPDATE users SET level = ? WHERE id = ? AND role = 'pelanggan'",
+                [newLevel, userId]
+            );
+
+            if (result.affectedRows > 0) {
+                successCount++;
+            } else {
+                errors.push(`User dengan ID ${userId} tidak ditemukan atau bukan Mitra Outlet.`);
+            }
+        }
+
+        if (errors.length > 0) {
+            await connection.rollback();
+            return res.status(400).json({
+                message: `Ditemukan ${errors.length} error. Tidak ada data yang diperbarui. Silakan perbaiki file dan coba lagi.`,
+                successCount: 0,
+                failCount: data.length,
+                errors
+            });
+        }
+        
+        await connection.commit();
+        res.status(200).json({
+            message: `Proses selesai. ${successCount} level mitra berhasil diperbarui.`,
+            successCount,
+            failCount: errors.length,
+            errors
+        });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Bulk level update error:', error);
+        res.status(500).json({ message: 'Gagal memproses file.', error: error.message });
+    } finally {
+        connection.release();
+    }
+});
+
 
 // --- JSON API ENDPOINTS (on main router) ---
 
@@ -479,6 +563,37 @@ router.post('/users/:id/change-password', async (req, res) => {
     } catch (error) {
         console.error('Change password error:', error);
         res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    }
+});
+
+// MANUAL USER LEVEL UPDATE
+router.put('/users/:id/level', async (req, res) => {
+    const { id } = req.params;
+    const { level } = req.body;
+
+    if (!level) {
+        return res.status(400).json({ message: 'Level baru dibutuhkan.' });
+    }
+    
+    try {
+        const [validLevels] = await db.execute('SELECT level FROM loyalty_programs');
+        const allowedLevels = validLevels.map(l => l.level);
+        if (!allowedLevels.includes(level)) {
+            return res.status(400).json({ message: `Level tidak valid. Pilihan: ${allowedLevels.join(', ')}` });
+        }
+
+        const [result] = await db.execute('UPDATE users SET level = ? WHERE id = ?', [level, id]);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'User tidak ditemukan.' });
+        }
+
+        const [updatedUserRows] = await db.execute('SELECT * FROM users WHERE id = ?', [id]);
+        res.json(structureUser(updatedUserRows[0]));
+
+    } catch (error) {
+        console.error('Update user level error:', error);
+        res.status(500).json({ message: 'Gagal memperbarui level user.' });
     }
 });
 
