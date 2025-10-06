@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SpecialNumber, WhatsAppSettings } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
+
+type SortableKeys = keyof SpecialNumber | 'phoneNumber' | 'sn' | 'lokasi' | 'price' | 'isSold';
 
 // --- Form Component ---
 interface NumberFormProps {
@@ -59,6 +61,8 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [recipientNumber, setRecipientNumber] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'isSold', direction: 'asc' });
+
 
     useEffect(() => {
         setRecipientNumber(settings?.specialNumberRecipient || '');
@@ -93,6 +97,40 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
         if (e.target.files && e.target.files[0]) {
             adminUploadSpecialNumberBanner(e.target.files[0]);
         }
+    };
+
+    const sortedNumbers = useMemo(() => {
+        let sortableItems = [...numbers];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                const aValue = a[sortConfig.key];
+                const bValue = b[sortConfig.key];
+                if (aValue === undefined || aValue === null) return 1;
+                if (bValue === undefined || bValue === null) return -1;
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [numbers, sortConfig]);
+
+    const requestSort = (key: SortableKeys) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key: SortableKeys) => {
+        if (!sortConfig || sortConfig.key !== key) {
+            return <Icon path="M12 5.83l2.59 2.59L16 7l-4-4-4 4 1.41 1.41L10 5.83v12.34h2V5.83z" className="w-4 h-4 text-gray-400" />;
+        }
+        if (sortConfig.direction === 'asc') {
+            return <Icon path="M12 4l-1.41 1.41L12 2.83l1.41 1.41L12 4zm0 16l-1.41-1.41L12 21.17l1.41-1.41L12 20z" className="w-4 h-4" />;
+        }
+        return <Icon path="M12 20l1.41-1.41L12 21.17l-1.41-1.41L12 20zM12 4l1.41 1.41L12 2.83 10.59 4.24 12 4z" className="w-4 h-4" />;
     };
 
 
@@ -150,45 +188,44 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ numbers, onSave,
                 </div>
             </div>
 
-            <div className="neu-card-flat overflow-hidden flex-grow">
-                 <div className="h-full overflow-y-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
-                            <tr>
-                                <th className="p-4 font-semibold">Nomor</th>
-                                <th className="p-4 font-semibold">SN</th>
-                                <th className="p-4 font-semibold">Lokasi</th>
-                                <th className="p-4 font-semibold">Harga</th>
-                                <th className="p-4 font-semibold">Status</th>
-                                <th className="p-4 font-semibold">Aksi</th>
+            <div className="flex-grow overflow-auto neu-card-flat">
+                <table className="w-full text-left">
+                    <thead className="bg-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
+                        <tr>
+                            <th className="p-4"><button onClick={() => requestSort('phoneNumber')} className="font-semibold flex items-center gap-1">Nomor {getSortIcon('phoneNumber')}</button></th>
+                            <th className="p-4"><button onClick={() => requestSort('sn')} className="font-semibold flex items-center gap-1">SN {getSortIcon('sn')}</button></th>
+                            <th className="p-4"><button onClick={() => requestSort('lokasi')} className="font-semibold flex items-center gap-1">Lokasi {getSortIcon('lokasi')}</button></th>
+                            <th className="p-4"><button onClick={() => requestSort('price')} className="font-semibold flex items-center gap-1">Harga {getSortIcon('price')}</button></th>
+                            <th className="p-4"><button onClick={() => requestSort('isSold')} className="font-semibold flex items-center gap-1">Status {getSortIcon('isSold')}</button></th>
+                            <th className="p-4 font-semibold">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sortedNumbers.map(n => (
+                            <tr key={n.id} className="border-t border-slate-200/80">
+                                <td className="p-4 font-bold text-gray-800">{n.phoneNumber}</td>
+                                <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>
+                                <td className="p-4">{n.lokasi || '-'}</td>
+                                <td className="p-4">Rp {n.price.toLocaleString('id-ID')}</td>
+                                <td className="p-4">
+                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${n.isSold ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                        {n.isSold ? 'Terjual' : 'Tersedia'}
+                                    </span>
+                                </td>
+                                <td className="p-4">
+                                    <div className="flex gap-2">
+                                        <button onClick={() => onStatusChange(n.id, !n.isSold)} className="neu-button-icon" title={n.isSold ? 'Tandai Tersedia' : 'Tandai Terjual'}>
+                                            <Icon path={n.isSold ? ICONS.eye : ICONS.eyeOff} className="w-5 h-5" />
+                                        </button>
+                                        <button onClick={() => { setEditingNumber(n); setShowFormModal(true); }} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5" /></button>
+                                        <button onClick={() => setDeletingId(n.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5" /></button>
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {numbers.map(n => (
-                                <tr key={n.id} className="border-t border-slate-200/80">
-                                    <td className="p-4 font-bold text-gray-800">{n.phoneNumber}</td>
-                                    <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>
-                                    <td className="p-4">{n.lokasi || '-'}</td>
-                                    <td className="p-4">Rp {n.price.toLocaleString('id-ID')}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${n.isSold ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                            {n.isSold ? 'Terjual' : 'Tersedia'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex gap-2">
-                                            <button onClick={() => onStatusChange(n.id, !n.isSold)} className="neu-button-icon" title={n.isSold ? 'Tandai Tersedia' : 'Tandai Terjual'}>
-                                                <Icon path={n.isSold ? ICONS.eye : ICONS.eyeOff} className="w-5 h-5" />
-                                            </button>
-                                            <button onClick={() => { setEditingNumber(n); setShowFormModal(true); }} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5" /></button>
-                                            <button onClick={() => setDeletingId(n.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5" /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                        ))}
+                    </tbody>
+                </table>
+                 {sortedNumbers.length === 0 && <p className="p-8 text-center text-gray-500">Tidak ada nomor untuk ditampilkan.</p>}
             </div>
         </div>
     );
