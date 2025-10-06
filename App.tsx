@@ -656,34 +656,29 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
-    const adminUpdateSpecialNumberStatus = useCallback((id: number, isSold: boolean) => {
-        // Optimistic UI update first
-        setSpecialNumbers(currentNumbers =>
-            currentNumbers.map(num =>
-                num.id === id ? { ...num, isSold } : num
-            )
-        );
-
-        // Then send request to server
-        fetch(`/api/special-numbers/${id}/status`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isSold })
-        })
-        .then(async response => {
+    const adminUpdateSpecialNumberStatus = useCallback(async (id: number, isSold: boolean) => {
+        try {
+            const response = await fetch(`/api/special-numbers/${id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isSold })
+            });
+    
+            const result = await response.json();
             if (!response.ok) {
-                const result = await response.json();
-                throw new Error(result.message || 'Gagal memperbarui status dari server.');
+                throw new Error(result.message || 'Gagal memperbarui status.');
             }
-            // Success is already reflected, show a success modal.
-            setModal({ show: true, title: "Sukses", content: <p>Status nomor berhasil diperbarui.</p> });
-        })
-        .catch(error => {
-            // If the server update fails, revert the optimistic change
-            setSpecialNumbers(specialNumbers); // Revert to the original state
+    
+            // Show success message from the server response
+            setModal({ show: true, title: "Sukses", content: <p>{result.message || 'Status nomor berhasil diperbarui.'}</p> });
+    
+            // Re-fetch all data to ensure the UI is in sync with the database
+            await fetchBootstrapData();
+    
+        } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
-        });
-    }, [specialNumbers]);
+        }
+    }, [fetchBootstrapData]);
 
     const adminBulkUploadNumbers = useCallback(async (file: File) => {
         try {
