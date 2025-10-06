@@ -1,9 +1,6 @@
+
 import React, { useState } from 'react';
 import { User, UserRole, UserProfile } from '../../types';
-
-interface TambahUserPageProps {
-    adminAddUser: (user: User) => void;
-}
 
 // FIX: Refactored to correctly create a discriminated union.
 // The `role` property is now defined within the conditional blocks
@@ -32,7 +29,7 @@ const getInitialFormData = (role: UserRole) => {
     }
     return {
         ...common,
-        role, // `role` is narrowed to 'admin' | 'supervisor' here
+        role, // `role` is narrowed to 'admin' | 'supervisor' | 'operator' here
         jabatan: '',
     };
 };
@@ -40,6 +37,10 @@ const getInitialFormData = (role: UserRole) => {
 
 // FIX: Define a type for the form data state based on the function's return type.
 type FormData = ReturnType<typeof getInitialFormData>;
+
+interface TambahUserPageProps {
+    adminAddUser: (user: User) => void;
+}
 
 const TambahUserPage: React.FC<TambahUserPageProps> = ({ adminAddUser }) => {
     // FIX: Explicitly type the formData state with the union type `FormData`.
@@ -83,7 +84,7 @@ const TambahUserPage: React.FC<TambahUserPageProps> = ({ adminAddUser }) => {
                 kecamatan: formData.kecamatan,
                 alamat: formData.alamat,
             };
-        } else { // admin or supervisor
+        } else { // admin, supervisor, or operator
              profile = {
                 nama: formData.nama,
                 email: formData.email,
@@ -118,6 +119,7 @@ const TambahUserPage: React.FC<TambahUserPageProps> = ({ adminAddUser }) => {
                             <option value="pelanggan">Mitra Outlet</option>
                             <option value="admin">Admin</option>
                             <option value="supervisor">Supervisor</option>
+                            <option value="operator">Operator</option>
                         </select>
                     </div>
 
@@ -141,7 +143,7 @@ const TambahUserPage: React.FC<TambahUserPageProps> = ({ adminAddUser }) => {
                             </>
                          )}
 
-                         {(formData.role === 'admin' || formData.role === 'supervisor') && (
+                         {(formData.role === 'admin' || formData.role === 'supervisor' || formData.role === 'operator') && (
                              <input type="text" name="jabatan" value={formData.jabatan} onChange={handleChange} placeholder="Jabatan" className="input-field" />
                          )}
                     </div>

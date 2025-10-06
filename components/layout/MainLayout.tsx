@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Page } from '../../types';
 import { ICONS } from '../../constants';
@@ -47,10 +48,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         { name: 'History', icon: ICONS.history, page: 'historyPembelian' as Page },
     ];
 
-    const MENU_ITEMS = {
+    const operatorMenu = [
+        { name: 'Home', icon: ICONS.dashboard, page: 'operatorDashboard' as Page },
+        { name: 'Nomor Spesial', icon: ICONS.simCard, page: 'manajemenNomor' as Page },
+        { name: 'Transaksi', icon: ICONS.calculator, page: 'manajemenPoin' as Page },
+    ];
+
+    const MENU_ITEMS: { [key in User['role'] | 'default']?: any[] } = {
         pelanggan: pelangganMenu,
         admin: adminMenu,
         supervisor: supervisorMenu,
+        operator: operatorMenu,
     };
 
     const navItems = MENU_ITEMS[currentUser.role] || [];

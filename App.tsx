@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, PrizeCategory, WhatsAppSettings, SpecialNumber } from './types';
 
@@ -22,6 +23,7 @@ import ManajemenPenukaran from './pages/admin/ManajemenPenukaran';
 import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
 import NomorSpesialPage from './pages/shared/NomorSpesialPage';
 import ManajemenNomor from './pages/admin/ManajemenNomorSpesial';
+import OperatorDashboard from './pages/operator/OperatorDashboard';
 
 
 function App() {
@@ -80,7 +82,9 @@ function App() {
                 try {
                     const user: User = JSON.parse(storedUser);
                     setCurrentUser(user);
-                    setCurrentPage(user.role === 'pelanggan' ? 'pelangganDashboard' : 'adminDashboard');
+                    if (user.role === 'pelanggan') setCurrentPage('pelangganDashboard');
+                    else if (user.role === 'operator') setCurrentPage('operatorDashboard');
+                    else setCurrentPage('adminDashboard');
                 } catch (e) {
                     console.error("Failed to parse stored user data, clearing session.", e);
                     localStorage.removeItem('currentUser');
@@ -105,7 +109,9 @@ function App() {
             if (response.ok) {
                 setCurrentUser(data);
                 localStorage.setItem('currentUser', JSON.stringify(data));
-                setCurrentPage(data.role === 'pelanggan' ? 'pelangganDashboard' : 'adminDashboard');
+                if (data.role === 'pelanggan') setCurrentPage('pelangganDashboard');
+                else if (data.role === 'operator') setCurrentPage('operatorDashboard');
+                else setCurrentPage('adminDashboard');
                 return true;
             } else {
                 throw new Error(data.message || 'Login gagal');
@@ -740,12 +746,20 @@ function App() {
             }
         }
         
-        const isReadOnly = currentUser.role === 'supervisor';
+        const isSupervisor = currentUser.role === 'supervisor';
+        const isOperator = currentUser.role === 'operator';
+
+        // Supervisor access restrictions
         const restrictedPagesForSupervisor: Page[] = ['tambahUser', 'manajemenPoin', 'manajemenNotifikasi'];
-        if (isReadOnly && restrictedPagesForSupervisor.includes(currentPage)) {
+        if (isSupervisor && restrictedPagesForSupervisor.includes(currentPage)) {
              setCurrentPage('adminDashboard');
         }
 
+        // Operator access restrictions
+        const allowedPagesForOperator: Page[] = ['operatorDashboard', 'manajemenNomor', 'manajemenPoin', 'editProfile'];
+        if(isOperator && !allowedPagesForOperator.includes(currentPage)){
+            setCurrentPage('operatorDashboard');
+        }
 
         const pageMap: {[key in Page]?: React.ReactNode} = {
             pelangganDashboard: <PelangganDashboard currentUser={currentUser} transactions={transactions} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} setCurrentPage={setCurrentPage} raffleWinners={raffleWinners} />,
@@ -754,16 +768,17 @@ function App() {
             tukarPoin: <TukarPoin currentUser={currentUser} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} loyaltyPrograms={loyaltyPrograms} />,
             editProfile: <EditProfilePage currentUser={currentUser} updateUserProfile={updateUserProfile} handleLogout={handleLogout} handleChangePassword={handleChangePassword} />,
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms}/>,
-            manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} />,
+            manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
-            manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} isReadOnly={isReadOnly} />,
-            manajemenPoin: <ManajemenPoin users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} adminBulkUpdateLevels={adminBulkUpdateLevels} isReadOnly={isReadOnly} />,
-            manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={adminDeleteReward} isReadOnly={isReadOnly} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} />,
-            manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isReadOnly} />,
-            manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} isReadOnly={isReadOnly} />,
-            manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isReadOnly} />,
+            manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} isReadOnly={isSupervisor} />,
+            manajemenPoin: <ManajemenPoin currentUser={currentUser} users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} adminBulkUpdateLevels={adminBulkUpdateLevels} isReadOnly={isSupervisor} />,
+            manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={adminDeleteReward} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} />,
+            manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isSupervisor} />,
+            manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} isReadOnly={isSupervisor} />,
+            manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isSupervisor} />,
             nomorSpesial: <NomorSpesialPage currentUser={currentUser} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} specialNumberBannerUrl={specialNumberBannerUrl} />,
             manajemenNomor: <ManajemenNomor numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} adminUploadSpecialNumberBanner={adminUploadSpecialNumberBanner} settings={whatsAppSettings} onSaveSettings={adminSaveWhatsAppSettings} />,
+            operatorDashboard: <OperatorDashboard setCurrentPage={setCurrentPage} />
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
 

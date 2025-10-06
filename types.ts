@@ -1,5 +1,5 @@
 
-export type UserRole = 'admin' | 'pelanggan' | 'supervisor';
+export type UserRole = 'admin' | 'pelanggan' | 'supervisor' | 'operator';
 export type Page = 
     | 'landing'
     | 'login' 
@@ -19,7 +19,8 @@ export type Page =
     | 'manajemenPenukaran'
     | 'manajemenNotifikasi'
     | 'nomorSpesial'
-    | 'manajemenNomor';
+    | 'manajemenNomor'
+    | 'operatorDashboard';
 
 export interface UserProfile {
     nama: string;

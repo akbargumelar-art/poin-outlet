@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, LoyaltyProgram, Transaction } from '../../types';
 import Modal from '../../components/common/Modal';
@@ -6,6 +7,7 @@ import { ICONS } from '../../constants';
 
 // --- Main Component ---
 interface ManajemenPoinProps {
+    currentUser: User;
     users: User[];
     loyaltyPrograms: LoyaltyProgram[];
     updateLoyaltyProgram: (program: LoyaltyProgram) => void;
@@ -16,7 +18,7 @@ interface ManajemenPoinProps {
     isReadOnly?: boolean;
 }
 
-const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, loyaltyPrograms, updateLoyaltyProgram, adminAddTransaction, adminBulkAddTransactions, adminUpdatePointsManual, adminBulkUpdateLevels, isReadOnly }) => {
+const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ currentUser, users, loyaltyPrograms, updateLoyaltyProgram, adminAddTransaction, adminBulkAddTransactions, adminUpdatePointsManual, adminBulkUpdateLevels, isReadOnly }) => {
     const [manualUserId, setManualUserId] = useState('');
     const [manualPoints, setManualPoints] = useState(0);
     const [manualAction, setManualAction] = useState<'tambah' | 'kurang'>('tambah');
@@ -27,6 +29,8 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, loyaltyPrograms, u
     
     const [showLevelUploadModal, setShowLevelUploadModal] = useState(false);
     const [levelUploadFile, setLevelUploadFile] = useState<File | null>(null);
+
+    const isOperator = currentUser.role === 'operator';
 
     const selectedUser = users.find(u => u.id === txData.userId);
     const loyaltyLevel = loyaltyPrograms.find(p => p.level === selectedUser?.level);
@@ -145,109 +149,111 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ users, loyaltyPrograms, u
             
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                 <div className="space-y-8">
-                     <div className="neu-card p-6">
-                        <h2 className="text-xl font-bold text-gray-700 mb-4">Input Transaksi Baru</h2>
-                        <form onSubmit={handleTxSubmit} className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-gray-600 text-sm font-semibold mb-1">Tanggal</label>
-                                    <input type="date" name="date" value={txData.date} onChange={handleTxChange} className="input-field" required disabled={isReadOnly}/>
+                    {!isOperator && (
+                        <div className="neu-card p-6">
+                            <h2 className="text-xl font-bold text-gray-700 mb-4">Input Transaksi Baru</h2>
+                            <form onSubmit={handleTxSubmit} className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-gray-600 text-sm font-semibold mb-1">Tanggal</label>
+                                        <input type="date" name="date" value={txData.date} onChange={handleTxChange} className="input-field" required disabled={isReadOnly}/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-gray-600 text-sm font-semibold mb-1">Mitra Outlet</label>
+                                        <select name="userId" value={txData.userId} onChange={handleTxChange} className="input-field" required disabled={isReadOnly}>
+                                            <option value="">-- Pilih Mitra --</option>
+                                            {users.map(u => <option key={u.id} value={u.id}>{u.profile.nama} ({u.id})</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-gray-600 text-sm font-semibold mb-1">Nama Produk</label>
+                                        <input type="text" name="produk" value={txData.produk} onChange={handleTxChange} placeholder="e.g., Pulsa 100K" className="input-field" required disabled={isReadOnly}/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-gray-600 text-sm font-semibold mb-1">Harga Satuan</label>
+                                        <input type="number" min="0" name="harga" value={txData.harga} onChange={handleTxChange} placeholder="e.g., 98000" className="input-field" required disabled={isReadOnly}/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-gray-600 text-sm font-semibold mb-1">Kuantiti</label>
+                                        <input type="number" min="0" name="kuantiti" value={txData.kuantiti} onChange={handleTxChange} placeholder="e.g., 5" className="input-field" required disabled={isReadOnly}/>
+                                    </div>
                                 </div>
-                                 <div>
-                                    <label className="block text-gray-600 text-sm font-semibold mb-1">Mitra Outlet</label>
-                                    <select name="userId" value={txData.userId} onChange={handleTxChange} className="input-field" required disabled={isReadOnly}>
-                                        <option value="">-- Pilih Mitra --</option>
-                                        {users.map(u => <option key={u.id} value={u.id}>{u.profile.nama} ({u.id})</option>)}
-                                    </select>
-                                </div>
-                                <div className="md:col-span-2">
-                                    <label className="block text-gray-600 text-sm font-semibold mb-1">Nama Produk</label>
-                                    <input type="text" name="produk" value={txData.produk} onChange={handleTxChange} placeholder="e.g., Pulsa 100K" className="input-field" required disabled={isReadOnly}/>
-                                </div>
-                                <div>
-                                    <label className="block text-gray-600 text-sm font-semibold mb-1">Harga Satuan</label>
-                                    <input type="number" min="0" name="harga" value={txData.harga} onChange={handleTxChange} placeholder="e.g., 98000" className="input-field" required disabled={isReadOnly}/>
-                                </div>
-                                <div>
-                                    <label className="block text-gray-600 text-sm font-semibold mb-1">Kuantiti</label>
-                                    <input type="number" min="0" name="kuantiti" value={txData.kuantiti} onChange={handleTxChange} placeholder="e.g., 5" className="input-field" required disabled={isReadOnly}/>
-                                </div>
-                            </div>
 
-                            {selectedUser && (
-                                <div className="neu-inset p-3 rounded-lg text-sm space-y-2 mt-4">
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Level Mitra:</span>
-                                        <span className="font-bold text-gray-800">{selectedUser.level}</span>
+                                {selectedUser && (
+                                    <div className="neu-inset p-3 rounded-lg text-sm space-y-2 mt-4">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Level Mitra:</span>
+                                            <span className="font-bold text-gray-800">{selectedUser.level}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Poin Saat Ini:</span>
+                                            <span className="font-bold text-gray-800">{(selectedUser.points || 0).toLocaleString('id-ID')} Poin</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Poin Akan Didapat:</span>
+                                            <span className="font-bold text-green-600">+{potentialPoints.toLocaleString('id-ID')} Poin</span>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Poin Saat Ini:</span>
-                                        <span className="font-bold text-gray-800">{(selectedUser.points || 0).toLocaleString('id-ID')} Poin</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Poin Akan Didapat:</span>
-                                        <span className="font-bold text-green-600">+{potentialPoints.toLocaleString('id-ID')} Poin</span>
-                                    </div>
-                                </div>
-                            )}
+                                )}
 
-                            <div className="neu-inset p-3 rounded-lg text-center">
-                                <p className="text-gray-600">Total Pembelian: <span className="font-bold text-lg text-gray-800">Rp {totalPembelian.toLocaleString('id-ID')}</span></p>
-                            </div>
-                             <button type="submit" disabled={!txData.userId || totalPembelian <= 0 || isReadOnly} className="neu-button text-red-600 w-full">Tambah Transaksi & Hitung Poin</button>
-                        </form>
-                    </div>
+                                <div className="neu-inset p-3 rounded-lg text-center">
+                                    <p className="text-gray-600">Total Pembelian: <span className="font-bold text-lg text-gray-800">Rp {totalPembelian.toLocaleString('id-ID')}</span></p>
+                                </div>
+                                <button type="submit" disabled={!txData.userId || totalPembelian <= 0 || isReadOnly} className="neu-button text-red-600 w-full">Tambah Transaksi & Hitung Poin</button>
+                            </form>
+                        </div>
+                    )}
 
                     <div className="neu-card p-6">
                          <h2 className="text-xl font-bold text-gray-700 mb-4">Upload Massal</h2>
                          <p className="text-sm text-gray-600 mb-4">Gunakan fitur ini untuk meng-upload banyak data sekaligus dari file Excel.</p>
                          <div className="flex flex-col md:flex-row gap-4">
                             <button onClick={() => setShowTxUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Transaksi</button>
-                            <button onClick={() => setShowLevelUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Level Mitra</button>
+                            {!isOperator && <button onClick={() => setShowLevelUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Level Mitra</button>}
                          </div>
                     </div>
-
                 </div>
 
-                <div className="space-y-8">
-                     <div className="neu-card p-6 h-fit">
-                        <h2 className="text-xl font-bold text-gray-700 mb-4">Update Poin Manual</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-gray-600 text-sm font-semibold mb-2">Pilih Mitra Outlet</label>
-                                <select value={manualUserId} onChange={e => setManualUserId(e.target.value)} className="input-field" disabled={isReadOnly}>
-                                    <option value="">-- Pilih Mitra --</option>
-                                    {users.map(u => <option key={u.id} value={u.id}>{u.profile.nama} ({u.id})</option>)}
-                                </select>
-                            </div>
-                            {selectedManualUser && (
-                                <div className="neu-inset p-3 rounded-lg text-sm space-y-2">
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Level:</span>
-                                        <span className="font-bold text-gray-800">{selectedManualUser.level}</span>
+                {!isOperator && (
+                    <div className="space-y-8">
+                        <div className="neu-card p-6 h-fit">
+                            <h2 className="text-xl font-bold text-gray-700 mb-4">Update Poin Manual</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-gray-600 text-sm font-semibold mb-2">Pilih Mitra Outlet</label>
+                                    <select value={manualUserId} onChange={e => setManualUserId(e.target.value)} className="input-field" disabled={isReadOnly}>
+                                        <option value="">-- Pilih Mitra --</option>
+                                        {users.map(u => <option key={u.id} value={u.id}>{u.profile.nama} ({u.id})</option>)}
+                                    </select>
+                                </div>
+                                {selectedManualUser && (
+                                    <div className="neu-inset p-3 rounded-lg text-sm space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Level:</span>
+                                            <span className="font-bold text-gray-800">{selectedManualUser.level}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Poin Saat Ini:</span>
+                                            <span className="font-bold text-gray-800">{(selectedManualUser.points || 0).toLocaleString('id-ID')}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Poin Saat Ini:</span>
-                                        <span className="font-bold text-gray-800">{(selectedManualUser.points || 0).toLocaleString('id-ID')}</span>
+                                )}
+                                <div>
+                                    <label className="block text-gray-600 text-sm font-semibold mb-2">Jumlah Poin</label>
+                                    <input type="number" min="0" value={manualPoints} onChange={e => setManualPoints(parseInt(e.target.value, 10) || 0)} className="input-field" disabled={isReadOnly}/>
+                                </div>
+                                <div>
+                                    <label className="block text-gray-600 text-sm font-semibold mb-2">Aksi</label>
+                                    <div className="flex gap-4">
+                                    <button onClick={() => setManualAction('tambah')} className={`flex-1 neu-button ${manualAction === 'tambah' ? 'text-green-600 neu-inset' : ''}`} disabled={isReadOnly}>Tambah</button>
+                                    <button onClick={() => setManualAction('kurang')} className={`flex-1 neu-button ${manualAction === 'kurang' ? 'text-red-600 neu-inset' : ''}`} disabled={isReadOnly}>Kurang</button>
                                     </div>
                                 </div>
-                            )}
-                            <div>
-                                <label className="block text-gray-600 text-sm font-semibold mb-2">Jumlah Poin</label>
-                                <input type="number" min="0" value={manualPoints} onChange={e => setManualPoints(parseInt(e.target.value, 10) || 0)} className="input-field" disabled={isReadOnly}/>
+                                <button onClick={handleUpdatePoin} disabled={!manualUserId || manualPoints <= 0 || isReadOnly} className="neu-button text-red-600 w-full">Update Poin</button>
                             </div>
-                            <div>
-                                <label className="block text-gray-600 text-sm font-semibold mb-2">Aksi</label>
-                                <div className="flex gap-4">
-                                <button onClick={() => setManualAction('tambah')} className={`flex-1 neu-button ${manualAction === 'tambah' ? 'text-green-600 neu-inset' : ''}`} disabled={isReadOnly}>Tambah</button>
-                                <button onClick={() => setManualAction('kurang')} className={`flex-1 neu-button ${manualAction === 'kurang' ? 'text-red-600 neu-inset' : ''}`} disabled={isReadOnly}>Kurang</button>
-                                </div>
-                            </div>
-                            <button onClick={handleUpdatePoin} disabled={!manualUserId || manualPoints <= 0 || isReadOnly} className="neu-button text-red-600 w-full">Update Poin</button>
                         </div>
                     </div>
-                </div>
-
+                )}
             </div>
         </div>
     );
