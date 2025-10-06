@@ -53,6 +53,41 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3001;
 
+// Function to check and set up the database schema
+const setupDatabase = async () => {
+    const connection = await db.getConnection();
+    try {
+        console.log('Checking database schema...');
+        // Check for special_numbers table
+        const [tables] = await connection.execute("SHOW TABLES LIKE 'special_numbers'");
+        if (tables.length === 0) {
+            console.log("Table 'special_numbers' not found. Creating it...");
+            const createTableQuery = `
+                CREATE TABLE \`special_numbers\` (
+                  \`id\` int(11) NOT NULL AUTO_INCREMENT,
+                  \`phone_number\` varchar(20) NOT NULL,
+                  \`price\` decimal(10,0) NOT NULL,
+                  \`is_sold\` tinyint(1) NOT NULL DEFAULT 0,
+                  \`sn\` varchar(255) DEFAULT NULL,
+                  \`lokasi\` varchar(100) DEFAULT NULL,
+                  PRIMARY KEY (\`id\`),
+                  UNIQUE KEY \`phone_number_unique\` (\`phone_number\`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+            `;
+            await connection.execute(createTableQuery);
+            console.log("Table 'special_numbers' created successfully.");
+        } else {
+             console.log("Table 'special_numbers' already exists.");
+        }
+    } catch (err) {
+        console.error('Database setup failed:', err);
+        process.exit(1); // Exit if setup fails
+    } finally {
+        connection.release();
+    }
+};
+
+
 // Function to check DB connection and then start the server
 const startServer = async () => {
     try {
@@ -70,5 +105,7 @@ const startServer = async () => {
     }
 };
 
-// Start the server
-startServer();
+// Start the server after ensuring the database is set up
+setupDatabase().then(() => {
+    startServer();
+});

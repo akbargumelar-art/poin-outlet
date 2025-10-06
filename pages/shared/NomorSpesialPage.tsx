@@ -17,8 +17,6 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
     const priceFilters = useMemo(() => {
-        // FIX: Add explicit types for sort comparison function arguments.
-        // This resolves a TypeScript error where the types of `a` and `b` were not correctly inferred as numbers.
         return [...new Set(numbers.map(n => n.price))].sort((a: number, b: number) => a - b);
     }, [numbers]);
 
@@ -67,13 +65,14 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
     const handleBeli = () => {
         if (totalSelected.length === 0 || !recipientNumber) return;
 
-        const listItems = totalSelected.map(n => `${n.phoneNumber} | ${n.price.toLocaleString('id-ID')}`).join('\n');
+        const listItems = totalSelected.map(n => `- ${n.phoneNumber} | ${n.price.toLocaleString('id-ID')}`).join('\n');
         
-        const message = `Halo Kak, saya ${currentUser.profile.nama} dari TAP ${currentUser.profile.tap || 'N/A'} ingin membeli Nomor spesial:
+        const message = `Halo Kak, saya ${currentUser.profile.nama} dari ${currentUser.profile.tap || 'N/A'} ingin membeli Nomor spesial:
+
 ${listItems}
 
-Total:
-Rp ${totalSelectedPrice.toLocaleString('id-ID')} / ${totalSelected.length} pcs`;
+*Total:*
+- Rp ${totalSelectedPrice.toLocaleString('id-ID')} / ${totalSelected.length} pcs`;
 
         const encodedMessage = encodeURIComponent(message);
         window.open(`https://wa.me/${recipientNumber}?text=${encodedMessage}`, '_blank');
@@ -113,7 +112,7 @@ Rp ${totalSelectedPrice.toLocaleString('id-ID')} / ${totalSelected.length} pcs`;
                             <p className="font-bold text-gray-800">{totalSelected.length} nomor dipilih</p>
                             <p className="text-sm font-semibold text-red-600">Total: Rp {totalSelectedPrice.toLocaleString('id-ID')}</p>
                         </div>
-                        <button onClick={handleBeli} disabled={!recipientNumber || totalSelected.length === 0} className="neu-button !w-auto px-4 flex items-center gap-2 bg-green-600 !text-white hover:bg-green-700">
+                        <button onClick={handleBeli} disabled={!recipientNumber || totalSelected.length === 0} className="neu-button !w-auto px-4 flex items-center gap-2 !bg-green-600 !text-white hover:!bg-green-700 disabled:!bg-gray-400">
                              <Icon path={ICONS.whatsapp} className="w-5 h-5"/>
                             Beli via WhatsApp
                         </button>
