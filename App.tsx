@@ -656,7 +656,7 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
-    const adminUpdateSpecialNumberStatus = async (id: number, isSold: boolean) => {
+    const adminUpdateSpecialNumberStatus = useCallback(async (id: number, isSold: boolean) => {
         try {
             const response = await fetch(`/api/special-numbers/${id}/status`, {
                 method: 'PATCH',
@@ -669,6 +669,7 @@ function App() {
             }
 
             // On success, update the state locally for an immediate UI response.
+            // This is the correct way to handle state updates to avoid stale closures.
             setSpecialNumbers(currentNumbers => 
                 currentNumbers.map(num => 
                     num.id === id ? { ...num, isSold: isSold } : num
@@ -679,7 +680,7 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    };
+    }, []); // Empty dependency array is correct because we use the updater form of setState.
 
     const adminBulkUploadNumbers = useCallback(async (file: File) => {
         try {
