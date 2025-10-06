@@ -664,15 +664,22 @@ function App() {
                 body: JSON.stringify({ isSold })
             });
             const result = await response.json();
-            if (!response.ok) throw new Error(result.message);
-            
-            await fetchBootstrapData(); // Re-fetch all data to ensure consistency
+            if (!response.ok) {
+                throw new Error(result.message || 'Gagal memperbarui status dari server.');
+            }
+
+            // On success, update the state locally for an immediate UI response.
+            setSpecialNumbers(currentNumbers => 
+                currentNumbers.map(num => 
+                    num.id === id ? { ...num, isSold: isSold } : num
+                )
+            );
 
             setModal({ show: true, title: "Sukses", content: <p>Status nomor berhasil diperbarui.</p> });
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    }, [fetchBootstrapData]);
+    }, []);
 
     const adminBulkUploadNumbers = useCallback(async (file: File) => {
         try {
