@@ -44,7 +44,7 @@ const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukar
                         return (
                             <div key={p.level} className={`neu-card p-3 text-center transition-all duration-200 border-b-4 ${isCurrentLevel ? levelCardStyles[p.level] : 'border-transparent'}`}>
                                 <h2 className={`text-lg font-bold ${isCurrentLevel ? levelColors[p.level]?.text : 'text-gray-800'}`}>{p.level}</h2>
-                                <p className="text-gray-500 mt-1 text-xs">Min. {p.pointsNeeded.toLocaleString('id-ID')} Poin</p>
+                                <p className="text-gray-500 mt-1 text-xs px-2 min-h-[40px] flex items-center justify-center">Tingkatkan terus Pembelian dan Transaksi DigiPos Anda untuk Naik Level</p>
                                 {isCurrentLevel && <div className={`mt-2 ${levelColors[p.level]?.bg} ${levelColors[p.level]?.text} text-xs font-bold text-center py-1 px-2 rounded-full`}>LEVEL ANDA</div>}
                             </div>
                         )
