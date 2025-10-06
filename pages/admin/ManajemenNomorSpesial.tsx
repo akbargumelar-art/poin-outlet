@@ -66,6 +66,8 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
     const [recipientNumber, setRecipientNumber] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'isSold', direction: 'asc' });
+    const [confirmingStatus, setConfirmingStatus] = useState<SpecialNumber | null>(null);
+
 
     const isOperator = currentUser.role === 'operator';
 
@@ -101,6 +103,13 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
     const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             adminUploadSpecialNumberBanner(e.target.files[0]);
+        }
+    };
+
+    const handleConfirmStatusChange = () => {
+        if (confirmingStatus) {
+            onStatusChange(confirmingStatus.id, !confirmingStatus.isSold);
+            setConfirmingStatus(null);
         }
     };
 
@@ -167,6 +176,19 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
                     </div>
                  </div>
             </Modal>}
+             {confirmingStatus && (
+                <Modal show={true} onClose={() => setConfirmingStatus(null)} title="Konfirmasi Perubahan Status">
+                    <div className="text-center">
+                        <p className="mb-6">
+                            Anda yakin ingin mengubah status nomor <strong>{confirmingStatus.phoneNumber}</strong> menjadi <strong>{confirmingStatus.isSold ? 'Tersedia' : 'Terjual'}</strong>?
+                        </p>
+                        <div className="flex gap-4 justify-center">
+                            <button onClick={() => setConfirmingStatus(null)} className="neu-button">Batal</button>
+                            <button onClick={handleConfirmStatusChange} className="neu-button text-red-600">Ya, Ubah Status</button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
 
             <div className="flex-shrink-0">
                 <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
@@ -243,7 +265,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
                                 </td>
                                 <td className="p-4">
                                     <div className="flex gap-2">
-                                        <button onClick={() => onStatusChange(n.id, !n.isSold)} className="neu-button-icon" title={n.isSold ? 'Tandai Tersedia' : 'Tandai Terjual'}>
+                                        <button onClick={() => setConfirmingStatus(n)} className="neu-button-icon" title={n.isSold ? 'Tandai Tersedia' : 'Tandai Terjual'}>
                                             <Icon path={n.isSold ? ICONS.eye : ICONS.eyeOff} className="w-5 h-5" />
                                         </button>
                                         <button onClick={() => { setEditingNumber(n); setShowFormModal(true); }} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5" /></button>
