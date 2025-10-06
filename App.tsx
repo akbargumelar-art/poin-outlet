@@ -667,11 +667,13 @@ function App() {
             if (!response.ok) {
                 throw new Error(result.message || 'Gagal memperbarui status dari server.');
             }
+            
             setSpecialNumbers(currentNumbers =>
                 currentNumbers.map(num =>
                     num.id === id ? { ...num, isSold } : num
                 )
             );
+
             setModal({ show: true, title: "Sukses", content: <p>Status nomor berhasil diperbarui.</p> });
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
