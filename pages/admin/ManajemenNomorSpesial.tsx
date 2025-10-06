@@ -65,11 +65,17 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [recipientNumber, setRecipientNumber] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [locationFilter, setLocationFilter] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'isSold', direction: 'asc' });
     const [confirmingStatus, setConfirmingStatus] = useState<SpecialNumber | null>(null);
 
 
     const isOperator = currentUser.role === 'operator';
+    
+    const allLocations = useMemo(() => {
+        return [...new Set(numbers.map(n => n.lokasi).filter(Boolean))].sort() as string[];
+    }, [numbers]);
+
 
     useEffect(() => {
         setRecipientNumber(settings?.specialNumberRecipient || '');
@@ -115,6 +121,11 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
 
     const filteredAndSortedNumbers = useMemo(() => {
         let filteredItems = [...numbers];
+        
+        if (locationFilter) {
+            filteredItems = filteredItems.filter(n => n.lokasi === locationFilter);
+        }
+
         if (searchTerm) {
             const lowercasedSearch = searchTerm.toLowerCase();
             filteredItems = filteredItems.filter(n => 
@@ -138,7 +149,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
             });
         }
         return filteredItems;
-    }, [numbers, searchTerm, sortConfig]);
+    }, [numbers, searchTerm, sortConfig, locationFilter]);
 
     const requestSort = (key: SortableKeys) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -228,14 +239,24 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
                         </div>
                     </div>
                 )}
-                 <div className="neu-card-flat p-4 mb-6">
+                 <div className="neu-card-flat p-4 mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input
                         type="text"
-                        placeholder="Cari berdasarkan nomor, SN, atau lokasi..."
+                        placeholder="Cari berdasarkan nomor, SN..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="input-field w-full"
                     />
+                     <select
+                        value={locationFilter}
+                        onChange={(e) => setLocationFilter(e.target.value)}
+                        className="input-field w-full"
+                    >
+                        <option value="">Semua Lokasi</option>
+                        {allLocations.map(loc => (
+                            <option key={loc} value={loc}>{loc}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
