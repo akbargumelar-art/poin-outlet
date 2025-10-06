@@ -656,7 +656,7 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
-    const adminUpdateSpecialNumberStatus = useCallback(async (id: number, isSold: boolean) => {
+    const adminUpdateSpecialNumberStatus = async (id: number, isSold: boolean) => {
         try {
             const response = await fetch(`/api/special-numbers/${id}/status`, {
                 method: 'PATCH',
@@ -679,7 +679,7 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
-    }, []);
+    };
 
     const adminBulkUploadNumbers = useCallback(async (file: File) => {
         try {
