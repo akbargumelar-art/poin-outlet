@@ -13,12 +13,16 @@ interface ManajemenPelangganProps {
     adminUpdateUserLevel: (userId: string, level: string) => void;
 }
 
+type SortableKeys = 'nama' | 'id' | 'tap' | 'salesforce' | 'totalPembelian' | 'points' | 'level';
+
+
 const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [selectedLevel, setSelectedLevel] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'nama', direction: 'asc' });
 
     const pelangganUsers = useMemo(() => users.filter(u => u.role === 'pelanggan'), [users]);
     const allTaps = useMemo(() => [...new Set(pelangganUsers.map(u => u.profile.tap).filter((tap): tap is string => !!tap))].sort(), [pelangganUsers]);
@@ -34,7 +38,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
     }, [transactions]);
 
     const filteredUsers = useMemo(() => {
-        let result = pelangganUsers;
+        let result = [...pelangganUsers]; // Create a mutable copy
 
         if (tapFilter) {
             result = result.filter(u => u.profile.tap === tapFilter);
@@ -49,9 +53,76 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                 u.id.toLowerCase().includes(lowercasedSearchTerm)
             );
         }
+
+        if (sortConfig !== null) {
+            result.sort((a, b) => {
+                let aValue: string | number | undefined;
+                let bValue: string | number | undefined;
+                
+                switch (sortConfig.key) {
+                    case 'totalPembelian':
+                        aValue = userTotals.get(a.id)?.totalPembelian || 0;
+                        bValue = userTotals.get(b.id)?.totalPembelian || 0;
+                        break;
+                    case 'points':
+                        aValue = a.points || 0;
+                        bValue = b.points || 0;
+                        break;
+                    case 'nama':
+                        aValue = a.profile.nama || '';
+                        bValue = b.profile.nama || '';
+                        break;
+                    case 'tap':
+                        aValue = a.profile.tap || '';
+                        bValue = b.profile.tap || '';
+                        break;
+                    case 'salesforce':
+                        aValue = a.profile.salesforce || '';
+                        bValue = b.profile.salesforce || '';
+                        break;
+                    case 'level':
+                         aValue = a.level || '';
+                         bValue = b.level || '';
+                         break;
+                    case 'id':
+                        aValue = a.id;
+                        bValue = b.id;
+                        break;
+                }
+        
+                if (aValue === undefined || bValue === undefined) return 0;
+        
+                let comparison = 0;
+                if (typeof aValue === 'string' && typeof bValue === 'string') {
+                    comparison = aValue.localeCompare(bValue);
+                } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+                    comparison = aValue - bValue;
+                }
+                
+                return sortConfig.direction === 'asc' ? comparison : -comparison;
+            });
+        }
         
         return result;
-    }, [searchTerm, pelangganUsers, tapFilter, salesforceFilter]);
+    }, [searchTerm, pelangganUsers, tapFilter, salesforceFilter, sortConfig, userTotals]);
+
+    const requestSort = (key: SortableKeys) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key: SortableKeys) => {
+        if (!sortConfig || sortConfig.key !== key) {
+            return <Icon path={ICONS.sortNeutral} className="w-4 h-4 text-gray-400" />;
+        }
+        if (sortConfig.direction === 'asc') {
+            return <Icon path={ICONS.sortUp} className="w-4 h-4 text-gray-800" />;
+        }
+        return <Icon path={ICONS.sortDown} className="w-4 h-4 text-gray-800" />;
+    };
 
     const handleResetFilters = () => {
         setSearchTerm('');
@@ -224,17 +295,45 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                 )}
             </div>
             
-            <div className="neu-card-flat overflow-x-auto">
+            <div className="neu-card-flat overflow-auto">
                 <table className="w-full text-left">
                     <thead className="bg-slate-200/50">
                         <tr>
-                            <th className="p-4 font-semibold w-full">Nama Outlet</th>
-                            <th className="p-4 font-semibold whitespace-nowrap">ID Digipos</th>
-                            <th className="p-4 font-semibold whitespace-nowrap">TAP</th>
-                            <th className="p-4 font-semibold whitespace-nowrap">Salesforce</th>
-                            <th className="p-4 font-semibold text-right whitespace-nowrap">Total Pembelian</th>
-                            <th className="p-4 font-semibold text-right whitespace-nowrap">Poin</th>
-                            <th className="p-4 font-semibold whitespace-nowrap">Level</th>
+                            <th className="p-4 font-semibold w-full">
+                                 <button onClick={() => requestSort('nama')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                    Nama Outlet {getSortIcon('nama')}
+                                </button>
+                            </th>
+                            <th className="p-4 font-semibold whitespace-nowrap">
+                                <button onClick={() => requestSort('id')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                    ID Digipos {getSortIcon('id')}
+                                </button>
+                            </th>
+                            <th className="p-4 font-semibold whitespace-nowrap">
+                                <button onClick={() => requestSort('tap')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                    TAP {getSortIcon('tap')}
+                                </button>
+                            </th>
+                            <th className="p-4 font-semibold whitespace-nowrap">
+                                <button onClick={() => requestSort('salesforce')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                    Salesforce {getSortIcon('salesforce')}
+                                </button>
+                            </th>
+                            <th className="p-4 font-semibold text-right whitespace-nowrap">
+                                <button onClick={() => requestSort('totalPembelian')} className="flex items-center gap-1 hover:text-red-600 transition-colors w-full justify-end">
+                                    Total Pembelian {getSortIcon('totalPembelian')}
+                                </button>
+                            </th>
+                            <th className="p-4 font-semibold text-right whitespace-nowrap">
+                                <button onClick={() => requestSort('points')} className="flex items-center gap-1 hover:text-red-600 transition-colors w-full justify-end">
+                                    Poin {getSortIcon('points')}
+                                </button>
+                            </th>
+                            <th className="p-4 font-semibold whitespace-nowrap">
+                                <button onClick={() => requestSort('level')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                    Level {getSortIcon('level')}
+                                </button>
+                            </th>
                             {!isReadOnly && <th className="p-4 font-semibold whitespace-nowrap">Aksi</th>}
                         </tr>
                     </thead>
