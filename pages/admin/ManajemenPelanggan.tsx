@@ -364,73 +364,87 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                 )}
             </div>
             
-            <div className="neu-card-flat overflow-auto">
-                <table className="w-full min-w-max text-left">
-                    <thead className="bg-slate-200/50">
-                        <tr>
-                            <th className="p-4 font-semibold w-full">
-                                 <button onClick={() => requestSort('nama')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                    Nama {getSortIcon('nama')}
-                                </button>
-                            </th>
-                             <th className="p-4 font-semibold whitespace-nowrap">
-                                <button onClick={() => requestSort('role')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                    Role {getSortIcon('role')}
-                                </button>
-                            </th>
-                            <th className="p-4 font-semibold whitespace-nowrap">
-                                <button onClick={() => requestSort('id')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                    ID {getSortIcon('id')}
-                                </button>
-                            </th>
-                            <th className="p-4 font-semibold text-right whitespace-nowrap">
-                                <button onClick={() => requestSort('totalPembelian')} className="flex items-center gap-1 hover:text-red-600 transition-colors w-full justify-end">
-                                    Total Pembelian {getSortIcon('totalPembelian')}
-                                </button>
-                            </th>
-                            <th className="p-4 font-semibold text-right whitespace-nowrap">
-                                <button onClick={() => requestSort('points')} className="flex items-center gap-1 hover:text-red-600 transition-colors w-full justify-end">
-                                    Poin {getSortIcon('points')}
-                                </button>
-                            </th>
-                            <th className="p-4 font-semibold whitespace-nowrap">
-                                <button onClick={() => requestSort('level')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                    Level {getSortIcon('level')}
-                                </button>
-                            </th>
-                            {!isReadOnly && <th className="p-4 font-semibold whitespace-nowrap">Aksi</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredUsers.map(user => (
-                            <tr key={user.id} className="border-t border-slate-200/80">
-                                <td className="p-4 font-semibold">{user.profile.nama}</td>
-                                <td className="p-4 capitalize">{user.role}</td>
-                                <td className="p-4 font-mono text-sm whitespace-nowrap">{user.id}</td>
-                                <td className="p-4 text-right whitespace-nowrap">
-                                    {user.role === 'pelanggan' ? `Rp ${(userTotals.get(user.id)?.totalPembelian || 0).toLocaleString('id-ID')}` : '-'}
-                                </td>
-                                <td className="p-4 text-right font-bold text-red-600 whitespace-nowrap">
-                                    {user.role === 'pelanggan' ? (user.points || 0).toLocaleString('id-ID') : '-'}
-                                </td>
-                                <td className="p-4 whitespace-nowrap">{user.level || '-'}</td>
-                                {!isReadOnly && (
-                                    <td className="p-4">
-                                        <button 
-                                            onClick={() => handleEditUser(user)} 
-                                            className="neu-button-icon text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed" 
-                                            title="Ubah Level"
-                                            disabled={user.role !== 'pelanggan'}
-                                        >
-                                            <Icon path={ICONS.edit} className="w-5 h-5"/>
-                                        </button>
-                                    </td>
-                                )}
+            <div className="neu-card-flat overflow-hidden">
+                <div className="overflow-auto max-h-[60vh]">
+                    <table className="w-full min-w-max text-left">
+                        <thead className="bg-slate-200 sticky top-0 z-10">
+                            <tr>
+                                <th className="p-4 font-semibold w-full">
+                                     <button onClick={() => requestSort('nama')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                        Nama {getSortIcon('nama')}
+                                    </button>
+                                </th>
+                                 <th className="p-4 font-semibold whitespace-nowrap">
+                                    <button onClick={() => requestSort('role')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                        Role {getSortIcon('role')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold whitespace-nowrap">
+                                    <button onClick={() => requestSort('id')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                        ID {getSortIcon('id')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold whitespace-nowrap">
+                                    <button onClick={() => requestSort('tap')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                        TAP {getSortIcon('tap')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold whitespace-nowrap">
+                                    <button onClick={() => requestSort('salesforce')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                        Salesforce {getSortIcon('salesforce')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold text-right whitespace-nowrap">
+                                    <button onClick={() => requestSort('totalPembelian')} className="flex items-center gap-1 hover:text-red-600 transition-colors w-full justify-end">
+                                        Total Pembelian {getSortIcon('totalPembelian')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold text-right whitespace-nowrap">
+                                    <button onClick={() => requestSort('points')} className="flex items-center gap-1 hover:text-red-600 transition-colors w-full justify-end">
+                                        Poin {getSortIcon('points')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold whitespace-nowrap">
+                                    <button onClick={() => requestSort('level')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                        Level {getSortIcon('level')}
+                                    </button>
+                                </th>
+                                {!isReadOnly && <th className="p-4 font-semibold whitespace-nowrap">Aksi</th>}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-                 {filteredUsers.length === 0 && <p className="p-8 text-center text-gray-500">Tidak ada pengguna yang cocok dengan filter yang diterapkan.</p>}
+                        </thead>
+                        <tbody>
+                            {filteredUsers.map(user => (
+                                <tr key={user.id} className="border-t border-slate-200/80">
+                                    <td className="p-4 font-semibold">{user.profile.nama}</td>
+                                    <td className="p-4 capitalize">{user.role}</td>
+                                    <td className="p-4 font-mono text-sm whitespace-nowrap">{user.id}</td>
+                                    <td className="p-4 whitespace-nowrap">{user.profile.tap || '-'}</td>
+                                    <td className="p-4 whitespace-nowrap">{user.profile.salesforce || '-'}</td>
+                                    <td className="p-4 text-right whitespace-nowrap">
+                                        {user.role === 'pelanggan' ? `Rp ${(userTotals.get(user.id)?.totalPembelian || 0).toLocaleString('id-ID')}` : '-'}
+                                    </td>
+                                    <td className="p-4 text-right font-bold text-red-600 whitespace-nowrap">
+                                        {user.role === 'pelanggan' ? (user.points || 0).toLocaleString('id-ID') : '-'}
+                                    </td>
+                                    <td className="p-4 whitespace-nowrap">{user.level || '-'}</td>
+                                    {!isReadOnly && (
+                                        <td className="p-4">
+                                            <button 
+                                                onClick={() => handleEditUser(user)} 
+                                                className="neu-button-icon text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed" 
+                                                title="Ubah Level"
+                                                disabled={user.role !== 'pelanggan'}
+                                            >
+                                                <Icon path={ICONS.edit} className="w-5 h-5"/>
+                                            </button>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                     {filteredUsers.length === 0 && <p className="p-8 text-center text-gray-500">Tidak ada pengguna yang cocok dengan filter yang diterapkan.</p>}
+                </div>
             </div>
         </div>
     );

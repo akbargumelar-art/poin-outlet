@@ -112,34 +112,36 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
                 </div>
             </div>
 
-            <div className="neu-card-flat overflow-auto">
-                <table className="w-full min-w-max text-left">
-                    <thead className="bg-slate-200/50">
-                        <tr>
-                            <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
-                            <th className="p-4 font-semibold text-gray-600 w-full">Nama Mitra</th>
-                            <th className="p-4 font-semibold text-gray-600 w-full">Hadiah</th>
-                            <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin Digunakan</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredRedemptions.length > 0 ? filteredRedemptions.map((item, index) => (
-                            <tr key={item.id || index} className="border-t border-slate-200/80">
-                                <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
-                                <td className="p-4">
-                                    <p className="font-semibold text-gray-800">{item.userName || 'Nama Tidak Ditemukan'}</p>
-                                    <p className="text-xs text-gray-500 font-mono">{item.userId}</p>
-                                </td>
-                                <td className="p-4 font-semibold">{item.rewardName}</td>
-                                <td className="p-4 font-bold text-right text-red-600 whitespace-nowrap">{item.pointsSpent.toLocaleString('id-ID')}</td>
+            <div className="neu-card-flat overflow-hidden">
+                <div className="overflow-y-auto max-h-[60vh]">
+                    <table className="w-full min-w-max text-left">
+                        <thead className="bg-slate-200 sticky top-0 z-10">
+                            <tr>
+                                <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
+                                <th className="p-4 font-semibold text-gray-600 w-full">Nama Mitra</th>
+                                <th className="p-4 font-semibold text-gray-600 w-full">Hadiah</th>
+                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin Digunakan</th>
                             </tr>
-                        )) : (
-                             <tr>
-                                <td colSpan={4} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {filteredRedemptions.length > 0 ? filteredRedemptions.map((item, index) => (
+                                <tr key={item.id || index} className="border-t border-slate-200/80">
+                                    <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                                    <td className="p-4">
+                                        <p className="font-semibold text-gray-800">{item.userName || 'Nama Tidak Ditemukan'}</p>
+                                        <p className="text-xs text-gray-500 font-mono">{item.userId}</p>
+                                    </td>
+                                    <td className="p-4 font-semibold">{item.rewardName}</td>
+                                    <td className="p-4 font-bold text-right text-red-600 whitespace-nowrap">{item.pointsSpent.toLocaleString('id-ID')}</td>
+                                </tr>
+                            )) : (
+                                 <tr>
+                                    <td colSpan={4} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

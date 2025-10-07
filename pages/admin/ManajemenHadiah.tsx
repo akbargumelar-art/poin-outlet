@@ -267,51 +267,53 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
                 </div>
             </div>
             
-            <div className="neu-card-flat overflow-auto">
-                <table className="w-full min-w-max text-left">
-                    <thead className="bg-slate-200/50">
-                        <tr>
-                            {!isReadOnly && <th className="p-4 w-12"></th>}
-                            <th className="p-4 font-semibold w-auto">Gambar</th>
-                            <th className="p-4 font-semibold w-full">Nama Hadiah</th>
-                            <th className="p-4 font-semibold w-auto whitespace-nowrap">Poin</th>
-                            <th className="p-4 font-semibold w-auto">Stok</th>
-                            {!isReadOnly && <th className="p-4 font-semibold w-auto">Aksi</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {orderedRewards.map((r, index) => (
-                            <tr 
-                                key={r.id} 
-                                className="border-t border-slate-200/80 group"
-                                draggable={!isReadOnly}
-                                onDragStart={(e) => handleDragStart(e, index)}
-                                onDragEnter={(e) => handleDragEnter(e, index)}
-                                onDragEnd={handleDragEnd}
-                                onDragOver={(e) => e.preventDefault()}
-                                style={{ cursor: isReadOnly ? 'default' : 'move' }}
-                            >
-                                {!isReadOnly && (
-                                    <td className="p-4 text-gray-400 group-hover:text-gray-600 transition-colors">
-                                        <Icon path={ICONS.reorder} className="w-6 h-6" />
-                                    </td>
-                                )}
-                                <td className="p-4"><img src={r.imageUrl} alt={r.name} className="w-20 h-20 object-contain rounded-md neu-inset p-1 bg-white"/></td>
-                                <td className="p-4 font-semibold">{r.name}</td>
-                                <td className="p-4 font-bold text-red-600 whitespace-nowrap">{r.points.toLocaleString('id-ID')}</td>
-                                <td className="p-4">{r.stock}</td>
-                                {!isReadOnly && (
-                                    <td className="p-4">
-                                        <div className="flex gap-2">
-                                            <button onClick={() => handleOpenEdit(r)} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5"/></button>
-                                            <button onClick={() => setDeletingReward(r)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5"/></button>
-                                        </div>
-                                    </td>
-                                )}
+            <div className="neu-card-flat overflow-hidden">
+                <div className="overflow-y-auto max-h-[60vh]">
+                    <table className="w-full min-w-max text-left">
+                        <thead className="bg-slate-200 sticky top-0 z-10">
+                            <tr>
+                                {!isReadOnly && <th className="p-4 w-12"></th>}
+                                <th className="p-4 font-semibold w-auto">Gambar</th>
+                                <th className="p-4 font-semibold w-full">Nama Hadiah</th>
+                                <th className="p-4 font-semibold w-auto whitespace-nowrap">Poin</th>
+                                <th className="p-4 font-semibold w-auto">Stok</th>
+                                {!isReadOnly && <th className="p-4 font-semibold w-auto">Aksi</th>}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {orderedRewards.map((r, index) => (
+                                <tr 
+                                    key={r.id} 
+                                    className="border-t border-slate-200/80 group"
+                                    draggable={!isReadOnly}
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragEnter={(e) => handleDragEnter(e, index)}
+                                    onDragEnd={handleDragEnd}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    style={{ cursor: isReadOnly ? 'default' : 'move' }}
+                                >
+                                    {!isReadOnly && (
+                                        <td className="p-4 text-gray-400 group-hover:text-gray-600 transition-colors">
+                                            <Icon path={ICONS.reorder} className="w-6 h-6" />
+                                        </td>
+                                    )}
+                                    <td className="p-4"><img src={r.imageUrl} alt={r.name} className="w-20 h-20 object-contain rounded-md neu-inset p-1 bg-white"/></td>
+                                    <td className="p-4 font-semibold">{r.name}</td>
+                                    <td className="p-4 font-bold text-red-600 whitespace-nowrap">{r.points.toLocaleString('id-ID')}</td>
+                                    <td className="p-4">{r.stock}</td>
+                                    {!isReadOnly && (
+                                        <td className="p-4">
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleOpenEdit(r)} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5"/></button>
+                                                <button onClick={() => setDeletingReward(r)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5"/></button>
+                                            </div>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

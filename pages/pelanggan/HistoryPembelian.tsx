@@ -132,38 +132,40 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                 </div>
             )}
             
-            <div className="neu-card-flat overflow-auto">
-                <table className="w-full min-w-max text-left">
-                    <thead className="bg-slate-200/50">
-                        <tr>
-                            <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
-                            <th className="p-4 font-semibold text-gray-600 w-full">Keterangan</th>
-                            <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Nominal</th>
-                            <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredHistory.length > 0 ? filteredHistory.map((item, index) => (
-                            <tr key={index} className="border-t border-slate-200/80">
-                                <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                                <td className="p-4">
-                                    <p className="font-semibold text-gray-800">{item.description}</p>
-                                    <p className="text-xs text-gray-500">{item.type}</p>
-                                </td>
-                                <td className="p-4 text-right whitespace-nowrap">
-                                    {item.amount > 0 ? `Rp ${item.amount.toLocaleString('id-ID')}` : '-'}
-                                </td>
-                                <td className={`p-4 font-bold text-right whitespace-nowrap ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {item.points > 0 ? '+' : ''}{item.points.toLocaleString('id-ID')}
-                                </td>
+            <div className="neu-card-flat overflow-hidden">
+                 <div className="overflow-y-auto max-h-[60vh]">
+                    <table className="w-full min-w-max text-left">
+                        <thead className="bg-slate-200 sticky top-0 z-10">
+                            <tr>
+                                <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
+                                <th className="p-4 font-semibold text-gray-600 w-full">Keterangan</th>
+                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Nominal</th>
+                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin</th>
                             </tr>
-                        )) : (
-                             <tr>
-                                <td colSpan={4} className="p-8 text-center text-gray-500">Tidak ada riwayat untuk rentang tanggal yang dipilih.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {filteredHistory.length > 0 ? filteredHistory.map((item, index) => (
+                                <tr key={index} className="border-t border-slate-200/80">
+                                    <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                    <td className="p-4">
+                                        <p className="font-semibold text-gray-800">{item.description}</p>
+                                        <p className="text-xs text-gray-500">{item.type}</p>
+                                    </td>
+                                    <td className="p-4 text-right whitespace-nowrap">
+                                        {item.amount > 0 ? `Rp ${item.amount.toLocaleString('id-ID')}` : '-'}
+                                    </td>
+                                    <td className={`p-4 font-bold text-right whitespace-nowrap ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {item.points > 0 ? '+' : ''}{item.points.toLocaleString('id-ID')}
+                                    </td>
+                                </tr>
+                            )) : (
+                                 <tr>
+                                    <td colSpan={4} className="p-8 text-center text-gray-500">Tidak ada riwayat untuk rentang tanggal yang dipilih.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
