@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { SpecialNumber, WhatsAppSettings, User } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -260,7 +261,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto neu-card-flat min-h-0">
+            <div className="flex-1 overflow-auto neu-card-flat min-h-0">
                 <table className="w-full text-left">
                     <thead className="bg-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
                         <tr>
