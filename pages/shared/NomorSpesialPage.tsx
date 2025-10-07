@@ -107,8 +107,8 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
     };
     
     return (
-        <div className="flex flex-col h-full">
-            <div className="flex-shrink-0">
+        <div>
+            <div>
                 <div className="neu-card overflow-hidden mb-6">
                     <img src={specialNumberBannerUrl || "https://i.ibb.co/pnvBFV5/nomor-spesial-banner.png"} alt="Nomor Spesial Banner" className="w-full h-auto object-cover aspect-[3/1]" />
                 </div>
@@ -151,39 +151,41 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
                 </div>
             </div>
             
-            <div className="flex-1 overflow-auto neu-card-flat min-h-0">
-                <table className="w-full min-w-max text-left">
-                    <thead className="bg-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
-                        <tr>
-                            <th className="p-4"><button onClick={() => requestSort('phoneNumber')} className="font-semibold flex items-center gap-1">Nomor {getSortIcon('phoneNumber')}</button></th>
-                            {isSupervisor && <th className="p-4"><button onClick={() => requestSort('sn')} className="font-semibold flex items-center gap-1">SN {getSortIcon('sn')}</button></th>}
-                            {isSupervisor && <th className="p-4"><button onClick={() => requestSort('lokasi')} className="font-semibold flex items-center gap-1">Lokasi {getSortIcon('lokasi')}</button></th>}
-                            <th className="p-4"><button onClick={() => requestSort('price')} className="font-semibold flex items-center gap-1 whitespace-nowrap">Harga {getSortIcon('price')}</button></th>
-                            <th className="p-4">
-                                <input type="checkbox" className="h-5 w-5 rounded" onChange={handleSelectAll} checked={sortedAndFilteredNumbers.length > 0 && selectedIds.size > 0 && selectedIds.size === sortedAndFilteredNumbers.length} />
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sortedAndFilteredNumbers.length > 0 ? (
-                            sortedAndFilteredNumbers.map(n => (
-                                <tr key={n.id} className="border-t border-slate-200/80">
-                                    <td className="p-4 font-bold text-lg text-gray-800 tracking-wider">{n.phoneNumber}</td>
-                                    {isSupervisor && <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>}
-                                    {isSupervisor && <td className="p-4">{n.lokasi || '-'}</td>}
-                                    <td className="p-4 font-semibold text-red-600">Rp {n.price.toLocaleString('id-ID')}</td>
-                                    <td className="p-4">
-                                        <input type="checkbox" className="h-5 w-5 rounded" checked={selectedIds.has(n.id)} onChange={() => handleSelect(n.id)} />
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
+            <div className="neu-card-flat overflow-hidden">
+                <div className="overflow-auto max-h-[60vh]">
+                    <table className="w-full min-w-max text-left">
+                        <thead className="bg-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
                             <tr>
-                                <td colSpan={isSupervisor ? 5 : 3} className="p-8 text-center text-gray-500">Tidak ada nomor yang cocok.</td>
+                                <th className="p-4"><button onClick={() => requestSort('phoneNumber')} className="font-semibold flex items-center gap-1">Nomor {getSortIcon('phoneNumber')}</button></th>
+                                {isSupervisor && <th className="p-4"><button onClick={() => requestSort('sn')} className="font-semibold flex items-center gap-1">SN {getSortIcon('sn')}</button></th>}
+                                {isSupervisor && <th className="p-4"><button onClick={() => requestSort('lokasi')} className="font-semibold flex items-center gap-1">Lokasi {getSortIcon('lokasi')}</button></th>}
+                                <th className="p-4"><button onClick={() => requestSort('price')} className="font-semibold flex items-center gap-1 whitespace-nowrap">Harga {getSortIcon('price')}</button></th>
+                                <th className="p-4">
+                                    <input type="checkbox" className="h-5 w-5 rounded" onChange={handleSelectAll} checked={sortedAndFilteredNumbers.length > 0 && selectedIds.size > 0 && selectedIds.size === sortedAndFilteredNumbers.length} />
+                                </th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {sortedAndFilteredNumbers.length > 0 ? (
+                                sortedAndFilteredNumbers.map(n => (
+                                    <tr key={n.id} className="border-t border-slate-200/80">
+                                        <td className="p-4 font-bold text-lg text-gray-800 tracking-wider">{n.phoneNumber}</td>
+                                        {isSupervisor && <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>}
+                                        {isSupervisor && <td className="p-4">{n.lokasi || '-'}</td>}
+                                        <td className="p-4 font-semibold text-red-600">Rp {n.price.toLocaleString('id-ID')}</td>
+                                        <td className="p-4">
+                                            <input type="checkbox" className="h-5 w-5 rounded" checked={selectedIds.has(n.id)} onChange={() => handleSelect(n.id)} />
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={isSupervisor ? 5 : 3} className="p-8 text-center text-gray-500">Tidak ada nomor yang cocok.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

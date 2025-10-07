@@ -82,6 +82,8 @@ export type HistoryItem = {
     description: string;
     amount: number; // Ini akan menjadi totalPembelian untuk pembelian
     points: number; // bisa positif atau negatif
+    harga?: number;
+    kuantiti?: number;
 };
 
 

@@ -21,6 +21,8 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                 description: t.produk,
                 amount: t.totalPembelian,
                 points: t.pointsEarned,
+                harga: t.harga,
+                kuantiti: t.kuantiti,
             }));
 
         const redemptionHistoryItems: HistoryItem[] = redemptionHistory
@@ -133,12 +135,14 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
             )}
             
             <div className="neu-card-flat overflow-hidden">
-                 <div className="overflow-y-auto max-h-[60vh]">
+                 <div className="overflow-auto max-h-[60vh]">
                     <table className="w-full min-w-max text-left">
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
                                 <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
                                 <th className="p-4 font-semibold text-gray-600 w-full">Keterangan</th>
+                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Harga Satuan</th>
+                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Kuantiti</th>
                                 <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Nominal</th>
                                 <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin</th>
                             </tr>
@@ -152,6 +156,12 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                                         <p className="text-xs text-gray-500">{item.type}</p>
                                     </td>
                                     <td className="p-4 text-right whitespace-nowrap">
+                                        {item.type === 'Pembelian' && item.harga ? `Rp ${item.harga.toLocaleString('id-ID')}` : '-'}
+                                    </td>
+                                     <td className="p-4 text-right whitespace-nowrap">
+                                        {item.type === 'Pembelian' && item.kuantiti ? item.kuantiti.toLocaleString('id-ID') : '-'}
+                                    </td>
+                                    <td className="p-4 text-right whitespace-nowrap">
                                         {item.amount > 0 ? `Rp ${item.amount.toLocaleString('id-ID')}` : '-'}
                                     </td>
                                     <td className={`p-4 font-bold text-right whitespace-nowrap ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -160,7 +170,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                                 </tr>
                             )) : (
                                  <tr>
-                                    <td colSpan={4} className="p-8 text-center text-gray-500">Tidak ada riwayat untuk rentang tanggal yang dipilih.</td>
+                                    <td colSpan={6} className="p-8 text-center text-gray-500">Tidak ada riwayat untuk rentang tanggal yang dipilih.</td>
                                 </tr>
                             )}
                         </tbody>

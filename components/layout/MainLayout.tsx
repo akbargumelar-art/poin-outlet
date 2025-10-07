@@ -96,14 +96,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
                     </div>
                 </header>
             </div>
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-32 animate-fade-in-up w-full">
+            <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 xl:pb-28 animate-fade-in-up w-full">
                 <div className="max-w-4xl xl:max-w-7xl mx-auto w-full">
                     {children}
                 </div>
             </main>
-             <div className="fixed bottom-0 left-0 right-0 h-16 bg-transparent z-50">
+             <div className="fixed bottom-0 left-0 right-0 h-20 xl:h-24 bg-transparent z-50 pointer-events-none">
                 <div className="w-full max-w-4xl xl:max-w-7xl mx-auto h-full px-4 xl:px-0">
-                    <nav className="neu-card-flat w-full h-full flex justify-around items-center rounded-t-2xl xl:rounded-2xl xl:mb-4">
+                    <nav className="neu-card-flat w-full h-16 flex justify-around items-center rounded-t-2xl xl:rounded-2xl xl:mb-4 pointer-events-auto">
                         {mainItems.map(item => {
                             const page = (item as { page: Page }).page;
                             const action = (item as { action: () => void }).action;
