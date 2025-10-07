@@ -207,16 +207,12 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
 
         const data = taps.map(tap => {
             const usersInTap = pelangganOnly.filter(u => u.profile.tap === tap);
-            const userIdsInTap = new Set(usersInTap.map(u => u.id));
-            
-            const totalPembelian = Array.from(userTotals.entries())
-                .filter(([userId, _]) => userIdsInTap.has(userId))
-                .reduce((sum, [_, totals]) => sum + totals.totalPembelian, 0);
+            const totalPoin = usersInTap.reduce((sum, user) => sum + (user.points || 0), 0);
 
             return {
                 tap,
                 mitraCount: usersInTap.length,
-                totalPembelian: totalPembelian,
+                totalPoin: totalPoin,
             };
         });
 
@@ -227,7 +223,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             maxCount: maxCount === 0 ? 1 : maxCount
         };
 
-    }, [filteredUsers, userTotals]);
+    }, [filteredUsers]);
 
     const chartData = useMemo(() => {
         const levels = [
@@ -321,17 +317,17 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                  {filteredUsers.filter(u => u.role === 'pelanggan').length > 0 && tapChartData.stats.length > 0 ? (
                     <div className="overflow-x-auto">
                         <div className="flex justify-around items-end h-64 pt-8 space-x-2 border-b border-gray-200 min-w-[600px]">
-                           {tapChartData.stats.map(({ tap, mitraCount, totalPembelian }) => (
+                           {tapChartData.stats.map(({ tap, mitraCount, totalPoin }) => (
                                <div key={tap} className="flex flex-col items-center justify-end flex-1 h-full">
                                    <div className="text-sm font-bold text-gray-800 -mb-5 z-10">{mitraCount}</div>
                                    <div
-                                       className="w-full bg-gradient-to-t from-blue-600 to-blue-500 rounded-t-lg transition-all duration-500 ease-out flex items-end justify-center"
+                                       className="w-full bg-gradient-to-t from-red-600 to-red-500 rounded-t-lg transition-all duration-500 ease-out flex items-end justify-center"
                                        style={{ height: `${(mitraCount / tapChartData.maxCount) * 100}%` }}
-                                       title={`${mitraCount} Mitra | Rp ${totalPembelian.toLocaleString('id-ID')}`}
+                                       title={`${mitraCount} Mitra | ${totalPoin.toLocaleString('id-ID')} Poin`}
                                    >
                                    </div>
                                    <div className="text-center mt-2 w-full">
-                                       <p className="text-xs font-semibold text-gray-500 truncate">Rp {totalPembelian.toLocaleString('id-ID')}</p>
+                                       <p className="text-xs font-semibold text-gray-500 truncate">{totalPoin.toLocaleString('id-ID')} Poin</p>
                                        <p className="font-bold text-gray-600 text-sm truncate">{tap}</p>
                                    </div>
                                </div>
