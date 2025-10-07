@@ -141,7 +141,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                             <tr>
                                 <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
                                 <th className="p-4 font-semibold text-gray-600">Tipe</th>
-                                <th className="p-4 font-semibold text-gray-600 w-full">Produk / Hadiah</th>
+                                <th className="p-4 font-semibold text-gray-600">Produk / Hadiah</th>
                                 <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Jumlah</th>
                                 <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin</th>
                             </tr>

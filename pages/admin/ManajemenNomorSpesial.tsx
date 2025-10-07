@@ -302,33 +302,38 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredAndSortedNumbers.map(n => (
-                            <tr key={n.id} className="border-t border-slate-200/80">
-                                <td className="p-4 font-bold text-gray-800">{n.phoneNumber}</td>
-                                <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>
-                                <td className="p-4">{n.lokasi || '-'}</td>
-                                <td className="p-4">Rp {n.price.toLocaleString('id-ID')}</td>
-                                <td className="p-4">
-                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${n.isSold ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                        {n.isSold ? 'Terjual' : 'Tersedia'}
-                                    </span>
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex gap-2">
-                                        <button onClick={() => setConfirmingStatus(n)} className="neu-button-icon" title={n.isSold ? 'Tandai Tersedia' : 'Tandai Terjual'}>
-                                            <Icon path={n.isSold ? ICONS.eye : ICONS.eyeOff} className="w-5 h-5" />
-                                        </button>
-                                        <button onClick={() => { setEditingNumber(n); setShowFormModal(true); }} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5" /></button>
-                                        {!isOperator && (
-                                            <button onClick={() => setDeletingId(n.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5" /></button>
-                                        )}
-                                    </div>
-                                </td>
+                        {filteredAndSortedNumbers.length > 0 ? (
+                            filteredAndSortedNumbers.map(n => (
+                                <tr key={n.id} className="border-t border-slate-200/80">
+                                    <td className="p-4 font-bold text-gray-800">{n.phoneNumber}</td>
+                                    <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>
+                                    <td className="p-4">{n.lokasi || '-'}</td>
+                                    <td className="p-4">Rp {n.price.toLocaleString('id-ID')}</td>
+                                    <td className="p-4">
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${n.isSold ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                            {n.isSold ? 'Terjual' : 'Tersedia'}
+                                        </span>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setConfirmingStatus(n)} className="neu-button-icon" title={n.isSold ? 'Tandai Tersedia' : 'Tandai Terjual'}>
+                                                <Icon path={n.isSold ? ICONS.eye : ICONS.eyeOff} className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => { setEditingNumber(n); setShowFormModal(true); }} className="neu-button-icon text-blue-600"><Icon path={ICONS.edit} className="w-5 h-5" /></button>
+                                            {!isOperator && (
+                                                <button onClick={() => setDeletingId(n.id)} className="neu-button-icon text-red-600"><Icon path={ICONS.trash} className="w-5 h-5" /></button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={6} className="p-8 text-center text-gray-500">Tidak ada nomor untuk ditampilkan.</td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
                 </table>
-                 {filteredAndSortedNumbers.length === 0 && <p className="p-8 text-center text-gray-500">Tidak ada nomor untuk ditampilkan.</p>}
             </div>
         </div>
     );
