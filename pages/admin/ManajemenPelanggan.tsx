@@ -316,7 +316,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                 <h2 className="text-xl font-bold text-gray-700 mb-4">Grafik Kinerja per TAP</h2>
                  {filteredUsers.filter(u => u.role === 'pelanggan').length > 0 && tapChartData.stats.length > 0 ? (
                     <div className="overflow-x-auto">
-                        <div className="flex justify-around items-end h-64 pt-8 space-x-2 border-b border-gray-200 min-w-[600px]">
+                        <div className="flex justify-around items-end h-80 pt-8 space-x-2 border-b border-gray-200 min-w-[600px]">
                            {tapChartData.stats.map(({ tap, mitraCount, totalPoin }) => (
                                <div key={tap} className="flex flex-col items-center justify-end flex-1 h-full">
                                    <div className="text-sm font-bold text-gray-800 -mb-5 z-10">{mitraCount}</div>
@@ -342,7 +342,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             <div className="mb-8 neu-card p-6">
                 <h2 className="text-xl font-bold text-gray-700 mb-4">Grafik Level Mitra</h2>
                 {filteredUsers.filter(u => u.role === 'pelanggan').length > 0 ? (
-                    <div className="flex justify-around items-end h-64 pt-8 space-x-2 md:space-x-4 border-b border-gray-200">
+                    <div className="flex justify-around items-end h-80 pt-8 space-x-2 md:space-x-4 border-b border-gray-200">
                         {chartData.stats.map(({ level, count, totalPoints, color }) => (
                             <div key={level} className="flex flex-col items-center justify-end flex-1 h-full">
                                 <div className="text-sm font-bold text-gray-800 -mb-5 z-10">{count}</div>
