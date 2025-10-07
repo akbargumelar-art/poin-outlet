@@ -268,7 +268,7 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
             </div>
             
             <div className="neu-card-flat overflow-auto">
-                <table className="w-full text-left">
+                <table className="w-full min-w-max text-left">
                     <thead className="bg-slate-200/50">
                         <tr>
                             {!isReadOnly && <th className="p-4 w-12"></th>}

@@ -113,7 +113,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
             </div>
 
             <div className="neu-card-flat overflow-auto">
-                <table className="w-full text-left">
+                <table className="w-full min-w-max text-left">
                     <thead className="bg-slate-200/50">
                         <tr>
                             <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>

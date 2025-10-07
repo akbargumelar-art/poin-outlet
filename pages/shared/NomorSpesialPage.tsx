@@ -152,7 +152,7 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
             </div>
             
             <div className="flex-1 overflow-auto neu-card-flat min-h-0">
-                <table className="w-full text-left">
+                <table className="w-full min-w-max text-left">
                     <thead className="bg-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
                         <tr>
                             <th className="p-4"><button onClick={() => requestSort('phoneNumber')} className="font-semibold flex items-center gap-1">Nomor {getSortIcon('phoneNumber')}</button></th>

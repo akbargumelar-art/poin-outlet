@@ -251,7 +251,7 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, rede
                                 <select value={salesforceFilter} onChange={e => setSalesforceFilter(e.target.value)} className="input-field"><option value="">Semua Salesforce</option>{allSalesforce.map(s => <option key={s} value={s}>{s}</option>)}</select>
                             </div>
                              <div className="neu-inset overflow-auto max-h-[40vh]">
-                                <table className="w-full text-left">
+                                <table className="w-full min-w-max text-left">
                                     <thead className="sticky top-0 bg-slate-200/80 backdrop-blur-sm">
                                         <tr>
                                             <th className="p-3 font-semibold w-full">Nama Mitra</th>
