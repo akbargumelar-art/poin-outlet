@@ -170,6 +170,31 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
         return <Icon path="M12 20l1.41-1.41L12 21.17l-1.41-1.41L12 20zM12 4l1.41 1.41L12 2.83 10.59 4.24 12 4z" className="w-4 h-4" />;
     };
 
+    const handleExport = () => {
+        if (filteredAndSortedNumbers.length === 0) {
+            alert("Tidak ada data untuk diekspor.");
+            return;
+        }
+
+        const csvHeader = ['Nomor Telepon', 'SN', 'Lokasi', 'Harga', 'Status'].join(',');
+        const csvRows = filteredAndSortedNumbers.map(n => 
+            [
+                n.phoneNumber,
+                n.sn || '',
+                n.lokasi || '',
+                n.price,
+                n.isSold ? 'Terjual' : 'Tersedia'
+            ].join(',')
+        );
+
+        const csv = [csvHeader, ...csvRows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'data_nomor_spesial.csv';
+        link.click();
+    };
+
 
     return (
         <div className="flex flex-col h-full">
@@ -205,12 +230,17 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
             <div className="flex-shrink-0">
                 <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-700">{isOperator ? 'Status Nomor Spesial' : 'Manajemen Nomor Spesial'}</h1>
-                    {!isOperator && (
-                        <div className="flex gap-2">
-                            <button onClick={() => setShowUploadModal(true)} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.upload} className="w-5 h-5" /> Upload Massal</button>
-                            <button onClick={() => { setEditingNumber(undefined); setShowFormModal(true); }} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5" /> Tambah</button>
-                        </div>
-                    )}
+                    <div className="flex gap-2">
+                        <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
+                            <Icon path={ICONS.download} className="w-5 h-5" /> Download Data
+                        </button>
+                        {!isOperator && (
+                            <>
+                                <button onClick={() => setShowUploadModal(true)} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.upload} className="w-5 h-5" /> Upload Massal</button>
+                                <button onClick={() => { setEditingNumber(undefined); setShowFormModal(true); }} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5" /> Tambah</button>
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 {!isOperator && (

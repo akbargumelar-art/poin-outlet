@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { User, Page, Transaction, LoyaltyProgram } from '../../types';
+import { User, Page, Transaction, LoyaltyProgram, UserRole } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
@@ -13,13 +13,14 @@ interface ManajemenPelangganProps {
     adminUpdateUserLevel: (userId: string, level: string) => void;
 }
 
-type SortableKeys = 'nama' | 'id' | 'tap' | 'salesforce' | 'totalPembelian' | 'points' | 'level';
+type SortableKeys = 'nama' | 'id' | 'tap' | 'salesforce' | 'totalPembelian' | 'points' | 'level' | 'role';
 
 
 const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
+    const [roleFilter, setRoleFilter] = useState<UserRole | ''>('');
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [selectedLevel, setSelectedLevel] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'nama', direction: 'asc' });
@@ -38,8 +39,11 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
     }, [transactions]);
 
     const filteredUsers = useMemo(() => {
-        let result = [...pelangganUsers]; // Create a mutable copy
+        let result = [...users];
 
+        if (roleFilter) {
+            result = result.filter(u => u.role === roleFilter);
+        }
         if (tapFilter) {
             result = result.filter(u => u.profile.tap === tapFilter);
         }
@@ -84,6 +88,10 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                          aValue = a.level || '';
                          bValue = b.level || '';
                          break;
+                    case 'role':
+                        aValue = a.role;
+                        bValue = b.role;
+                        break;
                     case 'id':
                         aValue = a.id;
                         bValue = b.id;
@@ -104,7 +112,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
         }
         
         return result;
-    }, [searchTerm, pelangganUsers, tapFilter, salesforceFilter, sortConfig, userTotals]);
+    }, [searchTerm, users, tapFilter, salesforceFilter, roleFilter, sortConfig, userTotals]);
 
     const requestSort = (key: SortableKeys) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -128,9 +136,11 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
         setSearchTerm('');
         setTapFilter('');
         setSalesforceFilter('');
+        setRoleFilter('');
     };
 
     const handleEditUser = (user: User) => {
+        if (user.role !== 'pelanggan') return;
         setEditingUser(user);
         setSelectedLevel(user.level || '');
     };
@@ -153,7 +163,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             return;
         }
     
-        const csvHeader = ['ID Digipos', 'Nama Outlet', 'Nama Owner', 'No. WhatsApp', 'TAP', 'Salesforce', 'Level', 'Poin', 'Kupon Undian', 'Total Pembelian'].join(',');
+        const csvHeader = ['ID', 'Nama', 'Role', 'Owner', 'No. WhatsApp', 'TAP', 'Salesforce', 'Level', 'Poin', 'Kupon Undian', 'Total Pembelian'].join(',');
         
         const csvRows = filteredUsers.map(u => {
             const totalPembelian = userTotals.get(u.id)?.totalPembelian || 0;
@@ -164,6 +174,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             return [
                 u.id,
                 cleanName,
+                u.role,
                 cleanOwner,
                 u.profile.phone,
                 u.profile.tap,
@@ -182,7 +193,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
         if (link.download !== undefined) {
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', 'mitra_export.csv');
+            link.setAttribute('download', 'user_export.csv');
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -240,15 +251,15 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             )}
 
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Mitra Outlet</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Pengguna</h1>
                 <div className="flex gap-2">
-                    {!isReadOnly && <button onClick={() => setCurrentPage('tambahUser')} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5"/>Tambah Mitra</button>}
+                    {!isReadOnly && <button onClick={() => setCurrentPage('tambahUser')} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5"/>Tambah Pengguna</button>}
                     <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel</button>
                 </div>
             </div>
 
              <div className="mb-6 neu-card-flat p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center">
                     <input
                         type="text"
                         placeholder="Cari nama atau ID..."
@@ -264,7 +275,14 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                         <option value="">Semua Salesforce</option>
                         {allSalesforce.map(sf => <option key={sf} value={sf}>{sf}</option>)}
                     </select>
-                     <button onClick={handleResetFilters} className="neu-button lg:col-start-4">
+                    <select value={roleFilter} onChange={e => setRoleFilter(e.target.value as UserRole | '')} className="input-field">
+                        <option value="">Semua Role</option>
+                        <option value="pelanggan">Mitra Outlet</option>
+                        <option value="admin">Admin</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="operator">Operator</option>
+                    </select>
+                     <button onClick={handleResetFilters} className="neu-button">
                         Clear Filter
                     </button>
                 </div>
@@ -301,22 +319,17 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                         <tr>
                             <th className="p-4 font-semibold w-full">
                                  <button onClick={() => requestSort('nama')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                    Nama Outlet {getSortIcon('nama')}
+                                    Nama {getSortIcon('nama')}
+                                </button>
+                            </th>
+                             <th className="p-4 font-semibold whitespace-nowrap">
+                                <button onClick={() => requestSort('role')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                    Role {getSortIcon('role')}
                                 </button>
                             </th>
                             <th className="p-4 font-semibold whitespace-nowrap">
                                 <button onClick={() => requestSort('id')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                    ID Digipos {getSortIcon('id')}
-                                </button>
-                            </th>
-                            <th className="p-4 font-semibold whitespace-nowrap">
-                                <button onClick={() => requestSort('tap')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                    TAP {getSortIcon('tap')}
-                                </button>
-                            </th>
-                            <th className="p-4 font-semibold whitespace-nowrap">
-                                <button onClick={() => requestSort('salesforce')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                    Salesforce {getSortIcon('salesforce')}
+                                    ID {getSortIcon('id')}
                                 </button>
                             </th>
                             <th className="p-4 font-semibold text-right whitespace-nowrap">
@@ -341,15 +354,23 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                         {filteredUsers.map(user => (
                             <tr key={user.id} className="border-t border-slate-200/80">
                                 <td className="p-4 font-semibold">{user.profile.nama}</td>
+                                <td className="p-4 capitalize">{user.role}</td>
                                 <td className="p-4 font-mono text-sm whitespace-nowrap">{user.id}</td>
-                                <td className="p-4 whitespace-nowrap">{user.profile.tap}</td>
-                                <td className="p-4 whitespace-nowrap">{user.profile.salesforce}</td>
-                                <td className="p-4 text-right whitespace-nowrap">Rp {(userTotals.get(user.id)?.totalPembelian || 0).toLocaleString('id-ID')}</td>
-                                <td className="p-4 text-right font-bold text-red-600 whitespace-nowrap">{(user.points || 0).toLocaleString('id-ID')}</td>
-                                <td className="p-4 whitespace-nowrap">{user.level}</td>
+                                <td className="p-4 text-right whitespace-nowrap">
+                                    {user.role === 'pelanggan' ? `Rp ${(userTotals.get(user.id)?.totalPembelian || 0).toLocaleString('id-ID')}` : '-'}
+                                </td>
+                                <td className="p-4 text-right font-bold text-red-600 whitespace-nowrap">
+                                    {user.role === 'pelanggan' ? (user.points || 0).toLocaleString('id-ID') : '-'}
+                                </td>
+                                <td className="p-4 whitespace-nowrap">{user.level || '-'}</td>
                                 {!isReadOnly && (
                                     <td className="p-4">
-                                        <button onClick={() => handleEditUser(user)} className="neu-button-icon text-blue-600" title="Ubah Level">
+                                        <button 
+                                            onClick={() => handleEditUser(user)} 
+                                            className="neu-button-icon text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed" 
+                                            title="Ubah Level"
+                                            disabled={user.role !== 'pelanggan'}
+                                        >
                                             <Icon path={ICONS.edit} className="w-5 h-5"/>
                                         </button>
                                     </td>
@@ -358,7 +379,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                         ))}
                     </tbody>
                 </table>
-                 {filteredUsers.length === 0 && <p className="p-8 text-center text-gray-500">Tidak ada mitra yang cocok dengan filter yang diterapkan.</p>}
+                 {filteredUsers.length === 0 && <p className="p-8 text-center text-gray-500">Tidak ada pengguna yang cocok dengan filter yang diterapkan.</p>}
             </div>
         </div>
     );
