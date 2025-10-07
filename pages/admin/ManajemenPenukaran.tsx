@@ -1,19 +1,31 @@
 import React, { useState, useMemo } from 'react';
-import { Redemption } from '../../types';
+import { Redemption, User } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 
 interface ManajemenPenukaranProps {
     redemptions: Redemption[];
+    users: User[];
     isReadOnly?: boolean;
 }
 
-const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, isReadOnly }) => {
+const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, users, isReadOnly }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState({ from: '', to: '' });
 
+    const redemptionsWithUserData = useMemo(() => {
+        return redemptions.map(r => {
+            const user = users.find(u => u.id === r.userId);
+            return {
+                ...r,
+                userTap: user?.profile.tap || '-',
+                userSalesforce: user?.profile.salesforce || '-'
+            };
+        });
+    }, [redemptions, users]);
+
     const filteredRedemptions = useMemo(() => {
-        return redemptions.filter(item => {
+        return redemptionsWithUserData.filter(item => {
             const itemDate = new Date(item.date);
             const fromDate = filter.from ? new Date(filter.from) : null;
             const toDate = filter.to ? new Date(filter.to) : null;
@@ -28,13 +40,16 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
                 const lowercasedSearchTerm = searchTerm.toLowerCase();
                 return (
                     item.userName?.toLowerCase().includes(lowercasedSearchTerm) ||
-                    item.userId.toLowerCase().includes(lowercasedSearchTerm)
+                    item.userId.toLowerCase().includes(lowercasedSearchTerm) ||
+                    item.rewardName.toLowerCase().includes(lowercasedSearchTerm) ||
+                    item.userTap.toLowerCase().includes(lowercasedSearchTerm) ||
+                    item.userSalesforce.toLowerCase().includes(lowercasedSearchTerm)
                 );
             }
             
             return true;
         });
-    }, [redemptions, filter, searchTerm]);
+    }, [redemptionsWithUserData, filter, searchTerm]);
     
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -51,7 +66,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
             return;
         }
     
-        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'Hadiah', 'Poin Dihabiskan'].join(',');
+        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Hadiah', 'Poin Dihabiskan'].join(',');
         
         const csvRows = filteredRedemptions.map(r => {
             const cleanRewardName = `"${(r.rewardName || 'N/A').replace(/"/g, '""')}"`;
@@ -65,6 +80,8 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
                 formattedDate,
                 r.userId,
                 cleanUserName,
+                r.userTap,
+                r.userSalesforce,
                 cleanRewardName,
                 r.pointsSpent
             ].join(',');
@@ -97,7 +114,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
             <div className="mb-6 neu-card-flat p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
                 <input
                     type="text"
-                    placeholder="Cari nama atau ID..."
+                    placeholder="Cari nama, ID, hadiah..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="input-field lg:col-span-2"
@@ -113,13 +130,15 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
             </div>
 
             <div className="neu-card-flat overflow-hidden">
-                <div className="overflow-y-auto max-h-[60vh]">
+                <div className="overflow-auto max-h-[60vh]">
                     <table className="w-full min-w-max text-left">
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
                                 <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
-                                <th className="p-4 font-semibold text-gray-600 w-full">Nama Mitra</th>
-                                <th className="p-4 font-semibold text-gray-600 w-full">Hadiah</th>
+                                <th className="p-4 font-semibold text-gray-600">Nama Mitra</th>
+                                <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">TAP</th>
+                                <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Salesforce</th>
+                                <th className="p-4 font-semibold text-gray-600">Hadiah</th>
                                 <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin Digunakan</th>
                             </tr>
                         </thead>
@@ -131,12 +150,14 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, is
                                         <p className="font-semibold text-gray-800">{item.userName || 'Nama Tidak Ditemukan'}</p>
                                         <p className="text-xs text-gray-500 font-mono">{item.userId}</p>
                                     </td>
+                                    <td className="p-4 whitespace-nowrap">{item.userTap}</td>
+                                    <td className="p-4 whitespace-nowrap">{item.userSalesforce}</td>
                                     <td className="p-4 font-semibold">{item.rewardName}</td>
                                     <td className="p-4 font-bold text-right text-red-600 whitespace-nowrap">{item.pointsSpent.toLocaleString('id-ID')}</td>
                                 </tr>
                             )) : (
                                  <tr>
-                                    <td colSpan={4} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
+                                    <td colSpan={6} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
                                 </tr>
                             )}
                         </tbody>

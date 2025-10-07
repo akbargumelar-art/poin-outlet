@@ -369,7 +369,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                     <table className="w-full min-w-max text-left">
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
-                                <th className="p-4 font-semibold w-full">
+                                <th className="p-4 font-semibold">
                                      <button onClick={() => requestSort('nama')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
                                         Nama {getSortIcon('nama')}
                                     </button>
