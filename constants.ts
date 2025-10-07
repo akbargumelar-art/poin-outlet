@@ -36,4 +36,5 @@ export const ICONS = {
     sortUp: "M7 14l5-5 5 5z",
     sortDown: "M7 10l5 5 5-5z",
     sortNeutral: "M9 13h6l-3-3zM15 11H9l3 3z",
+    reorder: "M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z",
 };

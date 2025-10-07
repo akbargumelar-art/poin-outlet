@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Reward, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
@@ -101,13 +101,57 @@ interface ManajemenHadiahProps {
     isReadOnly?: boolean;
     loyaltyPrograms: LoyaltyProgram[];
     updateLoyaltyProgram: (program: LoyaltyProgram) => void;
+    adminReorderRewards: (orderData: { id: number, displayOrder: number }[]) => Promise<boolean>;
 }
 
-const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, deleteReward, isReadOnly, loyaltyPrograms, updateLoyaltyProgram }) => {
+const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, deleteReward, isReadOnly, loyaltyPrograms, updateLoyaltyProgram, adminReorderRewards }) => {
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingReward, setEditingReward] = useState<Reward | undefined>(undefined);
     const [deletingReward, setDeletingReward] = useState<Reward | null>(null);
     const [editingLevel, setEditingLevel] = useState<LoyaltyProgram | null>(null);
+    
+    const [orderedRewards, setOrderedRewards] = useState<Reward[]>(rewards);
+    const [isOrderChanged, setIsOrderChanged] = useState(false);
+    const dragItem = React.useRef<number | null>(null);
+    const dragOverItem = React.useRef<number | null>(null);
+
+    useEffect(() => {
+        setOrderedRewards(rewards);
+        setIsOrderChanged(false);
+    }, [rewards]);
+
+    const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+        dragItem.current = index;
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragEnter = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+        dragOverItem.current = index;
+    };
+
+    const handleDragEnd = () => {
+        if (dragItem.current !== null && dragOverItem.current !== null && dragItem.current !== dragOverItem.current) {
+            const newOrderedRewards = [...orderedRewards];
+            const draggedItemContent = newOrderedRewards.splice(dragItem.current, 1)[0];
+            newOrderedRewards.splice(dragOverItem.current, 0, draggedItemContent);
+            setOrderedRewards(newOrderedRewards);
+            setIsOrderChanged(true);
+        }
+        dragItem.current = null;
+        dragOverItem.current = null;
+    };
+
+    const handleSaveOrder = async () => {
+        const orderData = orderedRewards.map((reward, index) => ({
+            id: reward.id,
+            displayOrder: index + 1
+        }));
+        const success = await adminReorderRewards(orderData);
+        if (success) {
+            setIsOrderChanged(false);
+        }
+    };
+
 
     const handleOpenAdd = () => {
         setEditingReward(undefined);
@@ -138,9 +182,9 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
     };
     
     const handleExport = () => {
-        const csvHeader = ['ID', 'Nama Hadiah', 'Poin', 'Stok', 'URL Gambar'].join(',');
-        const csvRows = rewards.map(r => 
-            [r.id, `"${r.name.replace(/"/g, '""')}"`, r.points, r.stock, r.imageUrl].join(',')
+        const csvHeader = ['Urutan Tampil', 'ID', 'Nama Hadiah', 'Poin', 'Stok', 'URL Gambar'].join(',');
+        const csvRows = orderedRewards.map((r, index) => 
+            [index + 1, r.id, `"${r.name.replace(/"/g, '""')}"`, r.points, r.stock, r.imageUrl].join(',')
         );
         const csv = [csvHeader, ...csvRows].join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -187,6 +231,11 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Hadiah & Level</h1>
                 <div className="flex gap-2">
+                    {isOrderChanged && !isReadOnly && (
+                        <button onClick={handleSaveOrder} className="neu-button text-green-600 !w-auto px-6 flex items-center gap-2">
+                            <Icon path={ICONS.download} className="w-5 h-5"/>Simpan Urutan
+                        </button>
+                    )}
                     {!isReadOnly && (
                         <button onClick={handleOpenAdd} className="neu-button !w-auto px-6 flex items-center gap-2">
                             <Icon path={ICONS.plus} className="w-5 h-5"/>Tambah Hadiah
@@ -222,6 +271,7 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
                 <table className="w-full text-left">
                     <thead className="bg-slate-200/50">
                         <tr>
+                            {!isReadOnly && <th className="p-4 w-12"></th>}
                             <th className="p-4 font-semibold w-auto">Gambar</th>
                             <th className="p-4 font-semibold w-full">Nama Hadiah</th>
                             <th className="p-4 font-semibold w-auto whitespace-nowrap">Poin</th>
@@ -230,8 +280,22 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
                         </tr>
                     </thead>
                     <tbody>
-                        {rewards.map(r => (
-                            <tr key={r.id} className="border-t border-slate-200/80">
+                        {orderedRewards.map((r, index) => (
+                            <tr 
+                                key={r.id} 
+                                className="border-t border-slate-200/80 group"
+                                draggable={!isReadOnly}
+                                onDragStart={(e) => handleDragStart(e, index)}
+                                onDragEnter={(e) => handleDragEnter(e, index)}
+                                onDragEnd={handleDragEnd}
+                                onDragOver={(e) => e.preventDefault()}
+                                style={{ cursor: isReadOnly ? 'default' : 'move' }}
+                            >
+                                {!isReadOnly && (
+                                    <td className="p-4 text-gray-400 group-hover:text-gray-600 transition-colors">
+                                        <Icon path={ICONS.reorder} className="w-6 h-6" />
+                                    </td>
+                                )}
                                 <td className="p-4"><img src={r.imageUrl} alt={r.name} className="w-20 h-20 object-contain rounded-md neu-inset p-1 bg-white"/></td>
                                 <td className="p-4 font-semibold">{r.name}</td>
                                 <td className="p-4 font-bold text-red-600 whitespace-nowrap">{r.points.toLocaleString('id-ID')}</td>

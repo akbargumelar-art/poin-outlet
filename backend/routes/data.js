@@ -141,7 +141,7 @@ router.get('/bootstrap', async (req, res) => {
         ] = await Promise.all([
             safeQueryDB('SELECT * FROM users'),
             safeQueryDB('SELECT * FROM transactions ORDER BY date DESC'),
-            safeQueryDB('SELECT * FROM rewards ORDER BY points ASC'),
+            safeQueryDB('SELECT * FROM rewards ORDER BY display_order ASC, points ASC'),
             safeQueryDB('SELECT r.*, rw.name as reward_name, u.nama as user_name FROM redemptions r LEFT JOIN rewards rw ON r.reward_id = rw.id LEFT JOIN users u ON r.user_id = u.id ORDER BY r.date DESC'),
             safeQueryDB('SELECT * FROM loyalty_programs ORDER BY points_needed ASC'),
             safeQueryDB('SELECT * FROM running_programs ORDER BY end_date DESC'),
@@ -1002,6 +1002,35 @@ router.delete('/rewards/:id', async (req, res) => {
     }
 });
 
+router.post('/rewards/reorder', async (req, res) => {
+    const orderData = req.body; // Expects an array of [{id: number, displayOrder: number}]
+
+    if (!Array.isArray(orderData)) {
+        return res.status(400).json({ message: 'Data urutan tidak valid.' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        for (const item of orderData) {
+            await connection.execute(
+                'UPDATE rewards SET display_order = ? WHERE id = ?',
+                [item.displayOrder, item.id]
+            );
+        }
+
+        await connection.commit();
+        res.json({ message: 'Urutan hadiah berhasil disimpan.' });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Reorder rewards error:', error);
+        res.status(500).json({ message: 'Gagal menyimpan urutan hadiah.' });
+    } finally {
+        connection.release();
+    }
+});
+
 
 // PROGRAM MANAGEMENT
 router.post('/programs', async (req, res) => {
@@ -1235,7 +1264,7 @@ router.delete('/special-numbers/:id', async (req, res) => {
 
 
 router.get('/rewards', async (req, res) => {
-    const rewards = await safeQueryDB('SELECT * FROM rewards ORDER BY points ASC');
+    const rewards = await safeQueryDB('SELECT * FROM rewards ORDER BY display_order ASC, points ASC');
     const parsedRewards = parseNumerics(rewards, ['points', 'stock']);
     res.json(parsedRewards.map(r => toCamelCase(r)));
 });

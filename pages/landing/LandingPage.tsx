@@ -17,14 +17,26 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
     const rewardsScrollContainer = useRef<HTMLDivElement>(null);
     const programsScrollContainer = useRef<HTMLDivElement>(null);
 
-    const handleNav = (direction: 'left' | 'right', container: 'rewards' | 'programs') => {
-        const targetContainer = container === 'rewards' ? rewardsScrollContainer.current : programsScrollContainer.current;
-        if (targetContainer) {
-            const scrollAmount = targetContainer.offsetWidth * 0.8;
-            targetContainer.scrollBy({
-                left: direction === 'left' ? -scrollAmount : scrollAmount,
-                behavior: 'smooth',
-            });
+    const handleNav = (direction: 'left' | 'right', containerRef: React.RefObject<HTMLDivElement>) => {
+        if (containerRef.current) {
+            const container = containerRef.current;
+            const scrollAmount = container.offsetWidth * 0.8;
+
+            if (direction === 'right') {
+                // If near the end, loop to the beginning
+                if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 1) {
+                    container.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                }
+            } else { // direction === 'left'
+                // If at the beginning, loop to the end
+                if (container.scrollLeft === 0) {
+                    container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
+                } else {
+                    container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                }
+            }
         }
     };
     
@@ -57,43 +69,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                         </div>
                     </section>
                 </div>
-                    
-                {/* Rewards Slider Section */}
-                <section id="hadiah-section" className="my-12 md:my-20 overflow-hidden">
-                    <div className="max-w-3xl xl:max-w-6xl mx-auto">
-                        <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
-                    </div>
-                    <div className="relative">
-                        <div className="max-w-3xl xl:max-w-6xl mx-auto relative md:px-12">
-                            <button onClick={() => handleNav('left', 'rewards')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous slide">
-                                <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
-                            </button>
-                            <div ref={rewardsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                               {rewards.map((r) => (
-                                    <div key={r.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 lg:w-1/3 p-4">
-                                        <div className="neu-card overflow-hidden flex flex-col h-full">
-                                            <img src={r.imageUrl} alt={r.name} className="w-full h-40 md:h-48 object-cover"/>
-                                            <div className="p-6 flex flex-col flex-grow text-center">
-                                                <h4 className="text-lg font-bold flex-grow text-gray-800 min-h-[56px]">{r.name}</h4>
-                                                <p className="text-xl font-bold text-red-600 mt-2">{r.points.toLocaleString('id-ID')} Poin</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <button onClick={() => handleNav('right', 'rewards')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Next slide">
-                               <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
-                            </button>
-                        </div>
-                    </div>
-                     <p className="text-center mt-8 text-gray-600 max-w-3xl xl:max-w-6xl mx-auto">Dan masih banyak lagi hadiah lainnya!</p>
-                </section>
-
-                {/* Simulasi Poin Section */}
-                <section id="kalkulator-section" className="my-12 md:my-20 max-w-3xl xl:max-w-6xl mx-auto">
-                    <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
-                </section>
-
+                
                 {/* Running Program Section */}
                 {runningPrograms && runningPrograms.length > 0 && (
                     <section id="program-section" className="my-12 md:my-20 overflow-hidden">
@@ -102,7 +78,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                         </div>
                         <div className="relative">
                             <div className="max-w-3xl xl:max-w-6xl mx-auto relative md:px-12">
-                                <button onClick={() => handleNav('left', 'programs')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous program">
+                                <button onClick={() => handleNav('left', programsScrollContainer)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous program">
                                     <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                                 </button>
                                 <div ref={programsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -128,14 +104,50 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                         </div>
                                     ))}
                                 </div>
-                                 <button onClick={() => handleNav('right', 'programs')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Next program">
+                                 <button onClick={() => handleNav('right', programsScrollContainer)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Next program">
                                    <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
                                 </button>
                             </div>
                         </div>
                     </section>
                 )}
-                
+                    
+                {/* Rewards Slider Section */}
+                <section id="hadiah-section" className="my-12 md:my-20 overflow-hidden">
+                    <div className="max-w-3xl xl:max-w-6xl mx-auto">
+                        <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
+                    </div>
+                    <div className="relative">
+                        <div className="max-w-3xl xl:max-w-6xl mx-auto relative md:px-12">
+                            <button onClick={() => handleNav('left', rewardsScrollContainer)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous slide">
+                                <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
+                            </button>
+                            <div ref={rewardsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                               {rewards.map((r) => (
+                                    <div key={r.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 lg:w-1/3 p-4">
+                                        <div className="neu-card overflow-hidden flex flex-col h-full">
+                                            <img src={r.imageUrl} alt={r.name} className="w-full h-40 md:h-48 object-cover"/>
+                                            <div className="p-6 flex flex-col flex-grow text-center">
+                                                <h4 className="text-lg font-bold flex-grow text-gray-800 min-h-[56px]">{r.name}</h4>
+                                                <p className="text-xl font-bold text-red-600 mt-2">{r.points.toLocaleString('id-ID')} Poin</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <button onClick={() => handleNav('right', rewardsScrollContainer)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Next slide">
+                               <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
+                            </button>
+                        </div>
+                    </div>
+                     <p className="text-center mt-8 text-gray-600 max-w-3xl xl:max-w-6xl mx-auto">Dan masih banyak lagi hadiah lainnya!</p>
+                </section>
+
+                {/* Simulasi Poin Section */}
+                <section id="kalkulator-section" className="my-12 md:my-20 max-w-3xl xl:max-w-6xl mx-auto">
+                    <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
+                </section>
+
                 <div id="pemenang-section" className="max-w-3xl xl:max-w-6xl mx-auto">
                     <PemenangUndian winners={raffleWinners} />
                 </div>

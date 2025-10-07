@@ -98,6 +98,17 @@ const setupDatabase = async () => {
                 console.log("Column 'users.role' already includes 'operator' role.");
             }
         }
+        
+        // --- Check for display_order in rewards table ---
+        const [rewardColumns] = await connection.execute("SHOW COLUMNS FROM rewards LIKE 'display_order'");
+        if (rewardColumns.length === 0) {
+            console.log("Column 'rewards.display_order' not found. Creating it...");
+            const alterQuery = "ALTER TABLE rewards ADD COLUMN display_order INT NOT NULL DEFAULT 999 AFTER stock";
+            await connection.execute(alterQuery);
+            console.log("Table 'rewards' altered successfully to include 'display_order'.");
+        } else {
+            console.log("Column 'rewards.display_order' already exists.");
+        }
 
     } catch (err) {
         console.error('Database setup failed:', err);
