@@ -78,7 +78,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
     return (
         <div className="h-screen w-full flex flex-col font-sans neu-bg">
             <div className="flex-shrink-0 w-full">
-                <header className="w-full max-w-2xl xl:max-w-4xl mx-auto h-16 flex items-center justify-between px-4 md:px-6">
+                <header className="w-full max-w-3xl xl:max-w-6xl mx-auto h-16 flex items-center justify-between px-4 md:px-6">
                     <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-8 sm:h-9" />
                     <div className="flex items-center gap-4">
                         <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-3 group">
@@ -97,12 +97,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
                 </header>
             </div>
             <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-32 xl:pb-36 animate-fade-in-up w-full">
-                <div className="max-w-2xl xl:max-w-4xl mx-auto w-full h-full">
+                <div className="max-w-3xl xl:max-w-6xl mx-auto w-full h-full">
                     {children}
                 </div>
             </main>
              <div className="fixed bottom-0 left-0 right-0 h-16 bg-transparent z-50">
-                <div className="w-full max-w-2xl xl:max-w-4xl mx-auto h-full px-4 xl:px-0">
+                <div className="w-full max-w-3xl xl:max-w-6xl mx-auto h-full px-4 xl:px-0">
                     <nav className="neu-card-flat w-full h-full flex justify-around items-center rounded-t-2xl xl:rounded-2xl xl:mb-4">
                         {mainItems.map(item => {
                             const page = (item as { page: Page }).page;
