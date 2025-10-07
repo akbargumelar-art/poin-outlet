@@ -140,10 +140,9 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
                                 <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
-                                <th className="p-4 font-semibold text-gray-600 w-full">Keterangan</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Harga Satuan</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Kuantiti</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Nominal</th>
+                                <th className="p-4 font-semibold text-gray-600">Tipe</th>
+                                <th className="p-4 font-semibold text-gray-600 w-full">Produk / Hadiah</th>
+                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Jumlah</th>
                                 <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin</th>
                             </tr>
                         </thead>
@@ -152,17 +151,18 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                                 <tr key={index} className="border-t border-slate-200/80">
                                     <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                                     <td className="p-4">
-                                        <p className="font-semibold text-gray-800">{item.description}</p>
-                                        <p className="text-xs text-gray-500">{item.type}</p>
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${item.type === 'Pembelian' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                                            {item.type}
+                                        </span>
                                     </td>
+                                    <td className="p-4 font-semibold text-gray-800">{item.description}</td>
                                     <td className="p-4 text-right whitespace-nowrap">
-                                        {item.type === 'Pembelian' && item.harga ? `Rp ${item.harga.toLocaleString('id-ID')}` : '-'}
-                                    </td>
-                                     <td className="p-4 text-right whitespace-nowrap">
-                                        {item.type === 'Pembelian' && item.kuantiti ? item.kuantiti.toLocaleString('id-ID') : '-'}
-                                    </td>
-                                    <td className="p-4 text-right whitespace-nowrap">
-                                        {item.amount > 0 ? `Rp ${item.amount.toLocaleString('id-ID')}` : '-'}
+                                        {item.type === 'Pembelian' ? (
+                                            <div>
+                                                <p className="font-semibold text-gray-800">Rp {item.amount.toLocaleString('id-ID')}</p>
+                                                {item.kuantiti && item.harga ? <p className="text-xs text-gray-500">{item.kuantiti} x Rp {item.harga.toLocaleString('id-ID')}</p> : null}
+                                            </div>
+                                        ) : '-'}
                                     </td>
                                     <td className={`p-4 font-bold text-right whitespace-nowrap ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                         {item.points > 0 ? '+' : ''}{item.points.toLocaleString('id-ID')}
@@ -170,7 +170,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                                 </tr>
                             )) : (
                                  <tr>
-                                    <td colSpan={6} className="p-8 text-center text-gray-500">Tidak ada riwayat untuk rentang tanggal yang dipilih.</td>
+                                    <td colSpan={5} className="p-8 text-center text-gray-500">Tidak ada riwayat untuk rentang tanggal yang dipilih.</td>
                                 </tr>
                             )}
                         </tbody>

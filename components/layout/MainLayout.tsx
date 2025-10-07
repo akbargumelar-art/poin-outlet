@@ -98,8 +98,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
                     </div>
                 </header>
             </div>
-            <main className="flex-1 p-4 md:p-6 pb-24 xl:pb-28 animate-fade-in-up w-full overflow-hidden">
-                <div className="max-w-4xl xl:max-w-7xl mx-auto w-full h-full">
+            <main className="flex-1 p-4 md:p-6 pb-24 xl:pb-28 animate-fade-in-up w-full overflow-y-auto">
+                <div className="max-w-4xl xl:max-w-7xl mx-auto w-full">
                     {children}
                 </div>
             </main>
