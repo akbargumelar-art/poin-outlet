@@ -201,6 +201,34 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
         }
     };
 
+    const tapChartData = useMemo(() => {
+        const pelangganOnly = filteredUsers.filter(u => u.role === 'pelanggan');
+        const taps = [...new Set(pelangganOnly.filter(u => u.profile.tap).map(u => u.profile.tap!))];
+
+        const data = taps.map(tap => {
+            const usersInTap = pelangganOnly.filter(u => u.profile.tap === tap);
+            const userIdsInTap = new Set(usersInTap.map(u => u.id));
+            
+            const totalPembelian = Array.from(userTotals.entries())
+                .filter(([userId, _]) => userIdsInTap.has(userId))
+                .reduce((sum, [_, totals]) => sum + totals.totalPembelian, 0);
+
+            return {
+                tap,
+                mitraCount: usersInTap.length,
+                totalPembelian: totalPembelian,
+            };
+        });
+
+        const maxCount = Math.max(...data.map(d => d.mitraCount), 0);
+
+        return {
+            stats: data.sort((a,b) => b.mitraCount - a.mitraCount),
+            maxCount: maxCount === 0 ? 1 : maxCount
+        };
+
+    }, [filteredUsers, userTotals]);
+
     const chartData = useMemo(() => {
         const levels = [
             { name: 'Bronze', color: 'from-amber-600 to-amber-500' },
@@ -289,8 +317,35 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             </div>
 
             <div className="mb-8 neu-card p-6">
+                <h2 className="text-xl font-bold text-gray-700 mb-4">Grafik Kinerja per TAP</h2>
+                 {filteredUsers.filter(u => u.role === 'pelanggan').length > 0 && tapChartData.stats.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <div className="flex justify-around items-end h-64 pt-8 space-x-2 border-b border-gray-200 min-w-[600px]">
+                           {tapChartData.stats.map(({ tap, mitraCount, totalPembelian }) => (
+                               <div key={tap} className="flex flex-col items-center justify-end flex-1 h-full">
+                                   <div className="text-sm font-bold text-gray-800 -mb-5 z-10">{mitraCount}</div>
+                                   <div
+                                       className="w-full bg-gradient-to-t from-blue-600 to-blue-500 rounded-t-lg transition-all duration-500 ease-out flex items-end justify-center"
+                                       style={{ height: `${(mitraCount / tapChartData.maxCount) * 100}%` }}
+                                       title={`${mitraCount} Mitra | Rp ${totalPembelian.toLocaleString('id-ID')}`}
+                                   >
+                                   </div>
+                                   <div className="text-center mt-2 w-full">
+                                       <p className="text-xs font-semibold text-gray-500 truncate">Rp {totalPembelian.toLocaleString('id-ID')}</p>
+                                       <p className="font-bold text-gray-600 text-sm truncate">{tap}</p>
+                                   </div>
+                               </div>
+                           ))}
+                        </div>
+                    </div>
+                ) : (
+                    <p className="text-center text-gray-500 py-16">Tidak ada data TAP untuk ditampilkan pada grafik.</p>
+                )}
+            </div>
+
+            <div className="mb-8 neu-card p-6">
                 <h2 className="text-xl font-bold text-gray-700 mb-4">Grafik Level Mitra</h2>
-                {filteredUsers.length > 0 ? (
+                {filteredUsers.filter(u => u.role === 'pelanggan').length > 0 ? (
                     <div className="flex justify-around items-end h-64 pt-8 space-x-2 md:space-x-4 border-b border-gray-200">
                         {chartData.stats.map(({ level, count, totalPoints, color }) => (
                             <div key={level} className="flex flex-col items-center justify-end flex-1 h-full">
