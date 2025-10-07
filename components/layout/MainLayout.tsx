@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Page } from '../../types';
 import { ICONS } from '../../constants';
@@ -90,6 +89,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
                             <div className="w-11 h-11 rounded-full neu-card flex items-center justify-center font-bold text-xl text-red-500 overflow-hidden">
                                {currentUser.profile.photoUrl ? <img src={currentUser.profile.photoUrl} alt="profile" className="w-full h-full object-cover"/> : currentUser.profile.nama.charAt(0)}
                             </div>
+                        </button>
+                        <button onClick={handleLogout} className="neu-button-icon group" title="Logout">
+                            <Icon path={ICONS.logout} className="w-6 h-6 text-red-500 group-hover:text-red-700 transition-colors" />
                         </button>
                     </div>
                 </header>

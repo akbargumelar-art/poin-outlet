@@ -201,12 +201,6 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, updateUs
                         </button>
                     </form>
                 </div>
-
-                <div className="pt-6 mt-6 border-t border-gray-200/80">
-                     <button type="button" onClick={handleLogout} className="w-full md:w-auto md:px-6 neu-button flex items-center justify-center gap-2">
-                        <Icon path={ICONS.logout} className="w-5 h-5"/>Logout
-                    </button>
-                </div>
             </div>
         </div>
     );

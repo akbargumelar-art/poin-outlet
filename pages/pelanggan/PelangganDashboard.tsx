@@ -15,8 +15,6 @@ interface PelangganDashboardProps {
 const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, transactions, loyaltyPrograms, runningPrograms, setCurrentPage, raffleWinners }) => {
     const userTransactions = transactions.filter(t => t.userId === currentUser.id);
     const recentTransaction = [...userTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-    const nextLevel = loyaltyPrograms.find(p => p.pointsNeeded > (currentUser.points || 0));
-    const progress = nextLevel ? Math.round(((currentUser.points || 0) / nextLevel.pointsNeeded) * 100) : 100;
     
     const displayedPrograms = runningPrograms.slice(0, 3);
 
@@ -78,14 +76,6 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                             Tukar Poin
                         </button>
                      </div>
-                     {nextLevel && (
-                        <>
-                            <div className="w-full rounded-full h-2 mt-3 bg-white/20">
-                                <div className="bg-white h-2 rounded-full" style={{ width: `${progress}%` }}></div>
-                            </div>
-                            <p className="text-xs opacity-90 mt-1 text-right">{nextLevel.pointsNeeded - (currentUser.points || 0)} poin lagi ke {nextLevel.level}</p>
-                        </>
-                    )}
                 </div>
             </div>
 
