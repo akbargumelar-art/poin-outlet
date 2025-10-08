@@ -972,6 +972,30 @@ router.post('/redemptions', async (req, res) => {
     }
 });
 
+router.patch('/redemptions/:id/status', async (req, res) => {
+    const { id } = req.params;
+    const { status, statusNote } = req.body;
+
+    if (!status) {
+        return res.status(400).json({ message: "Status is required." });
+    }
+
+    try {
+        const sql = 'UPDATE redemptions SET status = ?, status_note = ?, status_updated_at = NOW() WHERE id = ?';
+        const [result] = await db.execute(sql, [status, statusNote || null, id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Redemption record not found.' });
+        }
+
+        res.json({ message: 'Redemption status updated successfully.' });
+
+    } catch (error) {
+        console.error('Update redemption status error:', error);
+        res.status(500).json({ message: 'Failed to update redemption status.' });
+    }
+});
+
 
 // REWARD MANAGEMENT
 router.post('/rewards', async (req, res) => {

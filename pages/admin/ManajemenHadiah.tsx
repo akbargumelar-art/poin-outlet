@@ -273,11 +273,11 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
                                 {!isReadOnly && <th className="p-4 w-12"></th>}
-                                <th className="p-4 font-semibold w-auto">Gambar</th>
-                                <th className="p-4 font-semibold w-full">Nama Hadiah</th>
-                                <th className="p-4 font-semibold w-auto whitespace-nowrap">Poin</th>
-                                <th className="p-4 font-semibold w-auto">Stok</th>
-                                {!isReadOnly && <th className="p-4 font-semibold w-auto">Aksi</th>}
+                                <th className="p-4 font-semibold">Gambar</th>
+                                <th className="p-4 font-semibold">Nama Hadiah</th>
+                                <th className="p-4 font-semibold whitespace-nowrap">Poin</th>
+                                <th className="p-4 font-semibold">Stok</th>
+                                {!isReadOnly && <th className="p-4 font-semibold">Aksi</th>}
                             </tr>
                         </thead>
                         <tbody>

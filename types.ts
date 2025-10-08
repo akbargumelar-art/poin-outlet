@@ -1,4 +1,5 @@
 
+
 export type UserRole = 'admin' | 'pelanggan' | 'supervisor' | 'operator';
 export type Page = 
     | 'landing'
@@ -74,6 +75,9 @@ export interface Redemption {
     pointsSpent: number;
     date: string;
     userName?: string; // Ditambahkan untuk halaman admin
+    status?: string;
+    statusNote?: string;
+    statusUpdatedAt?: string;
 }
 
 // Tipe baru untuk menyatukan history

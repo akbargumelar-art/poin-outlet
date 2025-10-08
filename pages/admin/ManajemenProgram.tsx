@@ -174,6 +174,14 @@ const ManageParticipantsModal: React.FC<{
         });
     };
 
+    const handleAddAll = () => {
+        setParticipantIds(prev => new Set([...prev, ...availableUsers.map(u => u.id)]));
+    };
+
+    const handleRemoveAll = () => {
+        setParticipantIds(new Set());
+    };
+
     const handleSave = () => {
         onSave(Array.from(participantIds));
     };
@@ -182,7 +190,10 @@ const ManageParticipantsModal: React.FC<{
         <Modal show={true} onClose={onClose} title={`Kelola Peserta: ${program.name}`}>
             <div className="grid grid-cols-2 gap-4 h-[60vh]">
                 <div>
-                    <h4 className="font-bold mb-2">Peserta Terdaftar ({participants.length})</h4>
+                    <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-bold">Peserta Terdaftar ({participants.length})</h4>
+                        <button onClick={handleRemoveAll} className="text-xs font-semibold text-red-600 hover:underline">Hapus Semua</button>
+                    </div>
                     <div className="neu-inset p-2 h-[calc(100%-6rem)] overflow-y-auto">
                         {participants.map(user => (
                             <div key={user.id} onClick={() => toggleParticipant(user.id)} className="p-2 rounded-lg cursor-pointer hover:bg-red-100 flex justify-between items-center">
@@ -193,7 +204,10 @@ const ManageParticipantsModal: React.FC<{
                     </div>
                 </div>
                 <div>
-                     <h4 className="font-bold mb-2">Mitra Tersedia</h4>
+                    <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-bold">Mitra Tersedia</h4>
+                        <button onClick={handleAddAll} className="text-xs font-semibold text-green-600 hover:underline" disabled={availableUsers.length === 0}>Pilih Semua</button>
+                    </div>
                     <input 
                         type="text"
                         placeholder="Cari mitra..."

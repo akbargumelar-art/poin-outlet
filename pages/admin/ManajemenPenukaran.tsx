@@ -2,16 +2,56 @@ import React, { useState, useMemo } from 'react';
 import { Redemption, User } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
+import Modal from '../../components/common/Modal';
+
+// --- Status Edit Modal Component ---
+const StatusEditModal: React.FC<{
+    redemption: Redemption;
+    onSave: (status: string, note: string) => void;
+    onClose: () => void;
+}> = ({ redemption, onSave, onClose }) => {
+    const [status, setStatus] = useState(redemption.status || 'Diajukan');
+    const [note, setNote] = useState(redemption.statusNote || '');
+    const statusOptions = ['Diajukan', 'Diproses', 'Selesai', 'Ditolak'];
+
+    const handleSave = () => {
+        onSave(status, note);
+    };
+
+    return (
+        <Modal show={true} onClose={onClose} title={`Update Status: ${redemption.rewardName}`}>
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-gray-600 text-sm font-semibold mb-2">Status</label>
+                    <select value={status} onChange={e => setStatus(e.target.value)} className="input-field">
+                        {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                </div>
+                <div>
+                     <label className="block text-gray-600 text-sm font-semibold mb-2">Catatan (Opsional)</label>
+                    <textarea value={note} onChange={e => setNote(e.target.value)} className="input-field min-h-[80px]" placeholder="e.g., Hadiah sudah bisa diambil di TAP."/>
+                </div>
+                 <div className="flex justify-end gap-4 pt-4">
+                    <button onClick={onClose} className="neu-button">Batal</button>
+                    <button onClick={handleSave} className="neu-button text-red-600">Simpan</button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
 
 interface ManajemenPenukaranProps {
     redemptions: Redemption[];
     users: User[];
     isReadOnly?: boolean;
+    adminUpdateRedemptionStatus: (redemptionId: number, status: string, statusNote: string) => void;
 }
 
-const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, users, isReadOnly }) => {
+const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, users, isReadOnly, adminUpdateRedemptionStatus }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState({ from: '', to: '' });
+    const [editingRedemption, setEditingRedemption] = useState<Redemption | null>(null);
+
 
     const redemptionsWithUserData = useMemo(() => {
         return redemptions.map(r => {
@@ -60,13 +100,20 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
         setSearchTerm('');
     };
 
+    const handleUpdateStatus = (status: string, note: string) => {
+        if (editingRedemption) {
+            adminUpdateRedemptionStatus(editingRedemption.id, status, note);
+            setEditingRedemption(null);
+        }
+    };
+
     const handleExport = () => {
         if (filteredRedemptions.length === 0) {
             alert("Tidak ada data untuk diekspor dengan filter yang dipilih.");
             return;
         }
     
-        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Hadiah', 'Poin Dihabiskan'].join(',');
+        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Hadiah', 'Poin Dihabiskan', 'Status', 'Catatan Status'].join(',');
         
         const csvRows = filteredRedemptions.map(r => {
             const cleanRewardName = `"${(r.rewardName || 'N/A').replace(/"/g, '""')}"`;
@@ -75,6 +122,8 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                 year: 'numeric', month: '2-digit', day: '2-digit',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             }).replace(/\./g, ':');
+            const statusText = r.status || 'Diajukan';
+            const statusNote = `"${(r.statusNote || '').replace(/"/g, '""')}"`;
 
             return [
                 formattedDate,
@@ -83,7 +132,9 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                 r.userTap,
                 r.userSalesforce,
                 cleanRewardName,
-                r.pointsSpent
+                r.pointsSpent,
+                statusText,
+                statusNote
             ].join(',');
         });
     
@@ -104,6 +155,14 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
 
     return (
         <div>
+             {editingRedemption && !isReadOnly && (
+                <StatusEditModal 
+                    redemption={editingRedemption}
+                    onSave={handleUpdateStatus}
+                    onClose={() => setEditingRedemption(null)}
+                />
+            )}
+
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Riwayat Penukaran Poin Mitra</h1>
                 <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
@@ -139,7 +198,9 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                 <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">TAP</th>
                                 <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Salesforce</th>
                                 <th className="p-4 font-semibold text-gray-600">Hadiah</th>
+                                <th className="p-4 font-semibold text-gray-600">Status</th>
                                 <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin Digunakan</th>
+                                {!isReadOnly && <th className="p-4 font-semibold text-gray-600">Aksi</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -153,11 +214,27 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                     <td className="p-4 whitespace-nowrap">{item.userTap}</td>
                                     <td className="p-4 whitespace-nowrap">{item.userSalesforce}</td>
                                     <td className="p-4 font-semibold">{item.rewardName}</td>
+                                    <td className="p-4 whitespace-nowrap">
+                                        <p className="font-semibold">{item.status || 'Diajukan'}</p>
+                                        {item.status === 'Selesai' && item.statusUpdatedAt && 
+                                            <p className="text-xs text-gray-500">
+                                                pada {new Date(item.statusUpdatedAt).toLocaleDateString('id-ID')}
+                                            </p>
+                                        }
+                                        {item.statusNote && <p className="text-xs text-gray-500 italic">"{item.statusNote}"</p>}
+                                    </td>
                                     <td className="p-4 font-bold text-right text-red-600 whitespace-nowrap">{item.pointsSpent.toLocaleString('id-ID')}</td>
+                                    {!isReadOnly && (
+                                        <td className="p-4">
+                                            <button onClick={() => setEditingRedemption(item)} className="neu-button-icon text-blue-600">
+                                                <Icon path={ICONS.edit} className="w-5 h-5"/>
+                                            </button>
+                                        </td>
+                                    )}
                                 </tr>
                             )) : (
                                  <tr>
-                                    <td colSpan={6} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
+                                    <td colSpan={isReadOnly ? 7 : 8} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
                                 </tr>
                             )}
                         </tbody>

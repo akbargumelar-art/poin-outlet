@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, PrizeCategory, WhatsAppSettings, SpecialNumber } from './types';
 
@@ -759,6 +760,23 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
+    const adminUpdateRedemptionStatus = useCallback(async (redemptionId: number, status: string, statusNote: string) => {
+        try {
+            const response = await fetch(`/api/redemptions/${redemptionId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status, statusNote }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            await fetchBootstrapData();
+            setModal({ show: true, title: "Sukses", content: <p>Status penukaran berhasil diperbarui.</p> });
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    }, [fetchBootstrapData]);
+
+
     if (isLoading) {
         return <div className="min-h-screen flex justify-center items-center neu-bg"><p className="text-xl font-semibold text-gray-600">Memuat Aplikasi...</p></div>
     }
@@ -804,7 +822,7 @@ function App() {
             manajemenPoin: <ManajemenPoin currentUser={currentUser} users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} adminBulkUpdateLevels={adminBulkUpdateLevels} isReadOnly={isSupervisor} />,
             manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={adminDeleteReward} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminReorderRewards={adminReorderRewards} />,
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isSupervisor} />,
-            manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} users={users} isReadOnly={isSupervisor} />,
+            manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} users={users} isReadOnly={isSupervisor} adminUpdateRedemptionStatus={adminUpdateRedemptionStatus} />,
             manajemenTransaksi: <ManajemenTransaksi transactions={transactions} users={users} />,
             manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isSupervisor} />,
             nomorSpesial: <NomorSpesialPage currentUser={currentUser} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} specialNumberBannerUrl={specialNumberBannerUrl} />,

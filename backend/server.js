@@ -110,6 +110,22 @@ const setupDatabase = async () => {
             console.log("Column 'rewards.display_order' already exists.");
         }
 
+        // --- Check for status columns in redemptions table ---
+        const [redemptionColumns] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'status'");
+        if (redemptionColumns.length === 0) {
+            console.log("Columns 'status', 'status_note', 'status_updated_at' not found in 'redemptions'. Altering table...");
+            const alterQuery = `
+                ALTER TABLE redemptions
+                ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Diajukan' AFTER points_spent,
+                ADD COLUMN status_note TEXT DEFAULT NULL AFTER status,
+                ADD COLUMN status_updated_at DATETIME DEFAULT NULL AFTER status_note;
+            `;
+            await connection.execute(alterQuery);
+            console.log("Table 'redemptions' altered successfully.");
+        } else {
+            console.log("Status columns already exist in 'redemptions'.");
+        }
+
     } catch (err) {
         console.error('Database setup failed:', err);
         process.exit(1); // Exit if setup fails
