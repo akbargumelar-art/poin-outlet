@@ -52,6 +52,13 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
     const [filter, setFilter] = useState({ from: '', to: '' });
     const [editingRedemption, setEditingRedemption] = useState<Redemption | null>(null);
 
+    const statusColors: { [key: string]: string } = {
+        'Diajukan': 'text-blue-600',
+        'Diproses': 'text-amber-600',
+        'Selesai': 'text-green-600',
+        'Ditolak': 'text-red-600',
+    };
+
 
     const redemptionsWithUserData = useMemo(() => {
         return redemptions.map(r => {
@@ -215,7 +222,9 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                     <td className="p-4 whitespace-nowrap">{item.userSalesforce}</td>
                                     <td className="p-4 font-semibold">{item.rewardName}</td>
                                     <td className="p-4 whitespace-nowrap">
-                                        <p className="font-semibold">{item.status || 'Diajukan'}</p>
+                                        <p className={`font-semibold ${statusColors[item.status || 'Diajukan'] || 'text-gray-700'}`}>
+                                            {item.status || 'Diajukan'}
+                                        </p>
                                         {item.status === 'Selesai' && item.statusUpdatedAt && 
                                             <p className="text-xs text-gray-500">
                                                 pada {new Date(item.statusUpdatedAt).toLocaleDateString('id-ID')}
