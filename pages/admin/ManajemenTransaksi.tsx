@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Transaction, User } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -25,6 +26,10 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         });
     }, [transactions, users]);
 
+    const uniqueProduk = useMemo(() => {
+        return [...new Set(transactionsWithUserData.map(t => t.produk))].sort();
+    }, [transactionsWithUserData]);
+
     const filteredTransactions = useMemo(() => {
         return transactionsWithUserData.filter(item => {
             const itemDate = new Date(item.date);
@@ -37,8 +42,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             if (fromDate && itemDate < fromDate) return false;
             if (toDate && itemDate > toDate) return false;
 
-            const lowercasedProdukFilter = produkFilter.trim().toLowerCase();
-            if (lowercasedProdukFilter && !item.produk.toLowerCase().includes(lowercasedProdukFilter)) {
+            if (produkFilter && item.produk !== produkFilter) {
                 return false;
             }
 
@@ -128,13 +132,16 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="input-field lg:col-span-2"
                     />
-                     <input
-                        type="text"
-                        placeholder="Filter nama produk..."
+                     <select
                         value={produkFilter}
                         onChange={(e) => setProdukFilter(e.target.value)}
                         className="input-field lg:col-span-2"
-                    />
+                    >
+                        <option value="">Semua Produk</option>
+                        {uniqueProduk.map(produk => (
+                            <option key={produk} value={produk}>{produk}</option>
+                        ))}
+                    </select>
                     <div className="flex items-center gap-2 lg:col-span-2">
                         <input type="date" name="from" value={filter.from} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
                         <span className="text-gray-500">-</span>
