@@ -10,6 +10,7 @@ interface ManajemenTransaksiProps {
 
 const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, users }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [produkFilter, setProdukFilter] = useState('');
     const [filter, setFilter] = useState({ from: '', to: '' });
 
     const transactionsWithUserData = useMemo(() => {
@@ -36,18 +37,25 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             if (fromDate && itemDate < fromDate) return false;
             if (toDate && itemDate > toDate) return false;
 
-            if (searchTerm.trim()) {
-                const lowercasedSearchTerm = searchTerm.toLowerCase();
-                return (
+            const lowercasedProdukFilter = produkFilter.trim().toLowerCase();
+            if (lowercasedProdukFilter && !item.produk.toLowerCase().includes(lowercasedProdukFilter)) {
+                return false;
+            }
+
+            const lowercasedSearchTerm = searchTerm.trim().toLowerCase();
+            if (lowercasedSearchTerm) {
+                const matchesSearch = 
                     item.userName.toLowerCase().includes(lowercasedSearchTerm) ||
                     item.userId.toLowerCase().includes(lowercasedSearchTerm) ||
-                    item.produk.toLowerCase().includes(lowercasedSearchTerm)
-                );
+                    item.produk.toLowerCase().includes(lowercasedSearchTerm);
+                if (!matchesSearch) {
+                    return false;
+                }
             }
             
             return true;
         });
-    }, [transactionsWithUserData, filter, searchTerm]);
+    }, [transactionsWithUserData, filter, searchTerm, produkFilter]);
     
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -56,6 +64,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
     const handleResetFilters = () => {
         setFilter({ from: '', to: '' });
         setSearchTerm('');
+        setProdukFilter('');
     };
 
     const handleExport = () => {
@@ -102,8 +111,8 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
     };
 
     return (
-        <div className="flex flex-col h-full">
-            <div className="flex-shrink-0">
+        <div>
+            <div>
                 <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Riwayat Transaksi Pembelian</h1>
                     <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
@@ -111,12 +120,19 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                     </button>
                 </div>
                 
-                <div className="mb-6 neu-card-flat p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+                <div className="mb-6 neu-card-flat p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center">
                     <input
                         type="text"
                         placeholder="Cari nama, ID, produk..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        className="input-field lg:col-span-2"
+                    />
+                     <input
+                        type="text"
+                        placeholder="Filter nama produk..."
+                        value={produkFilter}
+                        onChange={(e) => setProdukFilter(e.target.value)}
                         className="input-field lg:col-span-2"
                     />
                     <div className="flex items-center gap-2 lg:col-span-2">
@@ -130,8 +146,8 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                 </div>
             </div>
             
-            <div className="flex-1 overflow-hidden neu-card-flat min-h-0">
-                <div className="overflow-auto h-full">
+            <div className="neu-card-flat overflow-hidden">
+                <div className="overflow-auto max-h-[60vh]">
                     <table className="w-full min-w-max text-left">
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
