@@ -225,7 +225,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
 
     }, [filteredUsers]);
 
-    const chartData = useMemo(() => {
+    const levelPerformanceChartData = useMemo(() => {
         const levels = [
             { name: 'Bronze', color: 'from-amber-600 to-amber-500' },
             { name: 'Silver', color: 'from-slate-500 to-slate-400' },
@@ -251,6 +251,21 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             maxPoints: maxPoints === 0 ? 1 : maxPoints // Avoid division by zero
         };
     }, [filteredUsers, userTotals]);
+
+    const pointDistributionChartData = useMemo(() => {
+        const levels = ['Bronze', 'Silver', 'Gold', 'Platinum'];
+        const data = levels.map(level => {
+            const usersInLevel = filteredUsers.filter(u => u.level === level && u.role === 'pelanggan');
+            const withPoints = usersInLevel.filter(u => u.points && u.points > 0).length;
+            const zeroPoints = usersInLevel.length - withPoints;
+            return { level, withPoints, zeroPoints };
+        });
+        const maxCount = Math.max(...data.flatMap(d => [d.withPoints, d.zeroPoints]), 0);
+        return {
+            stats: data,
+            maxCount: maxCount === 0 ? 1 : maxCount
+        };
+    }, [filteredUsers]);
 
     return (
         <div>
@@ -347,12 +362,12 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                 <h2 className="text-xl font-bold text-gray-700 mb-4">Grafik Kinerja per Level</h2>
                 {filteredUsers.filter(u => u.role === 'pelanggan').length > 0 ? (
                     <div className="flex justify-around items-end h-80 pt-8 space-x-2 md:space-x-4 border-b border-gray-200">
-                        {chartData.stats.map(({ level, count, totalPoints, totalPembelian, color }) => (
+                        {levelPerformanceChartData.stats.map(({ level, count, totalPoints, totalPembelian, color }) => (
                             <div key={level} className="flex flex-col items-center justify-end flex-1 h-full">
                                 <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{totalPoints.toLocaleString('id-ID')}</div>
                                 <div 
                                     className={`w-full bg-gradient-to-t ${color} rounded-t-lg transition-all duration-500 ease-out flex items-end justify-center`}
-                                    style={{ height: `${(totalPoints / chartData.maxPoints) * 100}%` }}
+                                    style={{ height: `${(totalPoints / levelPerformanceChartData.maxPoints) * 100}%` }}
                                     title={`${count.toLocaleString('id-ID')} Mitra\n${totalPoints.toLocaleString('id-ID')} Poin\nRp ${totalPembelian.toLocaleString('id-ID')}`}
                                 >
                                 </div>
@@ -368,6 +383,46 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                 )}
             </div>
             
+            <div className="mb-8 neu-card p-6">
+                <h2 className="text-xl font-bold text-gray-700 mb-4">Distribusi Poin per Level</h2>
+                {filteredUsers.filter(u => u.role === 'pelanggan').length > 0 ? (
+                    <>
+                        <div className="flex justify-center gap-6 mb-4 text-sm">
+                             <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-green-500"></div><span>Mitra Punya Poin</span></div>
+                             <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-slate-400"></div><span>Mitra 0 Poin</span></div>
+                        </div>
+                        <div className="flex justify-around items-end h-80 pt-8 space-x-2 md:space-x-4 border-b border-gray-200">
+                            {pointDistributionChartData.stats.map(({ level, withPoints, zeroPoints }) => (
+                                <div key={level} className="flex flex-col items-center justify-end flex-1 h-full">
+                                    <div className="flex items-end justify-center w-full h-full gap-1">
+                                         <div className="flex flex-col items-center justify-end w-1/2 h-full" title={`Punya Poin: ${withPoints}`}>
+                                            <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{withPoints}</div>
+                                             <div 
+                                                className="w-full bg-gradient-to-t from-green-600 to-green-500 rounded-t-md transition-all duration-500 ease-out"
+                                                style={{ height: `${(withPoints / pointDistributionChartData.maxCount) * 100}%` }}
+                                            ></div>
+                                         </div>
+                                          <div className="flex flex-col items-center justify-end w-1/2 h-full" title={`0 Poin: ${zeroPoints}`}>
+                                            <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{zeroPoints}</div>
+                                             <div 
+                                                className="w-full bg-gradient-to-t from-slate-500 to-slate-400 rounded-t-md transition-all duration-500 ease-out"
+                                                style={{ height: `${(zeroPoints / pointDistributionChartData.maxCount) * 100}%` }}
+                                            ></div>
+                                         </div>
+                                    </div>
+                                    <div className="text-center mt-2 w-full">
+                                        <p className="font-bold text-gray-600 text-sm">{level}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    <p className="text-center text-gray-500 py-16">Tidak ada data untuk ditampilkan pada grafik.</p>
+                )}
+            </div>
+
+
             <div className="neu-card-flat overflow-hidden">
                 <div className="overflow-auto max-h-[60vh]">
                     <table className="w-full min-w-max text-left">
