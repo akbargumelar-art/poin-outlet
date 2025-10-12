@@ -1,8 +1,11 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Transaction, User } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
+
+type SortableKeys = 'date' | 'userName' | 'produk' | 'harga' | 'kuantiti' | 'totalPembelian' | 'pointsEarned';
 
 interface ManajemenTransaksiProps {
     transactions: Transaction[];
@@ -13,6 +16,25 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
     const [searchTerm, setSearchTerm] = useState('');
     const [produkFilter, setProdukFilter] = useState('');
     const [filter, setFilter] = useState({ from: '', to: '' });
+    const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
+
+    const requestSort = (key: SortableKeys) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key: SortableKeys) => {
+        if (!sortConfig || sortConfig.key !== key) {
+            return <Icon path={ICONS.sortNeutral} className="w-4 h-4 text-gray-400" />;
+        }
+        if (sortConfig.direction === 'asc') {
+            return <Icon path={ICONS.sortUp} className="w-4 h-4 text-gray-800" />;
+        }
+        return <Icon path={ICONS.sortDown} className="w-4 h-4 text-gray-800" />;
+    };
 
     const transactionsWithUserData = useMemo(() => {
         return transactions.map(t => {
@@ -31,7 +53,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
     }, [transactionsWithUserData]);
 
     const filteredTransactions = useMemo(() => {
-        return transactionsWithUserData.filter(item => {
+        let filtered = transactionsWithUserData.filter(item => {
             const itemDate = new Date(item.date);
             const fromDate = filter.from ? new Date(filter.from) : null;
             const toDate = filter.to ? new Date(filter.to) : null;
@@ -59,7 +81,30 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             
             return true;
         });
-    }, [transactionsWithUserData, filter, searchTerm, produkFilter]);
+
+        if (sortConfig !== null) {
+            filtered.sort((a, b) => {
+                const aValue = a[sortConfig.key];
+                const bValue = b[sortConfig.key];
+                
+                let comparison = 0;
+                if (typeof aValue === 'string' && typeof bValue === 'string') {
+                    if (sortConfig.key === 'date') {
+                        comparison = new Date(aValue).getTime() - new Date(bValue).getTime();
+                    } else {
+                        comparison = aValue.localeCompare(bValue);
+                    }
+                } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+                    comparison = aValue - bValue;
+                }
+                
+                return sortConfig.direction === 'asc' ? comparison : -comparison;
+            });
+        }
+        
+        return filtered;
+
+    }, [transactionsWithUserData, filter, searchTerm, produkFilter, sortConfig]);
     
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -158,13 +203,41 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                     <table className="w-full min-w-max text-left">
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
-                                <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
-                                <th className="p-4 font-semibold text-gray-600">Nama Mitra</th>
-                                <th className="p-4 font-semibold text-gray-600">Produk</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Harga Satuan</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Kuantiti</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Total</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin</th>
+                                <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">
+                                    <button onClick={() => requestSort('date')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                        Tanggal {getSortIcon('date')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold text-gray-600">
+                                    <button onClick={() => requestSort('userName')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                        Nama Mitra {getSortIcon('userName')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold text-gray-600">
+                                     <button onClick={() => requestSort('produk')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
+                                        Produk {getSortIcon('produk')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">
+                                    <button onClick={() => requestSort('harga')} className="w-full flex justify-end items-center gap-1 hover:text-red-600 transition-colors">
+                                        Harga Satuan {getSortIcon('harga')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">
+                                     <button onClick={() => requestSort('kuantiti')} className="w-full flex justify-end items-center gap-1 hover:text-red-600 transition-colors">
+                                        Kuantiti {getSortIcon('kuantiti')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">
+                                    <button onClick={() => requestSort('totalPembelian')} className="w-full flex justify-end items-center gap-1 hover:text-red-600 transition-colors">
+                                        Total {getSortIcon('totalPembelian')}
+                                    </button>
+                                </th>
+                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">
+                                    <button onClick={() => requestSort('pointsEarned')} className="w-full flex justify-end items-center gap-1 hover:text-red-600 transition-colors">
+                                        Poin {getSortIcon('pointsEarned')}
+                                    </button>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
