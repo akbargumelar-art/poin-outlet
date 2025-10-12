@@ -94,7 +94,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                         break;
                     case 'id':
                         aValue = a.id;
-                        bValue = b.id;
+                        bValue = a.id;
                         break;
                 }
         
@@ -254,11 +254,23 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
 
     const pointDistributionChartData = useMemo(() => {
         const levels = ['Bronze', 'Silver', 'Gold', 'Platinum'];
+        const levelColors = {
+            Bronze: { light: 'from-amber-500 to-amber-400', dark: 'from-amber-700 to-amber-600' },
+            Silver: { light: 'from-slate-400 to-slate-300', dark: 'from-slate-600 to-slate-500' },
+            Gold: { light: 'from-yellow-400 to-yellow-300', dark: 'from-yellow-600 to-yellow-500' },
+            Platinum: { light: 'from-cyan-400 to-cyan-300', dark: 'from-cyan-600 to-cyan-500' }
+        };
+
         const data = levels.map(level => {
             const usersInLevel = filteredUsers.filter(u => u.level === level && u.role === 'pelanggan');
             const withPoints = usersInLevel.filter(u => u.points && u.points > 0).length;
             const zeroPoints = usersInLevel.length - withPoints;
-            return { level, withPoints, zeroPoints };
+            return {
+                level,
+                withPoints,
+                zeroPoints,
+                colors: levelColors[level as keyof typeof levelColors]
+            };
         });
         const maxCount = Math.max(...data.flatMap(d => [d.withPoints, d.zeroPoints]), 0);
         return {
@@ -387,25 +399,25 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                 <h2 className="text-xl font-bold text-gray-700 mb-4">Distribusi Poin per Level</h2>
                 {filteredUsers.filter(u => u.role === 'pelanggan').length > 0 ? (
                     <>
-                        <div className="flex justify-center gap-6 mb-4 text-sm">
-                             <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-green-500"></div><span>Mitra Punya Poin</span></div>
-                             <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-slate-400"></div><span>Mitra 0 Poin</span></div>
+                        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 mb-4 text-sm">
+                             <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-gradient-to-br from-slate-400 to-slate-300"></div><span>Punya Poin (Warna Terang)</span></div>
+                             <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-gradient-to-br from-slate-600 to-slate-500"></div><span>0 Poin (Warna Gelap)</span></div>
                         </div>
                         <div className="flex justify-around items-end h-80 pt-8 space-x-2 md:space-x-4 border-b border-gray-200">
-                            {pointDistributionChartData.stats.map(({ level, withPoints, zeroPoints }) => (
+                            {pointDistributionChartData.stats.map(({ level, withPoints, zeroPoints, colors }) => (
                                 <div key={level} className="flex flex-col items-center justify-end flex-1 h-full">
                                     <div className="flex items-end justify-center w-full h-full gap-1">
                                          <div className="flex flex-col items-center justify-end w-1/2 h-full" title={`Punya Poin: ${withPoints}`}>
                                             <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{withPoints}</div>
                                              <div 
-                                                className="w-full bg-gradient-to-t from-green-600 to-green-500 rounded-t-md transition-all duration-500 ease-out"
+                                                className={`w-full bg-gradient-to-t ${colors.light} rounded-t-md transition-all duration-500 ease-out`}
                                                 style={{ height: `${(withPoints / pointDistributionChartData.maxCount) * 100}%` }}
                                             ></div>
                                          </div>
                                           <div className="flex flex-col items-center justify-end w-1/2 h-full" title={`0 Poin: ${zeroPoints}`}>
                                             <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{zeroPoints}</div>
                                              <div 
-                                                className="w-full bg-gradient-to-t from-slate-500 to-slate-400 rounded-t-md transition-all duration-500 ease-out"
+                                                className={`w-full bg-gradient-to-t ${colors.dark} rounded-t-md transition-all duration-500 ease-out`}
                                                 style={{ height: `${(zeroPoints / pointDistributionChartData.maxCount) * 100}%` }}
                                             ></div>
                                          </div>
