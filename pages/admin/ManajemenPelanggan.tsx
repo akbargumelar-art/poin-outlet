@@ -233,20 +233,24 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             { name: 'Platinum', color: 'from-cyan-500 to-cyan-400' }
         ];
         const data = levels.map(level => {
-            const usersInLevel = filteredUsers.filter(u => u.level === level.name);
+            const usersInLevel = filteredUsers.filter(u => u.level === level.name && u.role === 'pelanggan');
+            const totalPoints = usersInLevel.reduce((sum, user) => sum + (user.points || 0), 0);
+            const totalPembelian = usersInLevel.reduce((sum, user) => sum + (userTotals.get(user.id)?.totalPembelian || 0), 0);
+            
             return {
                 level: level.name,
                 color: level.color,
                 count: usersInLevel.length,
-                totalPoints: usersInLevel.reduce((sum, user) => sum + (user.points || 0), 0)
+                totalPoints: totalPoints,
+                totalPembelian: totalPembelian,
             };
         });
-        const maxCount = Math.max(...data.map(d => d.count), 0);
+        const maxPoints = Math.max(...data.map(d => d.totalPoints), 0);
         return {
             stats: data,
-            maxCount: maxCount === 0 ? 1 : maxCount // Avoid division by zero
+            maxPoints: maxPoints === 0 ? 1 : maxPoints // Avoid division by zero
         };
-    }, [filteredUsers]);
+    }, [filteredUsers, userTotals]);
 
     return (
         <div>
@@ -340,20 +344,20 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             </div>
 
             <div className="mb-8 neu-card p-6">
-                <h2 className="text-xl font-bold text-gray-700 mb-4">Grafik Level Mitra</h2>
+                <h2 className="text-xl font-bold text-gray-700 mb-4">Grafik Kinerja per Level</h2>
                 {filteredUsers.filter(u => u.role === 'pelanggan').length > 0 ? (
                     <div className="flex justify-around items-end h-80 pt-8 space-x-2 md:space-x-4 border-b border-gray-200">
-                        {chartData.stats.map(({ level, count, totalPoints, color }) => (
+                        {chartData.stats.map(({ level, count, totalPoints, totalPembelian, color }) => (
                             <div key={level} className="flex flex-col items-center justify-end flex-1 h-full">
-                                <div className="text-sm font-bold text-gray-800 -mb-5 z-10">{count}</div>
+                                <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{totalPoints.toLocaleString('id-ID')}</div>
                                 <div 
                                     className={`w-full bg-gradient-to-t ${color} rounded-t-lg transition-all duration-500 ease-out flex items-end justify-center`}
-                                    style={{ height: `${(count / chartData.maxCount) * 100}%` }}
-                                    title={`${count} Mitra | ${totalPoints.toLocaleString('id-ID')} Poin`}
+                                    style={{ height: `${(totalPoints / chartData.maxPoints) * 100}%` }}
+                                    title={`${count.toLocaleString('id-ID')} Mitra\n${totalPoints.toLocaleString('id-ID')} Poin\nRp ${totalPembelian.toLocaleString('id-ID')}`}
                                 >
                                 </div>
                                 <div className="text-center mt-2 w-full">
-                                    <p className="text-xs font-semibold text-gray-500 truncate">{totalPoints.toLocaleString('id-ID')} Pts</p>
+                                    <p className="text-xs font-semibold text-gray-500 truncate">{count.toLocaleString('id-ID')} Mitra</p>
                                     <p className="font-bold text-gray-600 text-sm">{level}</p>
                                 </div>
                             </div>
