@@ -188,24 +188,26 @@ const ManageParticipantsModal: React.FC<{
 
     return (
         <Modal show={true} onClose={onClose} title={`Kelola Peserta: ${program.name}`}>
-            <div className="grid grid-cols-2 gap-4 h-[60vh]">
-                <div>
+            <div className="grid grid-cols-2 gap-6 h-[60vh]">
+                {/* Registered Participants */}
+                <div className="flex flex-col">
                     <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-bold">Peserta Terdaftar ({participants.length})</h4>
+                        <h4 className="font-bold text-gray-700">Peserta Terdaftar ({participants.length})</h4>
                         <button onClick={handleRemoveAll} className="text-xs font-semibold text-red-600 hover:underline">Hapus Semua</button>
                     </div>
-                    <div className="neu-inset p-2 h-[calc(100%-6rem)] overflow-y-auto">
-                        {participants.map(user => (
-                            <div key={user.id} onClick={() => toggleParticipant(user.id)} className="p-2 rounded-lg cursor-pointer hover:bg-red-100 flex justify-between items-center">
-                                <span>{user.profile.nama}</span>
-                                <Icon path={ICONS.chevronRight} className="w-5 h-5 text-red-500"/>
+                    <div className="neu-inset p-2 flex-grow overflow-y-auto">
+                        {participants.length > 0 ? participants.map(user => (
+                            <div key={user.id} onClick={() => toggleParticipant(user.id)} className="p-2 rounded-lg cursor-pointer hover:bg-red-100 flex justify-between items-center text-sm">
+                                <span className="font-semibold">{user.profile.nama}</span>
+                                <Icon path={ICONS.chevronRight} className="w-5 h-5 text-red-500 flex-shrink-0"/>
                             </div>
-                        ))}
+                        )) : <p className="text-center text-sm text-gray-500 p-4">Belum ada peserta.</p>}
                     </div>
                 </div>
-                <div>
+                {/* Available Partners */}
+                <div className="flex flex-col">
                     <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-bold">Mitra Tersedia</h4>
+                        <h4 className="font-bold text-gray-700">Mitra Tersedia</h4>
                         <button onClick={handleAddAll} className="text-xs font-semibold text-green-600 hover:underline" disabled={availableUsers.length === 0}>Pilih Semua</button>
                     </div>
                     <input 
@@ -215,17 +217,17 @@ const ManageParticipantsModal: React.FC<{
                         onChange={e => setSearchTerm(e.target.value)}
                         className="input-field mb-2"
                     />
-                    <div className="neu-inset p-2 h-[calc(100%-6rem)] overflow-y-auto">
+                    <div className="neu-inset p-2 flex-grow overflow-y-auto">
                         {availableUsers.map(user => (
-                             <div key={user.id} onClick={() => toggleParticipant(user.id)} className="p-2 rounded-lg cursor-pointer hover:bg-green-100 flex justify-between items-center">
-                                 <Icon path={ICONS.chevronLeft} className="w-5 h-5 text-green-500"/>
-                                <span>{user.profile.nama}</span>
+                             <div key={user.id} onClick={() => toggleParticipant(user.id)} className="p-2 rounded-lg cursor-pointer hover:bg-green-100 flex items-center text-sm">
+                                 <Icon path={ICONS.chevronLeft} className="w-5 h-5 text-green-500 flex-shrink-0 mr-2"/>
+                                <span className="font-semibold">{user.profile.nama}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
-             <div className="flex justify-center gap-4 mt-4">
+             <div className="flex justify-center gap-4 mt-6">
                 <button onClick={onClose} className="neu-button">Batal</button>
                 <button onClick={handleSave} className="neu-button text-red-600">Simpan Perubahan</button>
             </div>
