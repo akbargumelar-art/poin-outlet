@@ -488,6 +488,36 @@ function App() {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
         }
     }, [fetchBootstrapData]);
+    
+    const adminBulkAddProgramParticipants = useCallback(async (programId: number, file: File) => {
+        try {
+            const formData = new FormData();
+            formData.append('participantsFile', file);
+
+            const response = await fetch(`/api/programs/${programId}/participants/bulk`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Gagal mengunggah file peserta.');
+            }
+
+            setModal({
+                show: true,
+                title: "Upload Selesai",
+                content: <p className="text-center">{result.message}</p>
+            });
+            
+            await fetchBootstrapData(); // Refresh data to show new participants
+
+        } catch (error: any) {
+            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        }
+    }, [fetchBootstrapData]);
+
 
     const adminBulkUpdateProgramProgress = useCallback(async (programId: number, file: File) => {
         try {
@@ -815,7 +845,7 @@ function App() {
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms} />,
             manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
-            manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} isReadOnly={isSupervisor} />,
+            manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} adminBulkAddProgramParticipants={adminBulkAddProgramParticipants} isReadOnly={isSupervisor} />,
             manajemenPoin: <ManajemenPoin currentUser={currentUser} users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} adminBulkUpdateLevels={adminBulkUpdateLevels} isReadOnly={isSupervisor} />,
             manajemenHadiah: <ManajemenHadiah rewards={rewards} onSave={saveReward} deleteReward={adminDeleteReward} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminReorderRewards={adminReorderRewards} />,
             manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isSupervisor} />,

@@ -424,6 +424,59 @@ uploadRouter.post('/programs/:id/progress', excelUpload.single('progressFile'), 
     }
 });
 
+// BULK PROGRAM PARTICIPANTS UPLOAD
+uploadRouter.post('/programs/:id/participants/bulk', excelUpload.single('participantsFile'), async (req, res) => {
+    const { id: programId } = req.params;
+    if (!req.file) {
+        return res.status(400).json({ message: 'File tidak ditemukan.' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        if (data.length === 0) {
+            return res.status(400).json({ message: 'File Excel kosong.' });
+        }
+
+        const headers = Object.keys(data[0]);
+        if (!headers.includes('id_digipos')) {
+            return res.status(400).json({ message: "File Excel harus memiliki kolom 'id_digipos'." });
+        }
+        
+        const participantIds = data.map(row => String(row.id_digipos)).filter(Boolean);
+        if (participantIds.length === 0) {
+            return res.status(400).json({ message: 'Tidak ada ID Digipos yang valid di dalam file.' });
+        }
+
+        await connection.beginTransaction();
+
+        // 1. Hapus semua peserta lama dari program ini
+        await connection.execute('DELETE FROM running_program_targets WHERE program_id = ?', [programId]);
+
+        // 2. Tambahkan semua peserta baru dari file
+        const sql = 'INSERT INTO running_program_targets (program_id, user_id, progress) VALUES ?';
+        const values = participantIds.map(userId => [programId, userId, 0]); // Default progress 0
+        await connection.query(sql, [values]);
+
+        await connection.commit();
+        res.json({ message: `Daftar peserta berhasil diganti. Total ${participantIds.length} peserta ditambahkan dari file.` });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Bulk participants upload error:', error);
+        // Check for foreign key constraint error, which means an invalid user ID was provided
+        if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+             res.status(400).json({ message: 'Gagal: Satu atau lebih ID Digipos di dalam file tidak terdaftar sebagai user. Semua perubahan dibatalkan.' });
+        } else {
+            res.status(500).json({ message: 'Gagal memproses file.', error: error.message });
+        }
+    } finally {
+        connection.release();
+    }
+});
+
+
 // BULK LEVEL UPDATE
 uploadRouter.post('/users/bulk-level-update', excelUpload.single('levelFile'), async (req, res) => {
     if (!req.file) {

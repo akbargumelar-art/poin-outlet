@@ -148,9 +148,11 @@ const ManageParticipantsModal: React.FC<{
     allUsers: User[];
     onClose: () => void;
     onSave: (participantIds: string[]) => void;
-}> = ({ program, allUsers, onClose, onSave }) => {
+    onBulkUpload: (file: File) => void;
+}> = ({ program, allUsers, onClose, onSave, onBulkUpload }) => {
     const [participantIds, setParticipantIds] = useState<Set<string>>(() => new Set(program.targets.map(t => t.userId)));
     const [searchTerm, setSearchTerm] = useState('');
+    const [uploadFile, setUploadFile] = useState<File | null>(null);
 
     const participants = useMemo(() => allUsers.filter(u => participantIds.has(u.id)), [allUsers, participantIds]);
     
@@ -185,10 +187,25 @@ const ManageParticipantsModal: React.FC<{
     const handleSave = () => {
         onSave(Array.from(participantIds));
     };
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setUploadFile(e.target.files[0]);
+        } else {
+            setUploadFile(null);
+        }
+    };
+
+    const handleUploadClick = () => {
+        if (uploadFile) {
+            onBulkUpload(uploadFile);
+        }
+    };
+
 
     return (
         <Modal show={true} onClose={onClose} title={`Kelola Peserta: ${program.name}`}>
-            <div className="grid grid-cols-2 gap-6 h-[60vh]">
+            <div className="grid grid-cols-2 gap-6 h-[50vh]">
                 {/* Registered Participants */}
                 <div className="flex flex-col">
                     <div className="flex justify-between items-center mb-2">
@@ -231,6 +248,26 @@ const ManageParticipantsModal: React.FC<{
                 <button onClick={onClose} className="neu-button">Batal</button>
                 <button onClick={handleSave} className="neu-button text-red-600">Simpan Perubahan</button>
             </div>
+             <div className="mt-6 pt-6 border-t border-gray-200/80">
+                <h4 className="text-lg font-bold text-gray-700 mb-2">Upload Cepat</h4>
+                <p className="text-sm text-gray-500 mb-4">Ganti semua peserta dengan daftar dari file Excel. File harus memiliki satu kolom: <b>id_digipos</b>.</p>
+                 <a href="/template_peserta.xlsx" download className="text-sm font-semibold text-red-600 hover:underline inline-block mb-4">Download Template</a>
+                <div className="flex items-center gap-4">
+                     <input 
+                        type="file" 
+                        accept=".xlsx, .xls"
+                        onChange={handleFileChange}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                    />
+                    <button 
+                        onClick={handleUploadClick}
+                        disabled={!uploadFile}
+                        className="neu-button !w-auto px-4"
+                    >
+                        Upload
+                    </button>
+                </div>
+            </div>
         </Modal>
     );
 };
@@ -243,10 +280,11 @@ interface ManajemenProgramProps {
     onDelete: (id: number) => void;
     adminBulkUpdateProgramProgress: (programId: number, file: File) => void;
     adminUpdateProgramParticipants: (programId: number, participantIds: string[]) => void;
+    adminBulkAddProgramParticipants: (programId: number, file: File) => void;
     isReadOnly?: boolean;
 }
 
-const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers, onSave, onDelete, adminBulkUpdateProgramProgress, adminUpdateProgramParticipants, isReadOnly }) => {
+const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers, onSave, onDelete, adminBulkUpdateProgramProgress, adminUpdateProgramParticipants, adminBulkAddProgramParticipants, isReadOnly }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingProgram, setEditingProgram] = useState<RunningProgram | undefined>(undefined);
     const [uploadingProgram, setUploadingProgram] = useState<RunningProgram | null>(null);
@@ -287,6 +325,12 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers,
         adminUpdateProgramParticipants(managingParticipantsProgram.id, participantIds);
         setManagingParticipantsProgram(null);
     };
+
+    const handleBulkUploadParticipants = (file: File) => {
+        if (!managingParticipantsProgram) return;
+        adminBulkAddProgramParticipants(managingParticipantsProgram.id, file);
+        setManagingParticipantsProgram(null);
+    };
     
     const formatDateRange = (start: string, end: string) => {
         const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
@@ -314,6 +358,7 @@ const ManajemenProgram: React.FC<ManajemenProgramProps> = ({ programs, allUsers,
                     allUsers={allUsers}
                     onClose={() => setManagingParticipantsProgram(null)}
                     onSave={handleSaveParticipants}
+                    onBulkUpload={handleBulkUploadParticipants}
                 />
             )}
             
