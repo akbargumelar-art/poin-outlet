@@ -12,6 +12,13 @@ interface HistoryPembelianProps {
 const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transactions, redemptionHistory }) => {
     const [filter, setFilter] = useState({ from: '', to: '' });
 
+    const statusColors: { [key: string]: string } = {
+        'Diajukan': 'bg-blue-100 text-blue-800',
+        'Diproses': 'bg-amber-100 text-amber-800',
+        'Selesai': 'bg-green-100 text-green-800',
+        'Ditolak': 'bg-red-100 text-red-800',
+    };
+
     const combinedHistory = useMemo(() => {
         const transactionHistory: HistoryItem[] = transactions
             .filter(t => t.userId === currentUser.id)
@@ -33,6 +40,9 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                 description: r.rewardName,
                 amount: 0,
                 points: -r.pointsSpent,
+                status: r.status,
+                statusNote: r.statusNote,
+                statusUpdatedAt: r.statusUpdatedAt,
             }));
 
         return [...transactionHistory, ...redemptionHistoryItems]
@@ -144,6 +154,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                                 <th className="p-4 font-semibold text-gray-600">Produk / Hadiah</th>
                                 <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Jumlah</th>
                                 <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin</th>
+                                <th className="p-4 font-semibold text-gray-600">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -167,10 +178,20 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                                     <td className={`p-4 font-bold text-right whitespace-nowrap ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                         {item.points > 0 ? '+' : ''}{item.points.toLocaleString('id-ID')}
                                     </td>
+                                    <td className="p-4">
+                                        {item.type === 'Penukaran' ? (
+                                            <div>
+                                                 <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusColors[item.status || 'Diajukan']}`}>
+                                                    {item.status || 'Diajukan'}
+                                                 </span>
+                                                 {item.statusNote && <p className="text-xs text-gray-500 mt-1 italic">"{item.statusNote}"</p>}
+                                            </div>
+                                        ) : '-'}
+                                    </td>
                                 </tr>
                             )) : (
                                  <tr>
-                                    <td colSpan={5} className="p-8 text-center text-gray-500">Tidak ada riwayat untuk rentang tanggal yang dipilih.</td>
+                                    <td colSpan={6} className="p-8 text-center text-gray-500">Tidak ada riwayat untuk rentang tanggal yang dipilih.</td>
                                 </tr>
                             )}
                         </tbody>

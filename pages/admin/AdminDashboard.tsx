@@ -10,11 +10,14 @@ interface AdminDashboardProps {
     transactions: Transaction[];
     runningPrograms: RunningProgram[];
     loyaltyPrograms: LoyaltyProgram[];
+    adminBulkUpdateProgramProgress: (programId: number, file: File) => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, runningPrograms, loyaltyPrograms }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, runningPrograms, loyaltyPrograms, adminBulkUpdateProgramProgress }) => {
     const [tapFilter, setTapFilter] = useState('');
     const [modalData, setModalData] = useState<{title: string, users: User[]} | null>(null);
+    const [selectedProgramId, setSelectedProgramId] = useState('');
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     const allTaps = useMemo(() => [...new Set(users.filter(u => u.role === 'pelanggan' && u.profile.tap).map(u => u.profile.tap!))].sort(), [users]);
 
@@ -51,6 +54,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
         const startDate = new Date(start).toLocaleDateString('id-ID', options);
         const endDate = new Date(end).toLocaleDateString('id-ID', options);
         return `${startDate} - ${endDate}`;
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setSelectedFile(e.target.files[0]);
+        } else {
+            setSelectedFile(null);
+        }
+    };
+
+    const handleUpload = () => {
+        if (selectedProgramId && selectedFile) {
+            adminBulkUpdateProgramProgress(parseInt(selectedProgramId, 10), selectedFile);
+            // Reset form after upload
+            setSelectedProgramId('');
+            setSelectedFile(null);
+            // Clear the file input visually
+            const fileInput = document.getElementById('quick-upload-file-input') as HTMLInputElement;
+            if (fileInput) {
+                fileInput.value = '';
+            }
+        }
     };
 
     return (
@@ -105,6 +130,46 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
                         <p className="text-gray-500">Total Poin Beredar</p>
                         <p className="text-2xl font-bold text-gray-800">{totalPoin.toLocaleString('id-ID')}</p>
                     </div>
+                </div>
+            </div>
+            
+            <div className="mt-10 neu-card p-6">
+                <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                    <Icon path={ICONS.upload} className="w-6 h-6 text-green-600" />
+                    Upload Cepat Progres Peserta
+                </h2>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-gray-600 text-sm font-semibold mb-2">Pilih Program</label>
+                        <select
+                            value={selectedProgramId}
+                            onChange={e => setSelectedProgramId(e.target.value)}
+                            className="input-field"
+                        >
+                            <option value="">-- Pilih Program Berjalan --</option>
+                            {runningPrograms.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-gray-600 text-sm font-semibold mb-2">Pilih File Excel (.xlsx)</label>
+                         <input
+                            id="quick-upload-file-input"
+                            type="file"
+                            accept=".xlsx, .xls"
+                            onChange={handleFileChange}
+                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                        />
+                        <a href="/template_progress.xlsx" download className="text-xs text-red-600 hover:underline mt-2 inline-block">
+                            Download Template Progres
+                        </a>
+                    </div>
+                    <button
+                        onClick={handleUpload}
+                        disabled={!selectedProgramId || !selectedFile}
+                        className="neu-button text-red-600 w-full"
+                    >
+                        Upload File
+                    </button>
                 </div>
             </div>
 

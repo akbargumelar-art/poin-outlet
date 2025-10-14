@@ -1,7 +1,10 @@
 import React from 'react';
-import { User, Transaction, LoyaltyProgram, RunningProgram, Page, RaffleWinner } from '../../types';
+import { User, Transaction, LoyaltyProgram, RunningProgram, Page, RaffleWinner, Redemption } from '../../types';
 import PemenangUndian from '../../components/PemenangUndian';
 import SimulasiPoin from '../../components/SimulasiPoin';
+import Icon from '../../components/common/Icon';
+import { ICONS } from '../../constants';
+
 
 interface PelangganDashboardProps {
     currentUser: User;
@@ -10,13 +13,26 @@ interface PelangganDashboardProps {
     runningPrograms: RunningProgram[];
     setCurrentPage: (page: Page) => void;
     raffleWinners: RaffleWinner[];
+    redemptionHistory: Redemption[];
 }
 
-const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, transactions, loyaltyPrograms, runningPrograms, setCurrentPage, raffleWinners }) => {
+const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, transactions, loyaltyPrograms, runningPrograms, setCurrentPage, raffleWinners, redemptionHistory }) => {
     const userTransactions = transactions.filter(t => t.userId === currentUser.id);
     const recentTransaction = [...userTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
     
     const displayedPrograms = runningPrograms.slice(0, 3);
+
+    const userRedemptions = redemptionHistory
+        .filter(r => r.userId === currentUser.id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 3);
+
+    const statusColors: { [key: string]: string } = {
+        'Diajukan': 'bg-blue-100 text-blue-800',
+        'Diproses': 'bg-amber-100 text-amber-800',
+        'Selesai': 'bg-green-100 text-green-800',
+        'Ditolak': 'bg-red-100 text-red-800',
+    };
 
     const levelColors: { [key: string]: string } = {
         Bronze: 'from-amber-500 to-amber-700',
@@ -78,6 +94,32 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                      </div>
                 </div>
             </div>
+            
+            {userRedemptions.length > 0 && (
+                <div className="neu-card p-6">
+                    <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <Icon path={ICONS.trophy} className="w-6 h-6 text-yellow-600" />
+                        Status Penukaran Terkini
+                    </h2>
+                    <div className="space-y-3">
+                        {userRedemptions.map(r => (
+                            <div key={r.id} className="p-3 neu-inset rounded-lg flex justify-between items-center">
+                                <div>
+                                    <p className="font-bold text-gray-800">{r.rewardName}</p>
+                                    <p className="text-xs text-gray-500">{new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                </div>
+                                <span className={`px-3 py-1 text-sm font-bold rounded-full ${statusColors[r.status || 'Diajukan']}`}>
+                                    {r.status || 'Diajukan'}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={() => setCurrentPage('historyPembelian')} className="w-full neu-button mt-4">
+                        Lihat Semua Riwayat
+                    </button>
+                </div>
+            )}
+
 
             {/* Kalkulator Poin */}
             <SimulasiPoin loyaltyPrograms={loyaltyPrograms} currentUser={currentUser} />

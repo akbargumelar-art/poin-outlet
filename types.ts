@@ -89,6 +89,9 @@ export type HistoryItem = {
     points: number; // bisa positif atau negatif
     harga?: number;
     kuantiti?: number;
+    status?: string;
+    statusNote?: string;
+    statusUpdatedAt?: string;
 };
 
 
