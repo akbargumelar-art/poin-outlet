@@ -167,5 +167,6 @@ export interface WhatsAppSettings {
     recipientType: 'personal' | 'group';
     recipientId: string;
     apiKey: string;
+    sessionName?: string;
     specialNumberRecipient: string;
 }

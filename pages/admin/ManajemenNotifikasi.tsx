@@ -16,6 +16,7 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
         recipientType: 'personal',
         recipientId: '',
         apiKey: '',
+        sessionName: 'default',
         specialNumberRecipient: ''
     });
 
@@ -85,6 +86,23 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                             disabled={isReadOnly}
                         />
                         <p className="text-xs text-gray-500 mt-1">API Key yang Anda atur saat instalasi WAHA (Header: X-Api-Key).</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-gray-600 text-sm font-semibold mb-2 flex items-center gap-2">
+                           <Icon path={ICONS.idCard} className="w-5 h-5" /> Nama Sesi (Session Name)
+                        </label>
+                        <input 
+                            type="text"
+                            name="sessionName"
+                            value={formData.sessionName || ''}
+                            onChange={handleChange}
+                            placeholder="Contoh: default"
+                            className="input-field"
+                            required
+                            disabled={isReadOnly}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Nama sesi yang Anda gunakan saat memulai WAHA (biasanya 'default').</p>
                     </div>
 
                     <div>

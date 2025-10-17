@@ -912,9 +912,9 @@ const sendWhatsAppNotification = async (userId, userName, userTap, rewardName, p
         }
 
         const payload = {
-            session: "default", // Hardcoded based on successful test
+            session: settings.sessionName || "default",
             chatId: chatId,
-            text: message       // Use 'text' key as per successful test
+            text: message
         };
 
         const config = {
