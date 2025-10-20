@@ -1,6 +1,7 @@
 {
   "name": "mitra-loyalty-app",
   "version": "1.0.0",
+  "type": "module",
   "description": "Full-stack Mitra Loyalty Program application.",
   "scripts": {
     "dev": "vite",
