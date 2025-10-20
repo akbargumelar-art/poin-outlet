@@ -5,7 +5,7 @@ import { ICONS } from '../../constants';
 
 interface ManajemenNotifikasiProps {
     settings: WhatsAppSettings | null;
-    onSave: (settings: WhatsAppSettings) => void;
+    onSave: (settings: WhatsAppSettings) => Promise<boolean>; // Diubah untuk mengembalikan promise
     isReadOnly?: boolean;
 }
 
@@ -19,6 +19,7 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
         sessionName: 'default',
         specialNumberRecipient: ''
     });
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (settings) {
@@ -42,11 +43,13 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsSaving(true);
         // Trim trailing slash if user adds one, to ensure consistency
         const cleanedUrl = formData.webhookUrl.endsWith('/') ? formData.webhookUrl.slice(0, -1) : formData.webhookUrl;
-        onSave({ ...formData, webhookUrl: cleanedUrl });
+        await onSave({ ...formData, webhookUrl: cleanedUrl });
+        setIsSaving(false);
     };
     
     return (
@@ -171,8 +174,8 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                     
                     {!isReadOnly && (
                         <div className="pt-6">
-                            <button type="submit" className="w-full neu-button text-red-600">
-                                Simpan Pengaturan
+                            <button type="submit" className="w-full neu-button text-red-600" disabled={isSaving}>
+                                {isSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}
                             </button>
                         </div>
                     )}

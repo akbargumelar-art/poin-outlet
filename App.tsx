@@ -578,19 +578,34 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
-    const adminSaveWhatsAppSettings = useCallback(async (settings: WhatsAppSettings) => {
+    const adminSaveWhatsAppSettings = useCallback(async (settings: WhatsAppSettings): Promise<boolean> => {
         try {
             const response = await fetch('/api/settings/whatsapp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(settings),
             });
+    
+            // Check for non-JSON responses first
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                 throw new Error("Gagal terhubung. URL Webhook mungkin salah atau server WAHA sedang tidak aktif. Pastikan URL sudah benar dan server berjalan.");
+            }
+    
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);
+            
             await fetchBootstrapData();
             setModal({ show: true, title: "Sukses", content: <p>Pengaturan notifikasi WhatsApp berhasil disimpan.</p> });
+            return true;
         } catch (error: any) {
-            setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+            // Catch the specific error for HTML response, or any other error.
+            if (error instanceof SyntaxError && error.message.includes("Unexpected token '<'")) {
+                 setModal({ show: true, title: "Error Konfigurasi", content: <p>Gagal terhubung. URL Webhook mungkin salah atau server WAHA sedang tidak aktif. Pastikan URL sudah benar dan server berjalan.</p> });
+            } else {
+                setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+            }
+            return false;
         }
     }, [fetchBootstrapData]);
     
