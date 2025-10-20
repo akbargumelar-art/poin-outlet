@@ -467,9 +467,11 @@ uploadRouter.post('/programs/:id/participants/bulk', excelUpload.single('partici
         await connection.execute('DELETE FROM running_program_targets WHERE program_id = ?', [programId]);
 
         // 2. Tambahkan semua peserta baru dari file
-        const sql = 'INSERT INTO running_program_targets (program_id, user_id, progress) VALUES ?';
-        const values = participantIds.map(userId => [programId, userId, 0]); // Default progress 0
-        await connection.query(sql, [values]);
+        if (participantIds.length > 0) {
+            const sql = 'INSERT INTO running_program_targets (program_id, user_id, progress) VALUES ?';
+            const values = participantIds.map(userId => [programId, userId, 0]); // Default progress 0
+            await connection.query(sql, [values]);
+        }
 
         await connection.commit();
         res.json({ message: `Daftar peserta berhasil diganti. Total ${participantIds.length} peserta ditambahkan dari file.` });
@@ -941,6 +943,17 @@ const sendWhatsAppMessage = async (recipientId, messageText, recipientType = 'pe
         const fullUrl = `${settings.webhookUrl}/api/sendText`;
         
         let chatId = recipientId;
+
+        // Normalize phone number for personal chats to ensure correct international format
+        if (recipientType === 'personal') {
+            let normalizedNumber = String(chatId).replace(/\D/g, ''); // Remove all non-digit characters
+            if (normalizedNumber.startsWith('0')) {
+                // Replace leading 0 with country code 62
+                normalizedNumber = '62' + normalizedNumber.substring(1);
+            }
+            chatId = normalizedNumber;
+        }
+        
         if (recipientType === 'personal' && !chatId.endsWith('@c.us') && !chatId.endsWith('@g.us')) {
             chatId = `${chatId}@c.us`;
         }
