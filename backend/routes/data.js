@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const xlsx = require('xlsx');
 const axios = require('axios'); // Use axios for reliable HTTP requests
+const crypto = require('crypto'); // To generate random password
 
 // Create two routers: one for general data, one for file uploads.
 const router = express.Router();
@@ -134,6 +135,17 @@ const parseNumerics = (data, fields) => {
 
 router.get('/bootstrap', async (req, res) => {
     try {
+        const redemptionQuery = `
+            SELECT 
+                r.id, r.user_id, r.reward_id, r.points_spent, r.date, r.status, r.status_note, r.status_updated_at,
+                COALESCE(r.reward_name, rw.name) as reward_name,
+                COALESCE(r.user_name, u.nama) as user_name
+            FROM redemptions r 
+            LEFT JOIN rewards rw ON r.reward_id = rw.id 
+            LEFT JOIN users u ON r.user_id = u.id 
+            ORDER BY r.date DESC
+        `;
+        
         const [
             users, transactions, rewards, redemptions, loyaltyPrograms, 
             runningPrograms, runningProgramTargets, rafflePrograms, 
@@ -142,7 +154,7 @@ router.get('/bootstrap', async (req, res) => {
             safeQueryDB('SELECT * FROM users'),
             safeQueryDB('SELECT * FROM transactions ORDER BY date DESC'),
             safeQueryDB('SELECT * FROM rewards ORDER BY display_order ASC, points ASC'),
-            safeQueryDB('SELECT r.*, rw.name as reward_name, u.nama as user_name FROM redemptions r LEFT JOIN rewards rw ON r.reward_id = rw.id LEFT JOIN users u ON r.user_id = u.id ORDER BY r.date DESC'),
+            safeQueryDB(redemptionQuery),
             safeQueryDB('SELECT * FROM loyalty_programs ORDER BY points_needed ASC'),
             safeQueryDB('SELECT * FROM running_programs ORDER BY end_date DESC'),
             safeQueryDB('SELECT * FROM running_program_targets'),
@@ -707,6 +719,38 @@ router.post('/users/:id/change-password', async (req, res) => {
     }
 });
 
+// ADMIN RESET USER PASSWORD
+router.post('/users/:id/reset-password', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [userRows] = await db.execute('SELECT nama, phone FROM users WHERE id = ?', [id]);
+        if (userRows.length === 0) {
+            return res.status(404).json({ message: 'User tidak ditemukan.' });
+        }
+        const user = userRows[0];
+        if (!user.phone) {
+             return res.status(400).json({ message: 'User tidak memiliki nomor WhatsApp terdaftar untuk pengiriman password.' });
+        }
+
+        const newPassword = crypto.randomBytes(4).toString('hex'); // 8-char random password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, id]);
+
+        // Send notification with the plain-text password
+        const message = `[SISTEM] Password akun Anda (${user.nama}) telah direset oleh admin. Password baru Anda adalah: *${newPassword}*\n\nHarap segera login dan ganti password Anda demi keamanan.`;
+        await sendWhatsAppMessage(user.phone, message);
+
+        res.json({ message: `Password untuk ${user.nama} berhasil direset dan dikirim ke WhatsApp.` });
+
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ message: 'Gagal mereset password.', error: error.message });
+    }
+});
+
+
 // MANUAL USER LEVEL UPDATE
 router.put('/users/:id/level', async (req, res) => {
     const { id } = req.params;
@@ -879,42 +923,32 @@ router.post('/transactions', async (req, res) => {
     }
 });
 
-// WHATSAPP NOTIFICATION HELPER
-const sendWhatsAppNotification = async (userId, userName, userTap, rewardName, pointsSpent) => {
+// GENERIC WHATSAPP MESSAGE SENDER
+const sendWhatsAppMessage = async (recipientId, messageText, recipientType = 'personal') => {
     try {
         const [rows] = await db.execute("SELECT setting_value FROM settings WHERE setting_key = 'whatsapp_config'");
         if (rows.length === 0) {
-            console.log("[WAHA NOTIF] WhatsApp settings not configured. Skipping notification.");
+            console.log("[WA NOTIF] WhatsApp settings not configured. Skipping notification.");
             return;
         }
 
         const settings = JSON.parse(rows[0].setting_value);
-        if (!settings.webhookUrl || !settings.apiKey || !settings.recipientId) {
-            console.log("[WAHA NOTIF] WAHA settings are incomplete (URL/API Key/Recipient missing). Skipping notification.");
+        if (!settings.webhookUrl || !settings.apiKey || !recipientId) {
+            console.log("[WA NOTIF] WAHA settings are incomplete or recipient is missing. Skipping notification.");
             return;
         }
 
-        // Construct the full URL and payload based on the successful curl test
         const fullUrl = `${settings.webhookUrl}/api/sendText`;
-        const tanggal = new Date().toLocaleString('id-ID', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
         
-        const message = `*🔔 Notifikasi Penukaran Poin 🔔*\n\nOutlet baru saja melakukan penukaran poin:\n\n*Tanggal* : ${tanggal}\n*TAP* : ${userTap || 'N/A'}\n*ID Digipos* : ${userId}\n*Nama Mitra* : ${userName}\n*Poin* : ${pointsSpent.toLocaleString('id-ID')}\n*Hadiah* : ${rewardName}\n\nTerima Kasih`;
-        
-        let chatId = settings.recipientId;
-        if (settings.recipientType === 'personal' && !chatId.endsWith('@c.us') && !chatId.endsWith('@g.us')) {
+        let chatId = recipientId;
+        if (recipientType === 'personal' && !chatId.endsWith('@c.us') && !chatId.endsWith('@g.us')) {
             chatId = `${chatId}@c.us`;
         }
 
         const payload = {
             session: settings.sessionName || "default",
             chatId: chatId,
-            text: message
+            text: messageText
         };
 
         const config = {
@@ -924,28 +958,17 @@ const sendWhatsAppNotification = async (userId, userName, userTap, rewardName, p
             }
         };
 
-        console.log(`[WAHA NOTIF] Sending to: ${fullUrl}`);
-        console.log(`[WAHA NOTIF] Payload: ${JSON.stringify(payload)}`);
-        
+        console.log(`[WA NOTIF] Sending message to: ${chatId}`);
         await axios.post(fullUrl, payload, config);
-
-        console.log(`[WAHA NOTIF] WAHA notification sent successfully.`);
+        console.log(`[WA NOTIF] WAHA notification sent successfully.`);
 
     } catch (error) {
-        console.error("[WAHA NOTIF] Failed to send WAHA notification.");
-        if (axios.isAxiosError(error)) {
-            console.error(`[WAHA NOTIF] Axios Error: ${error.message}`);
-            if (error.response) {
-                console.error(`[WAHA NOTIF] Status: ${error.response.status}`);
-                console.error(`[WAHA NOTIF] Data: ${JSON.stringify(error.response.data)}`);
-                if (error.response.status === 404) {
-                    console.error("[WAHA NOTIF] Diagnosis: 404 Not Found. This often means the session name in the URL is wrong, the session is not 'WORKING', or your reverse proxy (e.g., Nginx) is misconfigured.");
-                } else if (error.response.status === 401) {
-                     console.error("[WAHA NOTIF] Diagnosis: 401 Unauthorized. Your WAHA API Key is incorrect.");
-                }
-            }
+        console.error("[WA NOTIF] Failed to send WAHA notification.");
+        // Log detailed error for debugging
+        if (axios.isAxiosError(error) && error.response) {
+            console.error(`[WA NOTIF] Status: ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`);
         } else {
-             console.error("[WAHA NOTIF] Generic Error:", error);
+            console.error("[WA NOTIF] Generic Error:", error.message);
         }
     }
 };
@@ -962,7 +985,7 @@ router.post('/redemptions', async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        // 1. Check user points and reward stock
+        // 1. Check user points and reward stock, and get names for insertion
         const [userRows] = await connection.execute('SELECT id, nama, tap, points FROM users WHERE id = ?', [userId]);
         if (userRows.length === 0) throw new Error("User tidak ditemukan.");
         if (userRows[0].points < pointsSpent) throw new Error("Poin tidak cukup.");
@@ -975,10 +998,10 @@ router.post('/redemptions', async (req, res) => {
         if (rewardRows[0].stock <= 0) throw new Error("Stok hadiah habis.");
         const rewardName = rewardRows[0].name;
         
-        // 2. Insert redemption record
+        // 2. Insert redemption record, now with names included
         await connection.execute(
-            'INSERT INTO redemptions (user_id, reward_id, points_spent, date) VALUES (?, ?, ?, NOW())',
-            [userId, rewardId, pointsSpent]
+            'INSERT INTO redemptions (user_id, user_name, reward_id, reward_name, points_spent, date) VALUES (?, ?, ?, ?, ?, NOW())',
+            [userId, userName, rewardId, rewardName, pointsSpent]
         );
 
         // 3. Decrement user points
@@ -1014,7 +1037,14 @@ router.post('/redemptions', async (req, res) => {
         res.status(200).json({ message: "Penukaran berhasil.", updatedUser: structureUser(updatedUserRows[0]) });
 
         // Trigger notification asynchronously
-        sendWhatsAppNotification(userId, userName, userTap, rewardName, pointsSpent);
+        const [settingsRows] = await db.execute("SELECT setting_value FROM settings WHERE setting_key = 'whatsapp_config'");
+        if (settingsRows.length > 0) {
+            const settings = JSON.parse(settingsRows[0].setting_value);
+            const tanggal = new Date().toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const message = `*🔔 Notifikasi Penukaran Poin 🔔*\n\nOutlet baru saja melakukan penukaran poin:\n\n*Tanggal* : ${tanggal}\n*TAP* : ${userTap || 'N/A'}\n*ID Digipos* : ${userId}\n*Nama Mitra* : ${userName}\n*Poin* : ${pointsSpent.toLocaleString('id-ID')}\n*Hadiah* : ${rewardName}\n\nTerima Kasih`;
+            sendWhatsAppMessage(settings.recipientId, message, settings.recipientType);
+        }
+
 
     } catch (error) {
         await connection.rollback();
@@ -1347,7 +1377,17 @@ router.get('/rewards', async (req, res) => {
 });
 
 router.get('/redemptions', async (req, res) => {
-    const redemptions = await safeQueryDB('SELECT r.*, rw.name as reward_name, u.nama as user_name FROM redemptions r LEFT JOIN rewards rw ON r.reward_id = rw.id LEFT JOIN users u ON r.user_id = u.id ORDER BY r.date DESC');
+    const redemptionQuery = `
+        SELECT 
+            r.id, r.user_id, r.reward_id, r.points_spent, r.date, r.status, r.status_note, r.status_updated_at,
+            COALESCE(r.reward_name, rw.name) as reward_name,
+            COALESCE(r.user_name, u.nama) as user_name
+        FROM redemptions r 
+        LEFT JOIN rewards rw ON r.reward_id = rw.id 
+        LEFT JOIN users u ON r.user_id = u.id 
+        ORDER BY r.date DESC
+    `;
+    const redemptions = await safeQueryDB(redemptionQuery);
     const parsedRedemptions = parseNumerics(redemptions, ['points_spent']);
     res.json(parsedRedemptions.map(r => ({ ...toCamelCase(r), rewardName: r.reward_name || 'Hadiah Dihapus', userName: r.user_name || 'User Dihapus' })));
 });

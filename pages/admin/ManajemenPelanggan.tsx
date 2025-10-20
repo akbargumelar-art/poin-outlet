@@ -11,17 +11,19 @@ interface ManajemenPelangganProps {
     isReadOnly?: boolean;
     loyaltyPrograms: LoyaltyProgram[];
     adminUpdateUserLevel: (userId: string, level: string) => void;
+    adminResetPassword: (userId: string) => void;
 }
 
 type SortableKeys = 'nama' | 'id' | 'tap' | 'salesforce' | 'totalPembelian' | 'points' | 'level' | 'role';
 
 
-const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel }) => {
+const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
     const [roleFilter, setRoleFilter] = useState<UserRole | ''>('');
     const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [resettingUser, setResettingUser] = useState<User | null>(null);
     const [selectedLevel, setSelectedLevel] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'nama', direction: 'asc' });
 
@@ -156,6 +158,13 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             handleCloseModal();
         }
     };
+
+    const handleConfirmResetPassword = () => {
+        if (resettingUser) {
+            adminResetPassword(resettingUser.id);
+            setResettingUser(null);
+        }
+    };
     
     const handleExport = () => {
         if (filteredUsers.length === 0) {
@@ -251,7 +260,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             maxPoints: maxPoints === 0 ? 1 : maxPoints // Avoid division by zero
         };
     }, [filteredUsers, userTotals]);
-
+    
     const pointDistributionChartData = useMemo(() => {
         const levels = ['Bronze', 'Silver', 'Gold', 'Platinum'];
         const levelColors = {
@@ -300,6 +309,18 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                         <div className="flex justify-end gap-4 pt-4">
                             <button onClick={handleCloseModal} className="neu-button">Batal</button>
                             <button onClick={handleLevelUpdate} className="neu-button text-red-600">Simpan Perubahan</button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {resettingUser && (
+                 <Modal show={true} onClose={() => setResettingUser(null)} title="Konfirmasi Reset Password">
+                    <div className="text-center">
+                        <p className="mb-6">Anda yakin ingin mereset password untuk <b>{resettingUser.profile.nama}</b>? Password baru akan dikirimkan ke nomor WhatsApp terdaftar.</p>
+                        <div className="flex justify-center gap-4">
+                            <button onClick={() => setResettingUser(null)} className="neu-button">Batal</button>
+                            <button onClick={handleConfirmResetPassword} className="neu-button text-red-600">Ya, Reset Password</button>
                         </div>
                     </div>
                 </Modal>
@@ -500,14 +521,24 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                                     <td className="p-4 whitespace-nowrap">{user.level || '-'}</td>
                                     {!isReadOnly && (
                                         <td className="p-4">
-                                            <button 
-                                                onClick={() => handleEditUser(user)} 
-                                                className="neu-button-icon text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed" 
-                                                title="Ubah Level"
-                                                disabled={user.role !== 'pelanggan'}
-                                            >
-                                                <Icon path={ICONS.edit} className="w-5 h-5"/>
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => handleEditUser(user)} 
+                                                    className="neu-button-icon text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed" 
+                                                    title="Ubah Level"
+                                                    disabled={user.role !== 'pelanggan'}
+                                                >
+                                                    <Icon path={ICONS.edit} className="w-5 h-5"/>
+                                                </button>
+                                                <button 
+                                                    onClick={() => setResettingUser(user)}
+                                                    className="neu-button-icon text-yellow-600 disabled:text-gray-400 disabled:cursor-not-allowed" 
+                                                    title="Reset Password"
+                                                    disabled={user.role !== 'pelanggan'}
+                                                >
+                                                    <Icon path={ICONS.lock} className="w-5 h-5"/>
+                                                </button>
+                                            </div>
                                         </td>
                                     )}
                                 </tr>

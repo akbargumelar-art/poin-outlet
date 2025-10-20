@@ -111,8 +111,8 @@ const setupDatabase = async () => {
         }
 
         // --- Check for status columns in redemptions table ---
-        const [redemptionColumns] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'status'");
-        if (redemptionColumns.length === 0) {
+        const [redemptionColumnsStatus] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'status'");
+        if (redemptionColumnsStatus.length === 0) {
             console.log("Columns 'status', 'status_note', 'status_updated_at' not found in 'redemptions'. Altering table...");
             const alterQuery = `
                 ALTER TABLE redemptions
@@ -121,14 +121,71 @@ const setupDatabase = async () => {
                 ADD COLUMN status_updated_at DATETIME DEFAULT NULL AFTER status_note;
             `;
             await connection.execute(alterQuery);
-            console.log("Table 'redemptions' altered successfully.");
+            console.log("Table 'redemptions' altered successfully for status.");
         } else {
             console.log("Status columns already exist in 'redemptions'.");
+        }
+
+        // --- Check for user_name and reward_name in redemptions table ---
+        const [redemptionColumnsNames] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'user_name'");
+        if (redemptionColumnsNames.length === 0) {
+            console.log("Columns 'user_name' and 'reward_name' not found in 'redemptions'. Altering table...");
+            const alterQuery = `
+                ALTER TABLE redemptions
+                ADD COLUMN user_name VARCHAR(255) NULL AFTER user_id,
+                ADD COLUMN reward_name VARCHAR(255) NULL AFTER reward_id;
+            `;
+            await connection.execute(alterQuery);
+            console.log("Table 'redemptions' altered successfully for names.");
+        } else {
+            console.log("Name columns already exist in 'redemptions'.");
         }
 
     } catch (err) {
         console.error('Database setup failed:', err);
         process.exit(1); // Exit if setup fails
+    } finally {
+        connection.release();
+    }
+};
+
+
+// --- Function to backfill names in historical redemption data ---
+const backfillRedemptionNames = async () => {
+    const connection = await db.getConnection();
+    try {
+        console.log('Checking for historical redemption records that need name backfilling...');
+        const [recordsToUpdate] = await connection.execute(
+            "SELECT id, user_id, reward_id FROM redemptions WHERE user_name IS NULL OR reward_name IS NULL"
+        );
+
+        if (recordsToUpdate.length === 0) {
+            console.log('No records need backfilling. All names are populated.');
+            return;
+        }
+
+        console.log(`Found ${recordsToUpdate.length} records to backfill. Starting process...`);
+        let updatedCount = 0;
+        for (const record of recordsToUpdate) {
+            const [userRows] = await connection.execute("SELECT nama FROM users WHERE id = ?", [record.user_id]);
+            const [rewardRows] = await connection.execute("SELECT name FROM rewards WHERE id = ?", [record.reward_id]);
+
+            const userName = userRows[0]?.nama || null;
+            const rewardName = rewardRows[0]?.name || null;
+
+            // Only update if we found at least one name, to avoid unnecessary writes
+            if (userName || rewardName) {
+                 await connection.execute(
+                    "UPDATE redemptions SET user_name = ?, reward_name = ? WHERE id = ?",
+                    [userName, rewardName, record.id]
+                );
+                updatedCount++;
+            }
+        }
+         console.log(`Backfill complete. ${updatedCount} of ${recordsToUpdate.length} records updated.`);
+
+    } catch (err) {
+        console.error('Failed during redemption name backfill:', err);
     } finally {
         connection.release();
     }
@@ -152,7 +209,9 @@ const startServer = async () => {
     }
 };
 
-// Start the server after ensuring the database is set up
+// Start the server after ensuring the database is set up and backfilled
 setupDatabase().then(() => {
-    startServer();
+    backfillRedemptionNames().then(() => {
+        startServer();
+    });
 });
