@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 const db = require('../db');
 const bcrypt = require('bcryptjs');
@@ -107,12 +109,14 @@ const safeQueryDB = async (query, params = []) => {
         const [rows] = await db.execute(query, params);
         return rows;
     } catch (error) {
-        if (error.code === 'ER_NO_SUCH_TABLE') {
-            console.warn(`Warning: Table not found for query: ${query.substring(0, 50)}... Returning empty array.`);
-            return [];
-        }
-        // Re-throw the error to be caught by the endpoint's main try-catch block
-        throw error;
+        // Catch ANY database-related error during bootstrap.
+        // This makes the app resilient to corrupted data (e.g., bad dates),
+        // missing tables, or missing columns.
+        console.warn(`Warning: A query failed during bootstrap, returning empty data for this set. This might be due to schema issues or corrupted data.`);
+        console.warn(` - Error Code: ${error.code}`);
+        console.warn(` - Error Message: ${error.message}`);
+        console.warn(` - Query: ${query.substring(0, 100)}...`);
+        return []; // Return an empty array to allow the app to load.
     }
 };
 
@@ -184,7 +188,21 @@ router.get('/bootstrap', async (req, res) => {
         }));
         
         const settingsMap = new Map(settings.map(s => [s.setting_key, s.setting_value]));
-        const whatsAppSettings = settingsMap.has('whatsapp_config') ? JSON.parse(settingsMap.get('whatsapp_config')) : null;
+        
+        let whatsAppSettings = null;
+        if (settingsMap.has('whatsapp_config')) {
+            try {
+                const settingsValue = settingsMap.get('whatsapp_config');
+                // Only parse if the value is a non-empty string that looks like JSON
+                if (settingsValue && typeof settingsValue === 'string' && settingsValue.trim().startsWith('{')) {
+                    whatsAppSettings = JSON.parse(settingsValue);
+                }
+            } catch (e) {
+                console.error("Warning: Failed to parse 'whatsapp_config' setting from database. It might be corrupted. Value was:", settingsMap.get('whatsapp_config'));
+                // Keep whatsAppSettings as null if parsing fails, allowing bootstrap to succeed.
+            }
+        }
+        
         const specialNumberBannerUrl = settingsMap.get('special_number_banner_url') || null;
 
 
@@ -316,15 +334,22 @@ uploadRouter.post('/transactions/bulk', excelUpload.single('transactionsFile'), 
 
         for (const row of data) {
             const userId = String(row.id_digipos);
-            const dateObj = row.tanggal instanceof Date ? row.tanggal : new Date(row.tanggal);
-            const date = dateObj.toISOString().split('T')[0];
+            const dateObj = row.tanggal;
             const produk = row.produk;
             const harga = parseFloat(row.harga);
             const kuantiti = parseInt(row.kuantiti, 10);
 
-            if (!userId || !date || !produk || isNaN(harga) || isNaN(kuantiti)) {
+            // FIX: Add robust date validation to prevent '1970' issue
+            if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
                 failCount++;
-                errors.push(`Baris tidak valid untuk ID: ${userId || 'KOSONG'}`);
+                errors.push(`Tanggal tidak valid atau kosong untuk ID: ${userId || 'KOSONG'}`);
+                continue;
+            }
+            const date = dateObj.toISOString().split('T')[0];
+
+            if (!userId || !produk || isNaN(harga) || isNaN(kuantiti)) {
+                failCount++;
+                errors.push(`Data tidak lengkap (produk/harga/kuantiti) untuk ID: ${userId || 'KOSONG'}`);
                 continue;
             }
 
