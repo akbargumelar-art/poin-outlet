@@ -307,7 +307,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
                                         <td className="p-4 font-bold text-gray-800">{n.phoneNumber}</td>
                                         <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>
                                         <td className="p-4">{n.lokasi || '-'}</td>
-                                        <td className="p-4">Rp {n.price.toLocaleString('id-ID')}</td>
+                                        <td className="p-4">Rp {n.price.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
                                         <td className="p-4">
                                             <span className={`px-2 py-1 text-xs font-bold rounded-full ${n.isSold ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                                                 {n.isSold ? 'Terjual' : 'Tersedia'}

@@ -33,7 +33,7 @@ const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukar
          <div className="relative">
             <div className="sticky top-0 bg-neutral-100/80 backdrop-blur-md z-10 py-4 -my-4 -mx-6 px-6 mb-2">
                  <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Katalog Hadiah</h1>
-                 <p className="text-lg text-gray-600">Poin Anda: <span className="font-bold text-red-600">{userPoints.toLocaleString('id-ID')}</span> | Kupon: <span className="font-bold text-purple-600">{currentUser.kuponUndian || 0}</span></p>
+                 <p className="text-lg text-gray-600">Poin Anda: <span className="font-bold text-red-600">{userPoints.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span> | Kupon: <span className="font-bold text-purple-600">{currentUser.kuponUndian || 0}</span></p>
             </div>
 
              <div className="my-8">
@@ -88,7 +88,7 @@ const TukarPoin: React.FC<TukarPoinProps> = ({ currentUser, rewards, handleTukar
                             <div className="p-4 flex flex-col flex-grow">
                                 <h3 className="text-lg font-bold flex-grow">{r.name}</h3>
                                 <div className="flex justify-between items-center">
-                                    <p className="text-xl font-bold text-red-600 my-2">{r.points.toLocaleString('id-ID')} Poin</p>
+                                    <p className="text-xl font-bold text-red-600 my-2">{(r.points || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin</p>
                                     <p className="text-sm font-semibold text-gray-500">Stok: {r.stock}</p>
                                 </div>
                                 <button 

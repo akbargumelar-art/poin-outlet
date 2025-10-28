@@ -54,7 +54,7 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
             const prizeValue = parseInt(program.prizeDescription.replace(/[^0-9]/g, ''), 10);
             if (!isNaN(prizeValue)) {
                 const estimatedValue = Math.floor((progress / 100) * prizeValue);
-                return `Estimasi: Rp ${estimatedValue.toLocaleString('id-ID')}`;
+                return `Estimasi: Rp ${estimatedValue.toLocaleString('id-ID', { maximumFractionDigits: 2 })}`;
             }
         }
         return null;
@@ -72,7 +72,7 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                 <div className="flex justify-between items-start">
                     <div>
                         <h2 className="text-md font-semibold opacity-80">Total Poin Anda</h2>
-                        <p className="text-3xl md:text-4xl font-bold">{(currentUser.points || 0).toLocaleString('id-ID')}</p>
+                        <p className="text-3xl md:text-4xl font-bold">{(currentUser.points || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
                     </div>
                     <div className="text-right">
                         <h2 className="text-md font-semibold opacity-80">Kupon Undian</h2>
@@ -129,11 +129,11 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                     <h2 className="text-md font-semibold text-gray-600">Transaksi Terakhir</h2>
                     {recentTransaction ? (
                         <>
-                            <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-1">Rp {recentTransaction.totalPembelian.toLocaleString('id-ID')}</p>
+                            <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-1">Rp {(recentTransaction.totalPembelian || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
                              <p className="text-sm font-semibold text-gray-700 truncate">{recentTransaction.produk}</p>
                             <div className="flex justify-between items-center mt-1">
                                 <p className="text-xs text-gray-500">{new Date(recentTransaction.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                <p className="text-sm font-bold text-green-600">+ {recentTransaction.pointsEarned} Poin</p>
+                                <p className="text-sm font-bold text-green-600">+ {(recentTransaction.pointsEarned || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin</p>
                             </div>
                         </>
                     ) : (

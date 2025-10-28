@@ -1,5 +1,6 @@
 
 
+
 const express = require('express');
 const db = require('../db');
 const bcrypt = require('bcryptjs');
@@ -121,11 +122,17 @@ const safeQueryDB = async (query, params = []) => {
 };
 
 const parseNumerics = (data, fields) => {
+    // FIX: Broader check for float fields to prevent incorrect parsing.
+    const floatFields = ['harga', 'total', 'multiplier', 'price', 'points'];
+
     return data.map(item => {
         const newItem = { ...item };
         for (const field of fields) {
             if (newItem[field] !== null && newItem[field] !== undefined) {
-                newItem[field] = field.includes('harga') || field.includes('total') || field.includes('multiplier')
+                // Check if any part of the floatFields array is a substring of the field name
+                const isFloatField = floatFields.some(ff => field.includes(ff));
+                
+                newItem[field] = isFloatField
                     ? parseFloat(newItem[field])
                     : parseInt(newItem[field], 10);
             }
@@ -297,6 +304,41 @@ uploadRouter.post('/settings/special-number-banner', bannerUpload.single('banner
     }
 });
 
+/**
+ * Parses a date value from Excel which could be a JS Date, a string, or an Excel serial number.
+ * @param {*} excelDate - The value from the Excel cell.
+ * @returns {Date|null} A valid Date object or null if parsing fails.
+ */
+function parseDate(excelDate) {
+    // 1. Ideal case: It's already a JS Date object from `cellDates: true`.
+    if (excelDate instanceof Date && !isNaN(excelDate)) {
+        return excelDate;
+    }
+
+    // 2. It's a number (Excel serial date).
+    if (typeof excelDate === 'number') {
+        // Formula to convert Excel serial number to JS Date.
+        // The number 25569 is the number of days from 1900-01-01 to 1970-01-01 (Unix epoch),
+        // adjusted for Excel's incorrect assumption that 1900 was a leap year.
+        const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
+        // Additional check to see if the conversion resulted in a valid date.
+        if (!isNaN(jsDate.getTime())) {
+            return jsDate;
+        }
+    }
+
+    // 3. It's a string that can be parsed.
+    if (typeof excelDate === 'string') {
+        const jsDate = new Date(excelDate);
+        if (!isNaN(jsDate.getTime())) {
+            return jsDate;
+        }
+    }
+
+    // 4. Could not parse.
+    return null;
+}
+
 // BULK TRANSACTION UPLOAD
 uploadRouter.post('/transactions/bulk', excelUpload.single('transactionsFile'), async (req, res) => {
     if (!req.file) {
@@ -308,6 +350,7 @@ uploadRouter.post('/transactions/bulk', excelUpload.single('transactionsFile'), 
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
+        // Keep cellDates:true as the primary attempt, but our parseDate function will handle failures.
         const data = xlsx.utils.sheet_to_json(worksheet, { cellDates: true });
 
         if (data.length === 0) {
@@ -334,15 +377,16 @@ uploadRouter.post('/transactions/bulk', excelUpload.single('transactionsFile'), 
 
         for (const row of data) {
             const userId = String(row.id_digipos);
-            const dateObj = row.tanggal;
             const produk = row.produk;
             const harga = parseFloat(row.harga);
             const kuantiti = parseInt(row.kuantiti, 10);
 
-            // FIX: Add robust date validation to prevent '1970' issue
-            if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
+            // Use the new flexible date parsing function
+            const dateObj = parseDate(row.tanggal);
+            
+            if (!dateObj) {
                 failCount++;
-                errors.push(`Tanggal tidak valid atau kosong untuk ID: ${userId || 'KOSONG'}`);
+                errors.push(`Tanggal tidak valid atau kosong untuk ID: ${userId || 'KOSONG'}. Pastikan formatnya benar (YYYY-MM-DD).`);
                 continue;
             }
             const date = dateObj.toISOString().split('T')[0];

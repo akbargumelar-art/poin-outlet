@@ -170,13 +170,13 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                                     <td className="p-4 text-right whitespace-nowrap">
                                         {item.type === 'Pembelian' ? (
                                             <div>
-                                                <p className="font-semibold text-gray-800">Rp {item.amount.toLocaleString('id-ID')}</p>
-                                                {item.kuantiti && item.harga ? <p className="text-xs text-gray-500">{item.kuantiti} x Rp {item.harga.toLocaleString('id-ID')}</p> : null}
+                                                <p className="font-semibold text-gray-800">Rp {(item.amount || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
+                                                {item.kuantiti && item.harga ? <p className="text-xs text-gray-500">{item.kuantiti} x Rp {(item.harga || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p> : null}
                                             </div>
                                         ) : '-'}
                                     </td>
                                     <td className={`p-4 font-bold text-right whitespace-nowrap ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {item.points > 0 ? '+' : ''}{item.points.toLocaleString('id-ID')}
+                                        {item.points > 0 ? '+' : ''}{(item.points || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}
                                     </td>
                                     <td className="p-4">
                                         {item.type === 'Penukaran' ? (

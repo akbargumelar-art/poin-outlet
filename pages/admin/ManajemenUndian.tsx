@@ -235,7 +235,7 @@ const ManajemenUndian: React.FC<ManajemenUndianProps> = ({ users, programs, rede
                                                     <div 
                                                         className="w-full bg-gradient-to-t from-red-600 to-red-500 rounded-t-md transition-all duration-500 ease-out"
                                                         style={{ height: `${(outletCount / tapChartData.maxCount) * 100}%` }}
-                                                        title={`${outletCount} Mitra | ${couponCount.toLocaleString('id-ID')} Kupon`}
+                                                        title={`${outletCount} Mitra | ${(couponCount || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kupon`}
                                                     ></div>
                                                     <div className="text-center mt-1 w-full"><p className="font-bold text-gray-600 text-sm truncate">{tap}</p></div>
                                                 </div>

@@ -66,7 +66,7 @@ const SimulasiPoin: React.FC<SimulasiPoinProps> = ({ loyaltyPrograms, currentUse
                  <span className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 font-semibold">Rp</span>
                 <input 
                     type="text" 
-                    value={purchaseAmount > 0 ? purchaseAmount.toLocaleString('id-ID') : ''}
+                    value={purchaseAmount > 0 ? purchaseAmount.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : ''}
                     onChange={handleAmountChange}
                     placeholder="Masukkan Total Belanja"
                     className="input-field pl-10 text-lg"
@@ -74,7 +74,7 @@ const SimulasiPoin: React.FC<SimulasiPoinProps> = ({ loyaltyPrograms, currentUse
             </div>
             <div className="neu-inset p-4 mt-4 text-center">
                 <p className="text-gray-600">Potensi Poin Didapat</p>
-                <p className="text-4xl font-bold text-green-600 my-2">{points.toLocaleString('id-ID')}</p>
+                <p className="text-4xl font-bold text-green-600 my-2">{points.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
                  {isPartnerDashboard ? (
                      <p className="text-xs text-gray-500">
                          Berdasarkan level Anda saat ini: <span className="font-semibold">{level} ({multiplier}x)</span>

@@ -375,11 +375,11 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                                    <div
                                        className="w-full bg-gradient-to-t from-red-600 to-red-500 rounded-t-lg transition-all duration-500 ease-out flex items-end justify-center"
                                        style={{ height: `${(mitraCount / tapChartData.maxCount) * 100}%` }}
-                                       title={`${mitraCount} Mitra | ${totalPoin.toLocaleString('id-ID')} Poin`}
+                                       title={`${mitraCount} Mitra | ${totalPoin.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin`}
                                    >
                                    </div>
                                    <div className="text-center mt-2 w-full">
-                                       <p className="text-xs font-semibold text-gray-500 truncate">{totalPoin.toLocaleString('id-ID')} Poin</p>
+                                       <p className="text-xs font-semibold text-gray-500 truncate">{totalPoin.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin</p>
                                        <p className="font-bold text-gray-600 text-sm truncate">{tap}</p>
                                    </div>
                                </div>
@@ -397,15 +397,15 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                     <div className="flex justify-around items-end h-80 pt-8 space-x-2 md:space-x-4 border-b border-gray-200">
                         {levelPerformanceChartData.stats.map(({ level, count, totalPoints, totalPembelian, color }) => (
                             <div key={level} className="flex flex-col items-center justify-end flex-1 h-full">
-                                <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{totalPoints.toLocaleString('id-ID')}</div>
+                                <div className="text-xs font-bold text-gray-800 -mb-4 z-10">{totalPoints.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</div>
                                 <div 
                                     className={`w-full bg-gradient-to-t ${color} rounded-t-lg transition-all duration-500 ease-out flex items-end justify-center`}
                                     style={{ height: `${(totalPoints / levelPerformanceChartData.maxPoints) * 100}%` }}
-                                    title={`${count.toLocaleString('id-ID')} Mitra\n${totalPoints.toLocaleString('id-ID')} Poin\nRp ${totalPembelian.toLocaleString('id-ID')}`}
+                                    title={`${count.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Mitra\n${totalPoints.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin\nRp ${totalPembelian.toLocaleString('id-ID', { maximumFractionDigits: 2 })}`}
                                 >
                                 </div>
                                 <div className="text-center mt-2 w-full">
-                                    <p className="text-xs font-semibold text-gray-500 truncate">{count.toLocaleString('id-ID')} Mitra</p>
+                                    <p className="text-xs font-semibold text-gray-500 truncate">{count.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Mitra</p>
                                     <p className="font-bold text-gray-600 text-sm">{level}</p>
                                 </div>
                             </div>
@@ -513,10 +513,10 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                                     <td className="p-4 whitespace-nowrap">{user.profile.tap || '-'}</td>
                                     <td className="p-4 whitespace-nowrap">{user.profile.salesforce || '-'}</td>
                                     <td className="p-4 text-right whitespace-nowrap">
-                                        {user.role === 'pelanggan' ? `Rp ${(userTotals.get(user.id)?.totalPembelian || 0).toLocaleString('id-ID')}` : '-'}
+                                        {user.role === 'pelanggan' ? `Rp ${(userTotals.get(user.id)?.totalPembelian || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}` : '-'}
                                     </td>
                                     <td className="p-4 text-right font-bold text-red-600 whitespace-nowrap">
-                                        {user.role === 'pelanggan' ? (user.points || 0).toLocaleString('id-ID') : '-'}
+                                        {user.role === 'pelanggan' ? (user.points || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
                                     </td>
                                     <td className="p-4 whitespace-nowrap">{user.level || '-'}</td>
                                     {!isReadOnly && (

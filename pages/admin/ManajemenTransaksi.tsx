@@ -249,10 +249,10 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                         <p className="text-xs text-gray-500 font-mono">{item.userId}</p>
                                     </td>
                                     <td className="p-4 font-semibold">{item.produk}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">Rp {item.harga.toLocaleString('id-ID')}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">{item.kuantiti.toLocaleString('id-ID')}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">Rp {item.totalPembelian.toLocaleString('id-ID')}</td>
-                                    <td className="p-4 font-bold text-right text-green-600 whitespace-nowrap">+{item.pointsEarned.toLocaleString('id-ID')}</td>
+                                    <td className="p-4 text-right whitespace-nowrap">Rp {(item.harga || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
+                                    <td className="p-4 text-right whitespace-nowrap">{(item.kuantiti || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
+                                    <td className="p-4 text-right whitespace-nowrap">Rp {(item.totalPembelian || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
+                                    <td className="p-4 font-bold text-right text-green-600 whitespace-nowrap">+{(item.pointsEarned || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
                                 </tr>
                             )) : (
                                  <tr>

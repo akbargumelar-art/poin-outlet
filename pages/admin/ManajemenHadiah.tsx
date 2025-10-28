@@ -254,7 +254,7 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
                         <div key={level.level} className={`neu-card-flat p-4 flex justify-between items-center border-l-4 ${levelCardStyles[level.level] || 'border-gray-400'}`}>
                             <div>
                                 <p className="font-bold text-lg text-gray-800">{level.level}</p>
-                                <p className="text-sm text-gray-500">Min: {level.pointsNeeded.toLocaleString('id-ID')} Poin | Pengali: {level.multiplier}x</p>
+                                <p className="text-sm text-gray-500">Min: {(level.pointsNeeded || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin | Pengali: {level.multiplier}x</p>
                                 <p className="text-xs text-gray-600 mt-1">{level.benefit}</p>
                             </div>
                             {!isReadOnly && (
@@ -299,7 +299,7 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
                                     )}
                                     <td className="p-4"><img src={r.imageUrl} alt={r.name} className="w-20 h-20 object-contain rounded-md neu-inset p-1 bg-white"/></td>
                                     <td className="p-4 font-semibold">{r.name}</td>
-                                    <td className="p-4 font-bold text-red-600 whitespace-nowrap">{r.points.toLocaleString('id-ID')}</td>
+                                    <td className="p-4 font-bold text-red-600 whitespace-nowrap">{(r.points || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
                                     <td className="p-4">{r.stock}</td>
                                     {!isReadOnly && (
                                         <td className="p-4">

@@ -101,8 +101,8 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
 
     const handleBeli = () => {
         if (totalSelected.length === 0 || !recipientNumber) return;
-        const listItems = totalSelected.map(n => `- ${n.phoneNumber} | ${n.price.toLocaleString('id-ID')}`).join('\n');
-        const message = `Halo Kak, saya ${currentUser.profile.nama} dari ${currentUser.profile.tap || 'N/A'} ingin membeli Nomor spesial:\n\n${listItems}\n\n*Total:*\n- Rp ${totalSelectedPrice.toLocaleString('id-ID')} / ${totalSelected.length} pcs`;
+        const listItems = totalSelected.map(n => `- ${n.phoneNumber} | ${n.price.toLocaleString('id-ID', { maximumFractionDigits: 2 })}`).join('\n');
+        const message = `Halo Kak, saya ${currentUser.profile.nama} dari ${currentUser.profile.tap || 'N/A'} ingin membeli Nomor spesial:\n\n${listItems}\n\n*Total:*\n- Rp ${totalSelectedPrice.toLocaleString('id-ID', { maximumFractionDigits: 2 })} / ${totalSelected.length} pcs`;
         window.open(`https://wa.me/${recipientNumber}?text=${encodeURIComponent(message)}`, '_blank');
     };
     
@@ -116,7 +116,7 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
                     <div className="flex flex-wrap gap-2 mb-4">
                         {priceFilters.map(price => (
                             <button key={price} onClick={() => setSelectedPrice(price)} className={`px-3 py-1 text-sm rounded-md font-semibold transition-colors ${selectedPrice === price ? 'bg-red-600 text-white shadow-inner' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}>
-                                Rp {price.toLocaleString('id-ID')}
+                                Rp {price.toLocaleString('id-ID', { maximumFractionDigits: 2 })}
                             </button>
                         ))}
                         <button onClick={() => setSelectedPrice(null)} className={`px-3 py-1 text-sm rounded-md font-semibold transition-colors ${selectedPrice === null ? 'bg-red-600 text-white shadow-inner' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}>
@@ -141,7 +141,7 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
                     <div className="mt-4 pt-4 border-t border-gray-200/80 flex justify-between items-center">
                         <div>
                             <p className="font-bold text-gray-800">{totalSelected.length} nomor dipilih</p>
-                            <p className="text-sm font-semibold text-red-600">Total: Rp {totalSelectedPrice.toLocaleString('id-ID')}</p>
+                            <p className="text-sm font-semibold text-red-600">Total: Rp {totalSelectedPrice.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
                         </div>
                         <button onClick={handleBeli} disabled={!recipientNumber || totalSelected.length === 0} className="neu-button !w-auto px-4 flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 disabled:!bg-gray-400">
                             <Icon path={ICONS.whatsapp} className="w-5 h-5" />
@@ -172,7 +172,7 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
                                         <td className="p-4 font-bold text-lg text-gray-800 tracking-wider">{n.phoneNumber}</td>
                                         {isSupervisor && <td className="p-4 font-mono text-sm">{n.sn || '-'}</td>}
                                         {isSupervisor && <td className="p-4">{n.lokasi || '-'}</td>}
-                                        <td className="p-4 font-semibold text-red-600">Rp {n.price.toLocaleString('id-ID')}</td>
+                                        <td className="p-4 font-semibold text-red-600">Rp {n.price.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
                                         <td className="p-4">
                                             <input type="checkbox" className="h-5 w-5 rounded" checked={selectedIds.has(n.id)} onChange={() => handleSelect(n.id)} />
                                         </td>

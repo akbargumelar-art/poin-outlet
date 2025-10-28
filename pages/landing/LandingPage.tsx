@@ -87,7 +87,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                             <img src={r.imageUrl} alt={r.name} className="w-full h-40 md:h-48 object-cover"/>
                                             <div className="p-6 flex flex-col flex-grow text-center">
                                                 <h4 className="text-lg font-bold flex-grow text-gray-800 min-h-[56px]">{r.name}</h4>
-                                                <p className="text-xl font-bold text-red-600 mt-2">{r.points.toLocaleString('id-ID')} Poin</p>
+                                                <p className="text-xl font-bold text-red-600 mt-2">{(r.points || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin</p>
                                             </div>
                                         </div>
                                     </div>
@@ -106,11 +106,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                     <SimulasiPoin loyaltyPrograms={loyaltyPrograms} />
                 </section>
                 
-                {/* Running Program Section */}
-                {runningPrograms && runningPrograms.length > 0 && (
+                {/* Running Programs Section */}
+                {runningPrograms.length > 0 && (
                     <section id="program-section" className="my-12 md:my-20 overflow-hidden">
                         <div className="max-w-3xl xl:max-w-6xl mx-auto">
-                            <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Program Berjalan</h3>
+                            <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Program yang Sedang Berjalan</h3>
                         </div>
                         <div className="relative">
                             <div className="max-w-3xl xl:max-w-6xl mx-auto relative md:px-12">
@@ -118,94 +118,41 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                                     <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
                                 </button>
                                 <div ref={programsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                                   {runningPrograms.map((p) => (
+                                    {runningPrograms.map(p => (
                                         <div key={p.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 lg:w-1/3 p-4">
                                             <div className="neu-card overflow-hidden flex flex-col h-full">
                                                 <img src={p.imageUrl} alt={p.name} className="w-full h-40 md:h-48 object-cover" />
                                                 <div className="p-6 flex flex-col flex-grow text-center">
-                                                    <h4 className="text-xl font-bold text-gray-800">{p.name}</h4>
-                                                    <p className="text-sm text-gray-500 mb-2">{formatDateRange(p.startDate, p.endDate)}</p>
-                                                    <p className="text-gray-600 flex-grow min-h-[70px]">{p.mechanism}</p>
-                                                    <div className="mt-6">
-                                                        <p className="font-semibold text-gray-500 text-sm">Raih Hadiah Utama</p>
-                                                        <p className="text-xl font-bold text-red-600 my-1">{p.prizeDescription}</p>
+                                                    <h4 className="text-lg font-bold text-gray-800 flex-grow">{p.name}</h4>
+                                                    <p className="text-sm text-gray-500 mt-2">{formatDateRange(p.startDate, p.endDate)}</p>
+                                                    <div className="mt-3 bg-red-100 text-red-700 font-semibold py-2 px-4 rounded-lg">
+                                                        Hadiah: {p.prizeDescription}
                                                     </div>
-                                                </div>
-                                                <div className="p-4 pt-0">
-                                                    <button onClick={() => setCurrentPage('register')} className="neu-button !text-sm text-red-600">
-                                                        Ikuti Program
-                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                                 <button onClick={() => handleNav('right', programsScrollContainer)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Next program">
-                                   <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
+                                <button onClick={() => handleNav('right', programsScrollContainer)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Next program">
+                                    <Icon path={ICONS.chevronRight} className="w-6 h-6"/>
                                 </button>
                             </div>
                         </div>
                     </section>
                 )}
 
-                <div id="pemenang-section" className="max-w-3xl xl:max-w-6xl mx-auto">
-                    <PemenangUndian winners={raffleWinners} />
-                </div>
+                {/* Winners Section */}
+                <PemenangUndian winners={raffleWinners} />
 
-                {/* About Section */}
-                <section id="tentang-kami-section" className="my-12 md:my-20 max-w-3xl xl:max-w-6xl mx-auto">
-                    <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Tentang Kami</h3>
-                     <div className="neu-card p-8 md:p-10">
-                        <h4 className="text-2xl font-bold text-red-600">PT Agrabudi Komunika</h4>
-                        <p className="mt-4 text-gray-600">
-                           PT Agrabudi Komunika merupakan Strategic Business Partner Telkomsel (Telkomsel Authorized Partner). Sebagai mitra outlet resmi, kami berkomitmen untuk memberikan layanan dan program terbaik bagi para mitra kami. Program Loyalitas ini adalah bentuk apresiasi kami atas kerja sama dan pencapaian Anda.
-                        </p>
-                        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                                <h5 className="font-bold text-gray-700 flex items-center gap-2"><Icon path={ICONS.location} className="w-5 h-5"/>Kantor Cirebon</h5>
-                                <p className="text-gray-600 mt-1 pl-7">Jl. Pemuda Raya No.21B, Sunyaragi, Kec. Kesambi, Kota Cirebon, Jawa Barat 45132</p>
-                                <div className="mt-4 rounded-lg overflow-hidden neu-inset">
-                                    <iframe 
-                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5494.642449130317!2d108.54520877628357!3d-6.729076865796396!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f1d575c4b4437%3A0xb8e7d858b1f65e0c!2sPT%20Agrabudi%20Komunika%20Cirebon!5e1!3m2!1sen!2sid!4v1759635982623!5m2!1sen!2sid"
-                                        width="100%" 
-                                        height="200" 
-                                        style={{ border: 0 }} 
-                                        allowFullScreen={false}
-                                        loading="lazy" 
-                                        referrerPolicy="no-referrer-when-downgrade"
-                                        title="Peta Kantor Cirebon">
-                                    </iframe>
-                                </div>
-                            </div>
-                            <div>
-                                <h5 className="font-bold text-gray-700 flex items-center gap-2"><Icon path={ICONS.location} className="w-5 h-5"/>Kantor Kuningan</h5>
-                                <p className="text-gray-600 mt-1 pl-7">Jl. Siliwangi No.45, Purwawinangun, Kec. Kuningan, Kabupaten Kuningan, Jawa Barat 45512</p>
-                                <div className="mt-4 rounded-lg overflow-hidden neu-inset">
-                                    <iframe 
-                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5491.837343327805!2d108.48606749999999!3d-6.9726026!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f16833985c159%3A0x93e4e9830990a491!2sPT.%20Agrabudi%20Komunika%20Kuningan!5e1!3m2!1sen!2sid!4v1759636102299!5m2!1sen!2sid" 
-                                        width="100%" 
-                                        height="200" 
-                                        style={{ border: 0 }} 
-                                        allowFullScreen={false} 
-                                        loading="lazy" 
-                                        referrerPolicy="no-referrer-when-downgrade"
-                                        title="Peta Kantor Kuningan">
-                                    </iframe>
-                                </div>
-                            </div>
-                        </div>
-                     </div>
-                </section>
-
-                 <div className="max-w-3xl xl:max-w-6xl mx-auto px-4 text-center mt-12">
-                    <p className="font-bold text-gray-700">Hubungi Kami</p>
-                    <div className="flex justify-center gap-6 my-4">
-                        <a href="https://instagram.com/agrabudikomunika" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-red-600"><Icon path={ICONS.instagram} className="w-8 h-8"/></a>
-                        <a href="https://tsel.id/fbciraya" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-red-600"><Icon path={ICONS.facebook} className="w-8 h-8"/></a>
-                        <a href="https://wa.me/6285168822280" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-red-600"><Icon path={ICONS.whatsapp} className="w-8 h-8"/></a>
+                 {/* Footer Section */}
+                <footer className="text-center py-10 border-t border-gray-200/80 mt-16">
+                    <p className="text-gray-500">&copy; {new Date().getFullYear()} PT Agrabudi Komunika. All rights reserved.</p>
+                     <div className="flex justify-center gap-4 mt-4">
+                        <a href="#" className="text-gray-400 hover:text-red-500"><Icon path={ICONS.whatsapp} className="w-6 h-6"/></a>
+                        <a href="#" className="text-gray-400 hover:text-red-500"><Icon path={ICONS.instagram} className="w-6 h-6"/></a>
+                        <a href="#" className="text-gray-400 hover:text-red-500"><Icon path={ICONS.facebook} className="w-6 h-6"/></a>
                     </div>
-                    <p className="text-sm text-gray-500">&copy; {new Date().getFullYear()} PT Agrabudi Komunika. All rights reserved.</p>
-                </div>
+                </footer>
             </div>
         </div>
     );

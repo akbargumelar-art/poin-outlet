@@ -232,7 +232,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                         }
                                         {item.statusNote && <p className="text-xs text-gray-500 italic">"{item.statusNote}"</p>}
                                     </td>
-                                    <td className="p-4 font-bold text-right text-red-600 whitespace-nowrap">{item.pointsSpent.toLocaleString('id-ID')}</td>
+                                    <td className="p-4 font-bold text-right text-red-600 whitespace-nowrap">{(item.pointsSpent || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
                                     {!isReadOnly && (
                                         <td className="p-4">
                                             <button onClick={() => setEditingRedemption(item)} className="neu-button-icon text-blue-600">

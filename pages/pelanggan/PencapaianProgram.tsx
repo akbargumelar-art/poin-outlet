@@ -21,7 +21,7 @@ const PencapaianProgram: React.FC<PencapaianProgramProps> = ({ currentUser, loya
             const prizeValue = parseInt(program.prizeDescription.replace(/[^0-9]/g, ''), 10);
             if (!isNaN(prizeValue)) {
                 const estimatedValue = Math.floor((progress / 100) * prizeValue);
-                return `Estimasi hadiah Anda saat ini: Rp ${estimatedValue.toLocaleString('id-ID')}`;
+                return `Estimasi hadiah Anda saat ini: Rp ${estimatedValue.toLocaleString('id-ID', { maximumFractionDigits: 2 })}`;
             }
         }
         return null;

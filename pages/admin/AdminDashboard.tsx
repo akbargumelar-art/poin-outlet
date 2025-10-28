@@ -96,14 +96,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
                     <div className="p-3 neu-card rounded-full"><Icon path={ICONS.history} className="w-8 h-8 text-green-600"/></div>
                     <div>
                         <p className="text-gray-500">Total Penjualan</p>
-                        <p className="text-2xl font-bold text-gray-800">Rp {totalPenjualan.toLocaleString('id-ID')}</p>
+                        <p className="text-2xl font-bold text-gray-800">Rp {totalPenjualan.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
                     </div>
                 </div>
                  <div className="neu-card p-6 flex items-center gap-4">
                     <div className="p-3 neu-card rounded-full"><Icon path={ICONS.gift} className="w-8 h-8 text-yellow-600"/></div>
                     <div>
                         <p className="text-gray-500">Total Poin Beredar</p>
-                        <p className="text-2xl font-bold text-gray-800">{totalPoin.toLocaleString('id-ID')}</p>
+                        <p className="text-2xl font-bold text-gray-800">{totalPoin.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
                     </div>
                 </div>
             </div>

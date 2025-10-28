@@ -187,17 +187,17 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ currentUser, users, loyal
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Poin Saat Ini:</span>
-                                            <span className="font-bold text-gray-800">{(selectedUser.points || 0).toLocaleString('id-ID')} Poin</span>
+                                            <span className="font-bold text-gray-800">{(selectedUser.points || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Poin Akan Didapat:</span>
-                                            <span className="font-bold text-green-600">+{potentialPoints.toLocaleString('id-ID')} Poin</span>
+                                            <span className="font-bold text-green-600">+{potentialPoints.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin</span>
                                         </div>
                                     </div>
                                 )}
 
                                 <div className="neu-inset p-3 rounded-lg text-center">
-                                    <p className="text-gray-600">Total Pembelian: <span className="font-bold text-lg text-gray-800">Rp {totalPembelian.toLocaleString('id-ID')}</span></p>
+                                    <p className="text-gray-600">Total Pembelian: <span className="font-bold text-lg text-gray-800">Rp {totalPembelian.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span></p>
                                 </div>
                                 <button type="submit" disabled={!txData.userId || totalPembelian <= 0 || isReadOnly} className="neu-button text-red-600 w-full">Tambah Transaksi & Hitung Poin</button>
                             </form>
@@ -234,7 +234,7 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ currentUser, users, loyal
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Poin Saat Ini:</span>
-                                            <span className="font-bold text-gray-800">{(selectedManualUser.points || 0).toLocaleString('id-ID')}</span>
+                                            <span className="font-bold text-gray-800">{(selectedManualUser.points || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span>
                                         </div>
                                     </div>
                                 )}
