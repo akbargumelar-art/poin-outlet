@@ -197,12 +197,18 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                                                  <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusColors[item.status || 'Diajukan']}`}>
                                                     {item.status || 'Diajukan'}
                                                  </span>
-                                                 {item.statusNote && <p className="text-xs text-gray-500 mt-1 italic">"{item.statusNote}"</p>}
+                                                 {item.statusNote && <p className="text-xs text-gray-500 mt-1 italic max-w-xs">"{item.statusNote}"</p>}
                                                  {item.documentationPhotoUrl && (
                                                     <button onClick={() => setViewingPhoto(item)} className="text-xs text-blue-600 font-semibold mt-1 flex items-center gap-1 hover:underline">
                                                         <Icon path={ICONS.camera} className="w-4 h-4"/>
                                                         Lihat Foto
                                                     </button>
+                                                 )}
+                                                 {item.status === 'Selesai' && !item.documentationPhotoUrl && (
+                                                    <div className="text-xs text-gray-400 font-semibold mt-1 flex items-center gap-1 cursor-not-allowed">
+                                                        <Icon path={ICONS.camera} className="w-4 h-4"/>
+                                                        <span>Foto Tdk Tersedia</span>
+                                                    </div>
                                                  )}
                                             </div>
                                         ) : '-'}

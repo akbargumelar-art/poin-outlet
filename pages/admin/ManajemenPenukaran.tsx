@@ -170,7 +170,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                     onClose={() => setEditingRedemption(null)}
                 />
             )}
-             {viewingPhoto && (
+             {viewingPhoto && viewingPhoto.documentationPhotoUrl && (
                 <Modal show={true} onClose={() => setViewingPhoto(null)} title={`Dokumentasi: ${viewingPhoto.rewardName}`}>
                     <div className="text-center">
                         <img src={viewingPhoto.documentationPhotoUrl} alt={`Dokumentasi untuk ${viewingPhoto.rewardName}`} className="w-full max-h-[70vh] object-contain rounded-lg mb-4"/>
@@ -249,6 +249,11 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                                 <button onClick={() => setViewingPhoto(item)} className="neu-button-icon text-purple-600" title="Lihat Foto Dokumentasi">
                                                     <Icon path={ICONS.camera} className="w-5 h-5"/>
                                                 </button>
+                                            )}
+                                            {item.status === 'Selesai' && !item.documentationPhotoUrl && (
+                                                <div className="neu-button-icon cursor-not-allowed opacity-50" title="Dokumentasi tidak tersedia">
+                                                    <Icon path={ICONS.camera} className="w-5 h-5 text-gray-400"/>
+                                                </div>
                                             )}
                                             {!isReadOnly && (
                                                 <button onClick={() => setEditingRedemption(item)} className="neu-button-icon text-blue-600" title="Ubah Status">
