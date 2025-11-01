@@ -141,6 +141,20 @@ const setupDatabase = async () => {
             console.log("Name columns already exist in 'redemptions'.");
         }
 
+        // --- Check for documentation photo url in redemptions table ---
+        const [redemptionColumnsDocs] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'documentation_photo_url'");
+        if (redemptionColumnsDocs.length === 0) {
+            console.log("Column 'documentation_photo_url' not found in 'redemptions'. Altering table...");
+            const alterQuery = `
+                ALTER TABLE redemptions
+                ADD COLUMN documentation_photo_url VARCHAR(2048) DEFAULT NULL AFTER status_updated_at;
+            `;
+            await connection.execute(alterQuery);
+            console.log("Table 'redemptions' altered successfully for documentation photo.");
+        } else {
+            console.log("Documentation photo column already exists in 'redemptions'.");
+        }
+
     } catch (err) {
         console.error('Database setup failed:', err);
         process.exit(1); // Exit if setup fails

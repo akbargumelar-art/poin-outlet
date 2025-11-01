@@ -1,6 +1,7 @@
 
 
 
+
 const express = require('express');
 const db = require('../db');
 const bcrypt = require('bcryptjs');
@@ -148,7 +149,7 @@ router.get('/bootstrap', async (req, res) => {
     try {
         const redemptionQuery = `
             SELECT 
-                r.id, r.user_id, r.reward_id, r.points_spent, r.date, r.status, r.status_note, r.status_updated_at,
+                r.id, r.user_id, r.reward_id, r.points_spent, r.date, r.status, r.status_note, r.status_updated_at, r.documentation_photo_url,
                 COALESCE(r.reward_name, rw.name) as reward_name,
                 COALESCE(r.user_name, u.nama) as user_name
             FROM redemptions r 
@@ -1461,7 +1462,7 @@ router.get('/rewards', async (req, res) => {
 router.get('/redemptions', async (req, res) => {
     const redemptionQuery = `
         SELECT 
-            r.id, r.user_id, r.reward_id, r.points_spent, r.date, r.status, r.status_note, r.status_updated_at,
+            r.id, r.user_id, r.reward_id, r.points_spent, r.date, r.status, r.status_note, r.status_updated_at, r.documentation_photo_url,
             COALESCE(r.reward_name, rw.name) as reward_name,
             COALESCE(r.user_name, u.nama) as user_name
         FROM redemptions r 
@@ -1472,6 +1473,80 @@ router.get('/redemptions', async (req, res) => {
     const redemptions = await safeQueryDB(redemptionQuery);
     const parsedRedemptions = parseNumerics(redemptions, ['points_spent']);
     res.json(parsedRedemptions.map(r => ({ ...toCamelCase(r), rewardName: r.reward_name || 'Hadiah Dihapus', userName: r.user_name || 'User Dihapus' })));
+});
+
+// --- APPSHEET WEBHOOK ENDPOINT ---
+router.post('/appsheet-webhook', async (req, res) => {
+    // 1. Security Check
+    const authHeader = req.headers.authorization;
+    const webhookSecret = process.env.APPSHEET_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+        console.warn('[WEBHOOK] APPSHEET_WEBHOOK_SECRET is not set in .env. Skipping security check for development.');
+    } else {
+        if (!authHeader || authHeader !== `Bearer ${webhookSecret}`) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+    }
+
+    // 2. Body Validation
+    const { redemptionId, photoUrl } = req.body;
+    if (!redemptionId || !photoUrl) {
+        return res.status(400).json({ message: '`redemptionId` and `photoUrl` are required.' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 3. Find redemption to get user info before update
+        const [redemptionRows] = await connection.execute(
+            `SELECT r.user_id, r.reward_name, u.nama as user_name, u.phone as user_phone 
+             FROM redemptions r
+             JOIN users u ON r.user_id = u.id
+             WHERE r.id = ?`,
+            [redemptionId]
+        );
+
+        if (redemptionRows.length === 0) {
+            throw new Error(`Redemption with ID ${redemptionId} not found.`);
+        }
+        const redemptionInfo = redemptionRows[0];
+        
+        // 4. Update Database
+        const sql = `
+            UPDATE redemptions 
+            SET 
+                status = 'Selesai', 
+                documentation_photo_url = ?, 
+                status_updated_at = NOW() 
+            WHERE id = ?`;
+            
+        const [result] = await connection.execute(sql, [photoUrl, redemptionId]);
+
+        if (result.affectedRows === 0) {
+            // This is a safety check, though the SELECT above should have caught it.
+            throw new Error(`Redemption with ID ${redemptionId} not found during update.`);
+        }
+
+        await connection.commit();
+        
+        // 5. Send success response
+        res.json({ message: `Redemption ID ${redemptionId} successfully updated.` });
+
+        // 6. Asynchronously send notification to the customer
+        if (redemptionInfo.user_phone) {
+            const message = `Halo ${redemptionInfo.user_name}, penukaran hadiah *${redemptionInfo.reward_name}* Anda telah selesai dan diserahkan. Terima kasih!`;
+            sendWhatsAppMessage(redemptionInfo.user_phone, message, 'personal');
+        }
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('[WEBHOOK] Error processing AppSheet webhook:', error);
+        res.status(404).json({ message: error.message || 'Failed to process webhook.' });
+    } finally {
+        connection.release();
+    }
 });
 
 
