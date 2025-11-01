@@ -78,6 +78,7 @@ export interface Redemption {
     status?: string;
     statusNote?: string;
     statusUpdatedAt?: string;
+    documentationPhotoUrl?: string;
 }
 
 // Tipe baru untuk menyatukan history
@@ -92,6 +93,7 @@ export type HistoryItem = {
     status?: string;
     statusNote?: string;
     statusUpdatedAt?: string;
+    documentationPhotoUrl?: string;
 };
 
 

@@ -37,4 +37,5 @@ export const ICONS = {
     sortDown: "M7 10l5 5 5-5z",
     sortNeutral: "M9 13h6l-3-3zM15 11H9l3 3z",
     reorder: "M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z",
+    camera: "M12 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-2-8c0-.55-.45-1-1-1s-1 .45-1 1v1H6V4c0-.55-.45-1-1-1s-1 .45-1 1v1H2v14h20V5h-2V4c0-.55-.45-1-1-1s-1 .45-1 1v1h-2V4zm6 16H4V9h16v11z",
 };

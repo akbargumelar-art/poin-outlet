@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { User, Transaction, Redemption, HistoryItem } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
+import Modal from '../../components/common/Modal';
 
 interface HistoryPembelianProps {
     currentUser: User;
@@ -11,6 +12,7 @@ interface HistoryPembelianProps {
 
 const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transactions, redemptionHistory }) => {
     const [filter, setFilter] = useState({ from: '', to: '' });
+    const [viewingPhoto, setViewingPhoto] =useState<HistoryItem | null>(null);
 
     const statusColors: { [key: string]: string } = {
         'Diajukan': 'bg-blue-100 text-blue-800',
@@ -43,6 +45,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                 status: r.status,
                 statusNote: r.statusNote,
                 statusUpdatedAt: r.statusUpdatedAt,
+                documentationPhotoUrl: r.documentationPhotoUrl,
             }));
 
         return [...transactionHistory, ...redemptionHistoryItems]
@@ -106,6 +109,16 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
 
     return (
         <div>
+            {viewingPhoto && viewingPhoto.documentationPhotoUrl && (
+                <Modal show={true} onClose={() => setViewingPhoto(null)} title={`Dokumentasi Penyerahan Hadiah`}>
+                    <div className="text-center">
+                        <img src={viewingPhoto.documentationPhotoUrl} alt={`Dokumentasi untuk ${viewingPhoto.description}`} className="w-full max-h-[70vh] object-contain rounded-lg mb-4"/>
+                        <p><strong>Hadiah:</strong> {viewingPhoto.description}</p>
+                        <p><strong>Tanggal:</strong> {new Date(viewingPhoto.date).toLocaleString('id-ID')}</p>
+                    </div>
+                </Modal>
+            )}
+
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Riwayat Transaksi & Poin</h1>
                 <div className="flex items-center gap-2">
@@ -185,6 +198,12 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                                                     {item.status || 'Diajukan'}
                                                  </span>
                                                  {item.statusNote && <p className="text-xs text-gray-500 mt-1 italic">"{item.statusNote}"</p>}
+                                                 {item.documentationPhotoUrl && (
+                                                    <button onClick={() => setViewingPhoto(item)} className="text-xs text-blue-600 font-semibold mt-1 flex items-center gap-1 hover:underline">
+                                                        <Icon path={ICONS.camera} className="w-4 h-4"/>
+                                                        Lihat Foto
+                                                    </button>
+                                                 )}
                                             </div>
                                         ) : '-'}
                                     </td>

@@ -51,6 +51,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState({ from: '', to: '' });
     const [editingRedemption, setEditingRedemption] = useState<Redemption | null>(null);
+    const [viewingPhoto, setViewingPhoto] = useState<Redemption | null>(null);
 
     const statusColors: { [key: string]: string } = {
         'Diajukan': 'text-blue-600',
@@ -169,6 +170,15 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                     onClose={() => setEditingRedemption(null)}
                 />
             )}
+             {viewingPhoto && (
+                <Modal show={true} onClose={() => setViewingPhoto(null)} title={`Dokumentasi: ${viewingPhoto.rewardName}`}>
+                    <div className="text-center">
+                        <img src={viewingPhoto.documentationPhotoUrl} alt={`Dokumentasi untuk ${viewingPhoto.rewardName}`} className="w-full max-h-[70vh] object-contain rounded-lg mb-4"/>
+                        <p><strong>Mitra:</strong> {viewingPhoto.userName}</p>
+                        <p><strong>Tanggal:</strong> {new Date(viewingPhoto.date).toLocaleString('id-ID')}</p>
+                    </div>
+                </Modal>
+            )}
 
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Riwayat Penukaran Poin Mitra</h1>
@@ -207,7 +217,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                 <th className="p-4 font-semibold text-gray-600">Hadiah</th>
                                 <th className="p-4 font-semibold text-gray-600">Status</th>
                                 <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">Poin Digunakan</th>
-                                {!isReadOnly && <th className="p-4 font-semibold text-gray-600">Aksi</th>}
+                                <th className="p-4 font-semibold text-gray-600">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -233,17 +243,24 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                         {item.statusNote && <p className="text-xs text-gray-500 italic">"{item.statusNote}"</p>}
                                     </td>
                                     <td className="p-4 font-bold text-right text-red-600 whitespace-nowrap">{(item.pointsSpent || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
-                                    {!isReadOnly && (
-                                        <td className="p-4">
-                                            <button onClick={() => setEditingRedemption(item)} className="neu-button-icon text-blue-600">
-                                                <Icon path={ICONS.edit} className="w-5 h-5"/>
-                                            </button>
-                                        </td>
-                                    )}
+                                    <td className="p-4">
+                                        <div className="flex gap-2">
+                                            {item.documentationPhotoUrl && (
+                                                <button onClick={() => setViewingPhoto(item)} className="neu-button-icon text-purple-600" title="Lihat Foto Dokumentasi">
+                                                    <Icon path={ICONS.camera} className="w-5 h-5"/>
+                                                </button>
+                                            )}
+                                            {!isReadOnly && (
+                                                <button onClick={() => setEditingRedemption(item)} className="neu-button-icon text-blue-600" title="Ubah Status">
+                                                    <Icon path={ICONS.edit} className="w-5 h-5"/>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
                                 </tr>
                             )) : (
                                  <tr>
-                                    <td colSpan={isReadOnly ? 7 : 8} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
+                                    <td colSpan={8} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
                                 </tr>
                             )}
                         </tbody>
