@@ -51,7 +51,7 @@ app.use((err, req, res, next) => {
 });
 
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 4001;
 
 // Function to check and set up the database schema
 const setupDatabase = async () => {

@@ -1,7 +1,5 @@
 
 
-
-
 const express = require('express');
 const db = require('../db');
 const bcrypt = require('bcryptjs');
@@ -147,6 +145,7 @@ const parseNumerics = (data, fields) => {
 
 router.get('/bootstrap', async (req, res) => {
     try {
+        // Define the complex query *before* it's used in Promise.all to prevent a ReferenceError.
         const redemptionQuery = `
             SELECT 
                 r.id, r.user_id, r.reward_id, r.points_spent, r.date, r.status, r.status_note, r.status_updated_at, r.documentation_photo_url,
@@ -177,7 +176,7 @@ router.get('/bootstrap', async (req, res) => {
             safeQueryDB("SELECT setting_key, setting_value FROM settings"),
             safeQueryDB('SELECT * FROM special_numbers ORDER BY price ASC, phone_number ASC'),
         ]);
-
+        
         const parsedUsers = parseNumerics(users, ['points', 'kupon_undian']);
         const parsedTransactions = parseNumerics(transactions, ['harga', 'kuantiti', 'total_pembelian', 'points_earned']);
         const parsedRewards = parseNumerics(rewards, ['points', 'stock']);
