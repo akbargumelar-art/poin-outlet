@@ -1,9 +1,40 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Redemption } from '../../types';
 import Icon from './Icon';
 import { ICONS } from '../../constants';
 import Modal from './Modal';
+
+interface CardItemProps {
+    item: Redemption;
+    onClick: (item: Redemption) => void;
+}
+
+const CardItem: React.FC<CardItemProps> = ({ item, onClick }) => (
+    <div 
+        className="w-72 md:w-80 flex-shrink-0 flex flex-col items-center text-center p-3 neu-card hover:scale-105 transition-transform duration-300 cursor-pointer group bg-white/50"
+        onClick={() => onClick(item)}
+        title="Klik untuk memperbesar"
+    >
+        <div className="w-full aspect-[4/3] rounded-lg overflow-hidden relative bg-gray-100">
+            <img 
+                src={item.documentationPhotoUrl} 
+                alt={item.rewardName} 
+                className="w-full h-full object-cover"
+                loading="lazy"
+            />
+            {/* Overlay Effect */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                <Icon path={ICONS.eye} className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+            </div>
+        </div>
+        <div className="mt-3 w-full">
+            <p className="font-bold text-gray-800 text-sm md:text-base line-clamp-1">{item.rewardName}</p>
+            <p className="text-xs text-gray-500 font-semibold truncate">{item.userName}</p>
+            {item.userTap && <p className="text-[10px] text-gray-400 font-mono uppercase mt-0.5">{item.userTap}</p>}
+        </div>
+    </div>
+);
 
 interface DocumentationSliderProps {
     redemptions: Redemption[];
@@ -26,139 +57,64 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
         return shuffled;
     }, [redemptions]);
 
-    // 2. Group items into pairs (chunks of 2)
-    const itemChunks = useMemo(() => {
-        const chunks = [];
-        const chunkSize = 2; // Menampilkan 2 foto per slide
-        for (let i = 0; i < validItems.length; i += chunkSize) {
-            chunks.push(validItems.slice(i, i + chunkSize));
+    // Jika data terlalu sedikit (< 5), duplikasi agar running text terlihat penuh dan loop berjalan mulus
+    const itemsToRender = useMemo(() => {
+        if (validItems.length === 0) return [];
+        let items = [...validItems];
+        // Minimal ada sekitar 5 item agar animasi terlihat bagus di layar lebar. 
+        // Jika kurang, kita duplikasi listnya.
+        while (items.length < 5) {
+            items = [...items, ...validItems];
         }
-        return chunks;
+        return items;
     }, [validItems]);
-    
-    const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
-    const [isPaused, setIsPaused] = useState(false);
-    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Kecepatan slider (ms).
-    const AUTO_SLIDE_INTERVAL = 4000; 
-
-    const resetTimeout = () => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-        }
-    };
-
-    // Fungsi untuk memilih slide berikutnya
-    const nextSlide = () => {
-        if (itemChunks.length <= 1) return;
-        setCurrentChunkIndex((prev) => (prev === itemChunks.length - 1 ? 0 : prev + 1));
-    };
-
-    const prevSlide = () => {
-        if (itemChunks.length <= 1) return;
-        setCurrentChunkIndex((prev) => (prev === 0 ? itemChunks.length - 1 : prev - 1));
-    };
-
-    // Auto-slide effect
-    useEffect(() => {
-        resetTimeout();
-        if (!isPaused && itemChunks.length > 1) {
-            timeoutRef.current = setTimeout(
-                () => setCurrentChunkIndex((prev) => (prev === itemChunks.length - 1 ? 0 : prev + 1)),
-                AUTO_SLIDE_INTERVAL
-            );
-        }
-        return () => resetTimeout();
-    }, [currentChunkIndex, isPaused, itemChunks.length]);
+    // Hitung durasi animasi berdasarkan jumlah item agar kecepatannya konsisten
+    // Semakin banyak item, semakin lama durasi agar kecepatannya tetap santai
+    const animationDuration = Math.max(30, itemsToRender.length * 6); 
 
     if (validItems.length === 0) return null;
 
     return (
-        <section className="my-12 md:my-20 max-w-4xl mx-auto px-4">
-            <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-8">
-                Bukti Penyerahan Hadiah
-            </h3>
+        <section className="my-12 md:my-20 w-full overflow-hidden">
+            <style>{`
+                @keyframes marquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-100%); }
+                }
+                .animate-marquee {
+                    animation: marquee ${animationDuration}s linear infinite;
+                }
+                /* Pause animasi saat user hover di container */
+                .marquee-container:hover .animate-marquee {
+                    animation-play-state: paused;
+                }
+            `}</style>
+
+            <div className="max-w-6xl mx-auto px-4 mb-8">
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center">
+                    Bukti Penyerahan Hadiah
+                </h3>
+            </div>
             
-            <div 
-                className="relative neu-card p-4 md:p-6"
-                onMouseEnter={() => setIsPaused(true)}
-                onMouseLeave={() => setIsPaused(false)}
-            >
-                {/* Navigation Buttons */}
-                {itemChunks.length > 1 && (
-                    <>
-                        <button 
-                            onClick={prevSlide} 
-                            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-white/80 p-2 shadow-md hover:bg-white"
-                            aria-label="Previous slide"
-                        >
-                            <Icon path={ICONS.chevronLeft} className="w-6 h-6 text-gray-700"/>
-                        </button>
-                        <button 
-                            onClick={nextSlide} 
-                            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-white/80 p-2 shadow-md hover:bg-white"
-                            aria-label="Next slide"
-                        >
-                            <Icon path={ICONS.chevronRight} className="w-6 h-6 text-gray-700"/>
-                        </button>
-                    </>
-                )}
-
-                {/* Slides Container */}
-                <div className="overflow-hidden rounded-xl">
-                    <div 
-                        className="flex transition-transform duration-500 ease-in-out"
-                        style={{ transform: `translateX(-${currentChunkIndex * 100}%)` }}
-                    >
-                        {itemChunks.map((chunk, index) => (
-                            <div key={index} className="min-w-full flex gap-4 justify-center">
-                                {chunk.map((item) => (
-                                    <div key={item.id} className="w-1/2 flex flex-col items-center text-center">
-                                        <div 
-                                            className="w-full aspect-[4/3] rounded-lg overflow-hidden cursor-pointer group relative neu-inset p-1 bg-gray-50"
-                                            onClick={() => setViewingItem(item)}
-                                            title="Klik untuk memperbesar"
-                                        >
-                                            <img 
-                                                src={item.documentationPhotoUrl} 
-                                                alt={item.rewardName} 
-                                                className="w-full h-full object-cover rounded-md transition-transform duration-300 group-hover:scale-110"
-                                            />
-                                            {/* Overlay Effect */}
-                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                                <Icon path={ICONS.eye} className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
-                                            </div>
-                                        </div>
-                                        <div className="mt-3">
-                                            <p className="font-bold text-gray-800 text-sm md:text-base line-clamp-1">{item.rewardName}</p>
-                                            <p className="text-xs text-gray-500 font-semibold">{item.userName}</p>
-                                            {item.userTap && <p className="text-[10px] text-gray-400 font-mono uppercase mt-0.5">{item.userTap}</p>}
-                                        </div>
-                                    </div>
-                                ))}
-                                {/* Helper jika chunk hanya memiliki 1 item agar layout tetap rapi */}
-                                {chunk.length === 1 && <div className="w-1/2"></div>}
-                            </div>
-                        ))}
-                    </div>
+            {/* Marquee Container */}
+            <div className="marquee-container flex overflow-hidden w-full mask-linear-fade">
+                {/* 
+                   Teknik Seamless Loop:
+                   Render list dua kali berdampingan.
+                   Animasi menggerakkan kedua list ke kiri sejauh -100%.
+                   Karena list 2 identik dengan list 1, saat reset ke 0% mata tidak melihat perbedaannya.
+                */}
+                <div className="flex gap-6 animate-marquee flex-shrink-0 pl-6">
+                    {itemsToRender.map((item, index) => (
+                        <CardItem key={`set1-${item.id}-${index}`} item={item} onClick={setViewingItem} />
+                    ))}
                 </div>
-
-                {/* Dots Indicators */}
-                {itemChunks.length > 1 && (
-                    <div className="flex justify-center gap-2 mt-6">
-                        {itemChunks.map((_, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => setCurrentChunkIndex(idx)}
-                                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                                    currentChunkIndex === idx ? 'bg-red-600 w-6' : 'bg-gray-300 hover:bg-gray-400'
-                                }`}
-                                aria-label={`Go to slide ${idx + 1}`}
-                            />
-                        ))}
-                    </div>
-                )}
+                <div className="flex gap-6 animate-marquee flex-shrink-0 pl-6">
+                    {itemsToRender.map((item, index) => (
+                        <CardItem key={`set2-${item.id}-${index}`} item={item} onClick={setViewingItem} />
+                    ))}
+                </div>
             </div>
 
             {/* Modal Lightbox */}
