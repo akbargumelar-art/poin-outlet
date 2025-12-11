@@ -73,17 +73,18 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
              >
-                <div className="flex flex-col md:flex-row min-h-[400px] md:h-[320px]">
+                {/* Fixed height set here: h-[450px] for mobile, h-[320px] for desktop */}
+                <div className="flex flex-col md:flex-row h-[450px] md:h-[320px]">
                     
                     {/* Image Section (Half Width) */}
-                    <div className="w-full md:w-1/2 p-4 flex items-center justify-center bg-gray-50/50">
-                        <div className="relative w-full h-full max-h-[280px] neu-inset p-2 rounded-xl flex items-center justify-center overflow-hidden group">
+                    <div className="w-full md:w-1/2 h-1/2 md:h-full p-4 flex items-center justify-center bg-gray-50/50">
+                        <div className="relative w-full h-full neu-inset p-2 rounded-xl flex items-center justify-center overflow-hidden group">
                             {/* Loading Placeholder / Image */}
                             <img 
                                 key={currentItem.id} // Key helps react verify DOM change for animation
                                 src={currentItem.documentationPhotoUrl} 
                                 alt={currentItem.rewardName} 
-                                className="w-full h-full object-contain rounded-lg shadow-sm transition-transform duration-500 hover:scale-105"
+                                className="w-full h-full object-cover rounded-lg shadow-sm transition-transform duration-500 hover:scale-105"
                             />
                             <div className="absolute top-4 right-4 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md animate-fade-in-down">
                                 Terverifikasi
@@ -92,7 +93,7 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
                     </div>
 
                     {/* Content Section (Half Width) */}
-                    <div className="w-full md:w-1/2 p-5 md:p-6 flex flex-col justify-center text-left relative">
+                    <div className="w-full md:w-1/2 h-1/2 md:h-full p-5 md:p-6 flex flex-col justify-center text-left relative">
                         {/* Quote Icon Background */}
                         <div className="absolute top-4 right-6 text-gray-200 pointer-events-none">
                             <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.01691 21L5.01691 18C5.01691 16.8954 5.91234 16 7.01691 16H10.0169C10.5692 16 11.0169 15.5523 11.0169 15V9C11.0169 8.44772 10.5692 8 10.0169 8H6.01691C5.46462 8 5.01691 8.44772 5.01691 9V11C5.01691 11.5523 4.56919 12 4.01691 12H3.01691V5H13.0169V15C13.0169 18.3137 10.3306 21 7.01691 21H5.01691Z" /></svg>
@@ -101,7 +102,7 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
                         <div className="space-y-4 z-10">
                             <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                                 <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Hadiah</p>
-                                <h4 className="text-xl md:text-2xl font-extrabold text-red-600 drop-shadow-sm leading-tight">
+                                <h4 className="text-xl md:text-2xl font-extrabold text-red-600 drop-shadow-sm leading-tight line-clamp-2">
                                     {currentItem.rewardName}
                                 </h4>
                             </div>
@@ -109,10 +110,10 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
                             <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                                 <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Penerima</p>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-xs">
+                                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-xs shrink-0">
                                         {currentItem.userName ? currentItem.userName.charAt(0) : 'M'}
                                     </div>
-                                    <h4 className="text-lg font-bold text-gray-800">{currentItem.userName || 'Mitra Setia'}</h4>
+                                    <h4 className="text-lg font-bold text-gray-800 line-clamp-1">{currentItem.userName || 'Mitra Setia'}</h4>
                                 </div>
                                 <div className="inline-block bg-blue-100 text-blue-800 rounded-md px-2 py-0.5 text-[10px] font-bold mt-1">
                                     TAP {currentItem.userTap || 'Unknown Area'}
@@ -124,14 +125,14 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
 
                 {/* Navigation Arrows (Visible on Hover or Mobile) */}
                 <button 
-                    className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity md:opacity-0 opacity-100"
+                    className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity md:opacity-0 opacity-100 z-20"
                     onClick={prevSlide}
                     aria-label="Previous Slide"
                 >
                     <Icon path={ICONS.chevronLeft} className="w-5 h-5" />
                 </button>
                 <button 
-                    className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity md:opacity-0 opacity-100"
+                    className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity md:opacity-0 opacity-100 z-20"
                     onClick={nextSlide}
                     aria-label="Next Slide"
                 >
