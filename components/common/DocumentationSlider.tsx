@@ -171,8 +171,8 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
         <section className="my-12 md:my-20 w-full overflow-hidden select-none">
             <style>{`
                 .mask-linear-fade {
-                    mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
-                    -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+                    mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
+                    -webkit-mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
                 }
             `}</style>
 
