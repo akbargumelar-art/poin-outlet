@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram, Redemption } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
@@ -18,15 +18,18 @@ interface LandingPageProps {
 const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms, raffleWinners, loyaltyPrograms, redemptionHistory }) => {
     const rewardsScrollContainer = useRef<HTMLDivElement>(null);
     const programsScrollContainer = useRef<HTMLDivElement>(null);
+    
+    // State untuk menghentikan auto-slide saat user hover
+    const [isRewardsPaused, setIsRewardsPaused] = useState(false);
 
     const handleNav = (direction: 'left' | 'right', containerRef: React.RefObject<HTMLDivElement>) => {
         if (containerRef.current) {
             const container = containerRef.current;
-            const scrollAmount = container.offsetWidth * 0.8;
+            const scrollAmount = container.offsetWidth * 0.8; // Scroll 80% of width
 
             if (direction === 'right') {
-                // If near the end, loop to the beginning
-                if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 1) {
+                // If near the end (allow 5px buffer), loop to the beginning
+                if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 5) {
                     container.scrollTo({ left: 0, behavior: 'smooth' });
                 } else {
                     container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
@@ -41,6 +44,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
             }
         }
     };
+
+    // Effect untuk Auto-Slide Hadiah (3 Detik)
+    useEffect(() => {
+        let interval: ReturnType<typeof setInterval>;
+
+        if (!isRewardsPaused && rewards.length > 0) {
+            interval = setInterval(() => {
+                handleNav('right', rewardsScrollContainer);
+            }, 3000); // 3000ms = 3 detik
+        }
+
+        return () => clearInterval(interval);
+    }, [isRewardsPaused, rewards.length]);
     
     const formatDateRange = (start: string, end: string) => {
         const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
@@ -77,7 +93,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                     <div className="max-w-3xl xl:max-w-6xl mx-auto">
                         <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center mb-10">Hadiah Eksklusif Menanti Anda</h3>
                     </div>
-                    <div className="relative">
+                    {/* Added onMouseEnter/Leave to pause functionality */}
+                    <div 
+                        className="relative"
+                        onMouseEnter={() => setIsRewardsPaused(true)}
+                        onMouseLeave={() => setIsRewardsPaused(false)}
+                    >
                         <div className="max-w-3xl xl:max-w-6xl mx-auto relative md:px-12">
                             <button onClick={() => handleNav('left', rewardsScrollContainer)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 neu-button-icon !rounded-full !bg-[var(--base-bg)] p-3 hidden md:inline-flex" aria-label="Previous slide">
                                 <Icon path={ICONS.chevronLeft} className="w-6 h-6"/>
@@ -85,7 +106,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                             <div ref={rewardsScrollContainer} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                {rewards.map((r) => (
                                     <div key={r.id} className="snap-center flex-shrink-0 w-10/12 sm:w-1/2 lg:w-1/3 p-4">
-                                        <div className="neu-card overflow-hidden flex flex-col h-full">
+                                        <div className="neu-card overflow-hidden flex flex-col h-full transition-transform duration-300 hover:scale-[1.02]">
                                             <img src={r.imageUrl} alt={r.name} className="w-full h-40 md:h-48 object-cover"/>
                                             <div className="p-6 flex flex-col flex-grow text-center">
                                                 <h4 className="text-lg font-bold flex-grow text-gray-800 min-h-[56px]">{r.name}</h4>
