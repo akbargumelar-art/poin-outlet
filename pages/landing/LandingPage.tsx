@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram, Redemption } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -125,7 +126,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                 </section>
 
                 {/* Documentation Slider (Moved Below Rewards) */}
-                <DocumentationSlider redemptions={redemptionHistory} />
+                <div className="max-w-3xl xl:max-w-6xl mx-auto">
+                    <DocumentationSlider redemptions={redemptionHistory} />
+                </div>
 
                 {/* Simulasi Poin Section */}
                 <section id="kalkulator-section" className="my-12 md:my-20 max-w-3xl xl:max-w-6xl mx-auto">
