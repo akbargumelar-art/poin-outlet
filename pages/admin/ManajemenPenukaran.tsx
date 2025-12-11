@@ -181,20 +181,26 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
 
     // Calculate summary based on filtered data (Rewards)
     const rewardStats = useMemo(() => {
-        const stats: { [key: string]: { count: number; totalPoints: number } } = {};
+        const stats: { [key: string]: { count: number; totalPoints: number; userIds: Set<string> } } = {};
         
         filteredRedemptions.forEach(r => {
             const name = r.rewardName || 'Unknown';
             if (!stats[name]) {
-                stats[name] = { count: 0, totalPoints: 0 };
+                stats[name] = { count: 0, totalPoints: 0, userIds: new Set() };
             }
             stats[name].count++;
             stats[name].totalPoints += (r.pointsSpent || 0);
+            stats[name].userIds.add(r.userId);
         });
 
         // Convert to array and sort by count descending
         return Object.entries(stats)
-            .map(([name, data]) => ({ name, ...data }))
+            .map(([name, data]) => ({ 
+                name, 
+                count: data.count, 
+                totalPoints: data.totalPoints,
+                outletCount: data.userIds.size // Count of unique outlets per reward
+            }))
             .sort((a, b) => b.count - a.count);
     }, [filteredRedemptions]);
 
@@ -319,11 +325,23 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {rewardStats.map((stat) => (
-                        <div key={stat.name} className="neu-card-flat p-4 border-l-4 border-purple-500 bg-white">
-                            <p className="text-xs text-gray-500 font-semibold uppercase truncate" title={stat.name}>{stat.name}</p>
-                            <div className="flex justify-between items-end mt-2">
-                                <p className="text-2xl font-bold text-gray-800">{stat.count} <span className="text-xs font-normal text-gray-500">Unit</span></p>
-                                <p className="text-xs text-red-600 font-bold bg-red-50 px-2 py-1 rounded">-{stat.totalPoints.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })} Poin</p>
+                        <div key={stat.name} className="neu-card-flat p-4 border-l-4 border-purple-500 bg-white flex flex-col justify-between h-full">
+                            <div>
+                                <p className="text-xs text-gray-500 font-semibold uppercase truncate mb-1" title={stat.name}>{stat.name}</p>
+                                <div className="flex items-baseline gap-2">
+                                    <p className="text-2xl font-bold text-gray-800">{stat.count}</p>
+                                    <span className="text-xs text-gray-500">Unit</span>
+                                </div>
+                                {/* New: Outlet Count */}
+                                <div className="flex items-center gap-1 mt-1 text-xs text-purple-600 font-medium bg-purple-50 px-2 py-0.5 rounded w-fit">
+                                    <Icon path={ICONS.store} className="w-3 h-3" />
+                                    <span>{stat.outletCount} Outlet</span>
+                                </div>
+                            </div>
+                            <div className="mt-2 text-right">
+                                <p className="text-xs text-red-600 font-bold bg-red-50 px-2 py-1 rounded inline-block">
+                                    -{stat.totalPoints.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })} Poin
+                                </p>
                             </div>
                         </div>
                     ))}
