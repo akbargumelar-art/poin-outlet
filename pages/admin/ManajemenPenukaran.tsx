@@ -93,6 +93,12 @@ interface ManajemenPenukaranProps {
 const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, users, isReadOnly, adminUpdateRedemptionStatus }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState({ from: '', to: '' });
+    
+    // New Filters
+    const [statusFilter, setStatusFilter] = useState('');
+    const [tapFilter, setTapFilter] = useState('');
+    const [salesforceFilter, setSalesforceFilter] = useState('');
+
     const [editingRedemption, setEditingRedemption] = useState<Redemption | null>(null);
     const [viewingPhoto, setViewingPhoto] = useState<Redemption | null>(null);
 
@@ -102,7 +108,6 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
         'Selesai': 'text-green-600',
         'Ditolak': 'text-red-600',
     };
-
 
     const redemptionsWithUserData = useMemo(() => {
         return redemptions.map(r => {
@@ -115,6 +120,10 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
         });
     }, [redemptions, users]);
 
+    // Extract unique values for dropdowns based on existing data
+    const uniqueTaps = useMemo(() => [...new Set(redemptionsWithUserData.map(r => r.userTap).filter(t => t !== '-'))].sort(), [redemptionsWithUserData]);
+    const uniqueSalesforces = useMemo(() => [...new Set(redemptionsWithUserData.map(r => r.userSalesforce).filter(s => s !== '-'))].sort(), [redemptionsWithUserData]);
+
     const filteredRedemptions = useMemo(() => {
         return redemptionsWithUserData.filter(item => {
             const itemDate = new Date(item.date);
@@ -126,6 +135,10 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
 
             if (fromDate && itemDate < fromDate) return false;
             if (toDate && itemDate > toDate) return false;
+
+            if (statusFilter && (item.status || 'Diajukan') !== statusFilter) return false;
+            if (tapFilter && item.userTap !== tapFilter) return false;
+            if (salesforceFilter && item.userSalesforce !== salesforceFilter) return false;
 
             if (searchTerm.trim()) {
                 const lowercasedSearchTerm = searchTerm.toLowerCase();
@@ -140,8 +153,46 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
             
             return true;
         });
-    }, [redemptionsWithUserData, filter, searchTerm]);
+    }, [redemptionsWithUserData, filter, searchTerm, statusFilter, tapFilter, salesforceFilter]);
     
+    // Calculate summary based on filtered data (Status)
+    const summaryStats = useMemo(() => {
+        const stats = {
+            Total: 0,
+            Diajukan: 0,
+            Diproses: 0,
+            Selesai: 0,
+            Ditolak: 0
+        };
+        filteredRedemptions.forEach(r => {
+            stats.Total++;
+            const status = r.status || 'Diajukan';
+            if (status in stats) {
+                stats[status as keyof typeof stats]++;
+            }
+        });
+        return stats;
+    }, [filteredRedemptions]);
+
+    // Calculate summary based on filtered data (Rewards)
+    const rewardStats = useMemo(() => {
+        const stats: { [key: string]: { count: number; totalPoints: number } } = {};
+        
+        filteredRedemptions.forEach(r => {
+            const name = r.rewardName || 'Unknown';
+            if (!stats[name]) {
+                stats[name] = { count: 0, totalPoints: 0 };
+            }
+            stats[name].count++;
+            stats[name].totalPoints += (r.pointsSpent || 0);
+        });
+
+        // Convert to array and sort by count descending
+        return Object.entries(stats)
+            .map(([name, data]) => ({ name, ...data }))
+            .sort((a, b) => b.count - a.count);
+    }, [filteredRedemptions]);
+
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
@@ -149,6 +200,9 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
     const handleResetFilters = () => {
         setFilter({ from: '', to: '' });
         setSearchTerm('');
+        setStatusFilter('');
+        setTapFilter('');
+        setSalesforceFilter('');
     };
 
     const handleUpdateStatus = (status: string, note: string, photoFile: File | null) => {
@@ -204,6 +258,18 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
         }
     };
 
+    const SummaryCard = ({ title, count, colorClass, icon }: { title: string, count: number, colorClass: string, icon: string }) => (
+        <div className={`p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between bg-white`}>
+            <div>
+                <p className="text-gray-500 text-xs font-semibold uppercase">{title}</p>
+                <p className={`text-2xl font-bold mt-1 ${colorClass}`}>{count}</p>
+            </div>
+            <div className={`p-2 rounded-full ${colorClass.replace('text-', 'bg-').replace('600', '100')}`}>
+                <Icon path={icon} className={`w-6 h-6 ${colorClass}`} />
+            </div>
+        </div>
+    );
+
     return (
         <div>
              {editingRedemption && !isReadOnly && (
@@ -229,21 +295,74 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                     <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel
                 </button>
             </div>
+
+            {/* Summary Statistics (Status) */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                <SummaryCard title="Total Request" count={summaryStats.Total} colorClass="text-gray-700" icon={ICONS.dashboard} />
+                <SummaryCard title="Diajukan" count={summaryStats.Diajukan} colorClass="text-blue-600" icon={ICONS.upload} />
+                <SummaryCard title="Diproses" count={summaryStats.Diproses} colorClass="text-amber-600" icon={ICONS.history} />
+                <SummaryCard title="Selesai" count={summaryStats.Selesai} colorClass="text-green-600" icon={ICONS.trophy} />
+                <SummaryCard title="Ditolak" count={summaryStats.Ditolak} colorClass="text-red-600" icon={ICONS.close} />
+            </div>
+
+            {/* Summary Statistics (Rewards) */}
+            <div className="mb-6">
+                <h2 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <Icon path={ICONS.gift} className="w-5 h-5 text-purple-600" />
+                    Statistik Hadiah (Berdasarkan Filter)
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {rewardStats.map((stat) => (
+                        <div key={stat.name} className="neu-card-flat p-4 border-l-4 border-purple-500 bg-white">
+                            <p className="text-xs text-gray-500 font-semibold uppercase truncate" title={stat.name}>{stat.name}</p>
+                            <div className="flex justify-between items-end mt-2">
+                                <p className="text-2xl font-bold text-gray-800">{stat.count} <span className="text-xs font-normal text-gray-500">Unit</span></p>
+                                <p className="text-xs text-red-600 font-bold bg-red-50 px-2 py-1 rounded">-{stat.totalPoints.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })} Poin</p>
+                            </div>
+                        </div>
+                    ))}
+                    {rewardStats.length === 0 && (
+                        <div className="col-span-full text-center py-4 bg-gray-50 rounded-lg text-gray-500 text-sm italic border border-dashed border-gray-300">
+                            Tidak ada data penukaran hadiah yang cocok dengan filter.
+                        </div>
+                    )}
+                </div>
+            </div>
             
-            <div className="mb-6 neu-card-flat p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
-                <input
-                    type="text"
-                    placeholder="Cari nama, ID, hadiah..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="input-field lg:col-span-2"
-                />
-                <div className="flex items-center gap-2 lg:col-span-2">
+            {/* Advanced Filters */}
+            <div className="mb-6 neu-card-flat p-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <input
+                        type="text"
+                        placeholder="Cari nama, ID, hadiah..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="input-field"
+                    />
+                    <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input-field">
+                        <option value="">Semua Status</option>
+                        <option value="Diajukan">Diajukan</option>
+                        <option value="Diproses">Diproses</option>
+                        <option value="Selesai">Selesai</option>
+                        <option value="Ditolak">Ditolak</option>
+                    </select>
+                    <select value={tapFilter} onChange={e => setTapFilter(e.target.value)} className="input-field">
+                        <option value="">Semua TAP</option>
+                        {uniqueTaps.map(tap => <option key={tap} value={tap}>{tap}</option>)}
+                    </select>
+                    <select value={salesforceFilter} onChange={e => setSalesforceFilter(e.target.value)} className="input-field">
+                        <option value="">Semua Salesforce</option>
+                        {uniqueSalesforces.map(sf => <option key={sf} value={sf}>{sf}</option>)}
+                    </select>
+                </div>
+                
+                <div className="flex flex-col md:flex-row items-center gap-4 border-t border-gray-200/50 pt-4">
+                    <span className="text-sm font-semibold text-gray-600">Filter Tanggal:</span>
                     <input type="date" name="from" value={filter.from} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
                     <span className="text-gray-500">-</span>
                     <input type="date" name="to" value={filter.to} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
-                    <button onClick={handleResetFilters} className="neu-button-icon !p-2" title="Clear Filter">
-                        <Icon path={ICONS.close} className="w-5 h-5" />
+                    <button onClick={handleResetFilters} className="neu-button !w-auto px-6 text-sm ml-auto">
+                        Reset Filter
                     </button>
                 </div>
             </div>
