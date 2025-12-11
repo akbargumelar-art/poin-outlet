@@ -1,9 +1,10 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Redemption, User } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
+import Pagination from '../../components/common/Pagination';
 
 // --- Status Edit Modal Component ---
 const StatusEditModal: React.FC<{
@@ -101,6 +102,10 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
 
     const [editingRedemption, setEditingRedemption] = useState<Redemption | null>(null);
     const [viewingPhoto, setViewingPhoto] = useState<Redemption | null>(null);
+    
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(20);
 
     const statusColors: { [key: string]: string } = {
         'Diajukan': 'text-blue-600',
@@ -203,6 +208,18 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
             }))
             .sort((a, b) => b.count - a.count);
     }, [filteredRedemptions]);
+    
+    // Pagination Logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredRedemptions.slice(indexOfFirstItem, indexOfLastItem);
+
+    // Reset page when filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter, tapFilter, salesforceFilter, filter]);
+
+    const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -392,7 +409,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
             </div>
 
             <div className="neu-card-flat overflow-hidden">
-                <div className="overflow-auto max-h-[60vh]">
+                <div className="overflow-auto min-h-[400px]">
                     <table className="w-full min-w-max text-left">
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
@@ -407,7 +424,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredRedemptions.length > 0 ? filteredRedemptions.map((item, index) => (
+                            {currentItems.length > 0 ? currentItems.map((item, index) => (
                                 <tr key={item.id || index} className="border-t border-slate-200/80">
                                     <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                                     <td className="p-4">
@@ -458,6 +475,14 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                     </table>
                 </div>
             </div>
+            
+            {/* Pagination Component */}
+            <Pagination 
+                itemsPerPage={itemsPerPage} 
+                totalItems={filteredRedemptions.length} 
+                paginate={paginate} 
+                currentPage={currentPage} 
+            />
         </div>
     );
 };

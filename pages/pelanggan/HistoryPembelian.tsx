@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from 'react';
+
+import React, { useMemo, useState, useEffect } from 'react';
 import { User, Transaction, Redemption, HistoryItem } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
+import Pagination from '../../components/common/Pagination';
 
 interface HistoryPembelianProps {
     currentUser: User;
@@ -13,6 +15,10 @@ interface HistoryPembelianProps {
 const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transactions, redemptionHistory }) => {
     const [filter, setFilter] = useState({ from: '', to: '' });
     const [viewingPhoto, setViewingPhoto] =useState<HistoryItem | null>(null);
+    
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(20);
 
     const statusColors: { [key: string]: string } = {
         'Diajukan': 'bg-blue-100 text-blue-800',
@@ -67,6 +73,18 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
             return true;
         });
     }, [combinedHistory, filter]);
+    
+    // Pagination Logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredHistory.slice(indexOfFirstItem, indexOfLastItem);
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filter]);
+
+    const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
     
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -158,7 +176,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
             )}
             
             <div className="neu-card-flat overflow-hidden">
-                 <div className="overflow-auto max-h-[60vh]">
+                 <div className="overflow-auto min-h-[400px]">
                     <table className="w-full min-w-max text-left">
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
@@ -171,7 +189,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredHistory.length > 0 ? filteredHistory.map((item, index) => (
+                            {currentItems.length > 0 ? currentItems.map((item, index) => (
                                 <tr key={index} className="border-t border-slate-200/80">
                                     <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                                     <td className="p-4">
@@ -223,6 +241,14 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                     </table>
                 </div>
             </div>
+            
+            {/* Pagination Component */}
+            <Pagination 
+                itemsPerPage={itemsPerPage} 
+                totalItems={filteredHistory.length} 
+                paginate={paginate} 
+                currentPage={currentPage} 
+            />
         </div>
     );
 };

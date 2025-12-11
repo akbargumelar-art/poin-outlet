@@ -1,9 +1,9 @@
 
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Transaction, User } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
+import Pagination from '../../components/common/Pagination';
 
 type SortableKeys = 'date' | 'userName' | 'produk' | 'harga' | 'kuantiti' | 'totalPembelian' | 'pointsEarned';
 
@@ -17,6 +17,10 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
     const [produkFilter, setProdukFilter] = useState('');
     const [filter, setFilter] = useState({ from: '', to: '' });
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
+    
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(20);
 
     const requestSort = (key: SortableKeys) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -36,9 +40,13 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         return <Icon path={ICONS.sortDown} className="w-4 h-4 text-gray-800" />;
     };
 
+    const userMap = useMemo(() => {
+        return new Map(users.map(u => [u.id, u]));
+    }, [users]);
+
     const transactionsWithUserData = useMemo(() => {
         return transactions.map(t => {
-            const user = users.find(u => u.id === t.userId);
+            const user = userMap.get(t.userId);
             return {
                 ...t,
                 userName: user?.profile.nama || 'N/A',
@@ -46,7 +54,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                 userSalesforce: user?.profile.salesforce || '-'
             };
         });
-    }, [transactions, users]);
+    }, [transactions, userMap]);
 
     const uniqueProduk = useMemo(() => {
         return [...new Set(transactionsWithUserData.map(t => t.produk))].sort();
@@ -106,6 +114,18 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
     }, [transactionsWithUserData, filter, searchTerm, produkFilter, sortConfig]);
     
+    // Pagination Logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, produkFilter, filter]);
+
+    const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
@@ -199,7 +219,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             </div>
             
             <div className="neu-card-flat overflow-hidden">
-                <div className="overflow-auto max-h-[60vh]">
+                <div className="overflow-auto min-h-[400px]">
                     <table className="w-full min-w-max text-left">
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
@@ -241,7 +261,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredTransactions.length > 0 ? filteredTransactions.map((item) => (
+                            {currentItems.length > 0 ? currentItems.map((item) => (
                                 <tr key={item.id} className="border-t border-slate-200/80">
                                     <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                                     <td className="p-4">
@@ -263,6 +283,14 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                     </table>
                 </div>
             </div>
+            
+            {/* Pagination Component */}
+            <Pagination 
+                itemsPerPage={itemsPerPage} 
+                totalItems={filteredTransactions.length} 
+                paginate={paginate} 
+                currentPage={currentPage} 
+            />
         </div>
     );
 };

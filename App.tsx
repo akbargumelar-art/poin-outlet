@@ -982,17 +982,39 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
+    // Handle smooth page transitions for heavy pages
+    const handlePageChange = (page: Page) => {
+        // Daftar halaman yang membutuhkan loading state karena memuat data besar
+        const heavyPages: Page[] = ['manajemenTransaksi', 'historyPembelian', 'manajemenPoin', 'manajemenPenukaran'];
+
+        if (heavyPages.includes(page)) {
+            setIsGlobalLoading(true);
+            setLoadingMessage('Memuat Halaman...');
+            
+            // Jeda singkat agar browser sempat merender LoadingOverlay sebelum thread diblokir oleh render halaman baru
+            setTimeout(() => {
+                setCurrentPage(page);
+                
+                // Matikan loading setelah estimasi render awal selesai
+                setTimeout(() => {
+                    setIsGlobalLoading(false);
+                }, 500); 
+            }, 50);
+        } else {
+            setCurrentPage(page);
+        }
+    };
 
     const renderPage = () => {
         if (!currentUser) {
             switch (currentPage) {
                 case 'login':
-                    return <LoginPage handleLogin={handleLogin} setCurrentPage={setCurrentPage} />;
+                    return <LoginPage handleLogin={handleLogin} setCurrentPage={handlePageChange} />;
                 case 'register':
-                    return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} />;
+                    return <RegisterPage handleRegister={handleRegister} setCurrentPage={handlePageChange} locations={locations} />;
                 case 'landing':
                 default:
-                    return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} redemptionHistory={redemptionHistory} />;
+                    return <LandingPage setCurrentPage={handlePageChange} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} redemptionHistory={redemptionHistory} />;
             }
         }
         
@@ -1012,13 +1034,13 @@ function App() {
         }
 
         const pageMap: {[key in Page]?: React.ReactNode} = {
-            pelangganDashboard: <PelangganDashboard currentUser={currentUser} transactions={transactions} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} setCurrentPage={setCurrentPage} raffleWinners={raffleWinners} redemptionHistory={redemptionHistory} />,
+            pelangganDashboard: <PelangganDashboard currentUser={currentUser} transactions={transactions} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} setCurrentPage={handlePageChange} raffleWinners={raffleWinners} redemptionHistory={redemptionHistory} />,
             historyPembelian: <HistoryPembelian currentUser={currentUser} transactions={transactions} redemptionHistory={redemptionHistory} />,
             pencapaianProgram: <PencapaianProgram currentUser={currentUser} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} />,
             tukarPoin: <TukarPoin currentUser={currentUser} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} loyaltyPrograms={loyaltyPrograms} />,
             editProfile: <EditProfilePage currentUser={currentUser} updateUserProfile={updateUserProfile} handleLogout={handleLogout} handleChangePassword={handleChangePassword} />,
             adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms} />,
-            manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={setCurrentPage} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} adminResetPassword={adminResetPassword} />,
+            manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={handlePageChange} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} adminResetPassword={adminResetPassword} />,
             tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
             manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} adminBulkAddProgramParticipants={adminBulkAddProgramParticipants} isReadOnly={isSupervisor} />,
             manajemenPoin: <ManajemenPoin currentUser={currentUser} users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} adminBulkUpdateLevels={adminBulkUpdateLevels} isReadOnly={isSupervisor} />,
@@ -1032,7 +1054,7 @@ function App() {
         };
         const pageContent = pageMap[currentPage] || <div>Halaman tidak ditemukan.</div>;
 
-        return <MainLayout currentUser={currentUser} currentPage={currentPage} setCurrentPage={setCurrentPage} handleLogout={handleLogout}>{pageContent}</MainLayout>
+        return <MainLayout currentUser={currentUser} currentPage={currentPage} setCurrentPage={handlePageChange} handleLogout={handleLogout}>{pageContent}</MainLayout>
     };
 
     return (
