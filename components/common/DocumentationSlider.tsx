@@ -60,8 +60,8 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
     const lastDragTime = useRef<number>(0);
     const isClickAllowed = useRef<boolean>(true); // To distinguish drag vs click
 
-    // Speed configuration
-    const BASE_SPEED = 0.8; // Pixels per frame
+    // Speed configuration (Agak cepat)
+    const BASE_SPEED = 0.8; 
     
     // 1. Data Processing
     const validItems = useMemo(() => {
@@ -176,39 +176,46 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
                 }
             `}</style>
 
-            <div className="max-w-3xl xl:max-w-6xl mx-auto px-4">
-                <div className="mb-8">
+            <div className="w-full mx-auto">
+                <div className="mb-8 px-4">
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-700 text-center">
                         Bukti Penyerahan Hadiah
                     </h3>
                     <p className="text-center text-xs text-gray-400 mt-2">(Geser untuk melihat lebih banyak)</p>
                 </div>
                 
-                {/* Scrollable Container Wrapper */}
-                <div 
-                    className="w-full mask-linear-fade rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
-                    onPointerDown={handlePointerDown}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    onPointerLeave={handlePointerUp}
-                >
-                    {/* Moving Track */}
+                {/* Wrapper Container */}
+                <div className="relative w-full">
+                    {/* Darker Border Shadow Overlays (Gradient from black to transparent) */}
+                    <div className="absolute inset-y-0 left-0 w-8 md:w-16 bg-gradient-to-r from-black/10 to-transparent z-10 pointer-events-none rounded-l-xl"></div>
+                    <div className="absolute inset-y-0 right-0 w-8 md:w-16 bg-gradient-to-l from-black/10 to-transparent z-10 pointer-events-none rounded-r-xl"></div>
+
+                    {/* Scrollable Track with Mask */}
                     <div 
-                        ref={containerRef}
-                        className="flex gap-6 w-max will-change-transform"
+                        className="w-full mask-linear-fade overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
+                        onPointerDown={handlePointerDown}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerLeave={handlePointerUp}
                     >
-                        {/* Set 1 (Ref for width measurement) */}
-                        <div ref={contentRef} className="flex gap-6">
-                            {itemsToRender.map((item, index) => (
-                                <CardItem key={`set1-${item.id}-${index}`} item={item} onClick={handleCardClick} />
-                            ))}
-                        </div>
-                        
-                        {/* Set 2 (Duplicate for loop) */}
-                        <div className="flex gap-6">
-                            {itemsToRender.map((item, index) => (
-                                <CardItem key={`set2-${item.id}-${index}`} item={item} onClick={handleCardClick} />
-                            ))}
+                        {/* Moving Track */}
+                        <div 
+                            ref={containerRef}
+                            className="flex gap-6 w-max will-change-transform"
+                        >
+                            {/* Set 1 (Ref for width measurement) */}
+                            <div ref={contentRef} className="flex gap-6">
+                                {itemsToRender.map((item, index) => (
+                                    <CardItem key={`set1-${item.id}-${index}`} item={item} onClick={handleCardClick} />
+                                ))}
+                            </div>
+                            
+                            {/* Set 2 (Duplicate for loop) */}
+                            <div className="flex gap-6">
+                                {itemsToRender.map((item, index) => (
+                                    <CardItem key={`set2-${item.id}-${index}`} item={item} onClick={handleCardClick} />
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
