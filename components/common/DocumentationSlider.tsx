@@ -61,7 +61,7 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
     const isClickAllowed = useRef<boolean>(true); // To distinguish drag vs click
 
     // Speed configuration
-    const BASE_SPEED = 0.5; // Pixels per frame
+    const BASE_SPEED = 0.8; // Pixels per frame
     
     // 1. Data Processing
     const validItems = useMemo(() => {
@@ -171,8 +171,8 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
         <section className="my-12 md:my-20 w-full overflow-hidden select-none">
             <style>{`
                 .mask-linear-fade {
-                    mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
-                    -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+                    mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+                    -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
                 }
             `}</style>
 
