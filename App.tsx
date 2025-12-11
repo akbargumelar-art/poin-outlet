@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Page, User, UserProfile, Reward, Redemption, LoyaltyProgram, Transaction, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, Location, PrizeCategory, WhatsAppSettings, SpecialNumber } from './types';
 
@@ -816,7 +817,7 @@ function App() {
         }
     }, [fetchBootstrapData]);
 
-    const adminUpdateRedemptionStatus = useCallback(async (redemptionId: number, status: string, statusNote: string) => {
+    const adminUpdateRedemptionStatus = useCallback(async (redemptionId: number, status: string, statusNote: string, photoFile?: File | null) => {
         try {
             const response = await fetch(`/api/redemptions/${redemptionId}/status`, {
                 method: 'PATCH',
@@ -825,6 +826,21 @@ function App() {
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);
+
+            // Upload photo if provided
+            if (photoFile) {
+                const formData = new FormData();
+                formData.append('photo', photoFile);
+                const uploadResponse = await fetch(`/api/redemptions/${redemptionId}/documentation`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!uploadResponse.ok) {
+                    const uploadResult = await uploadResponse.json();
+                    throw new Error(uploadResult.message || 'Status diperbarui, namun gagal mengunggah foto.');
+                }
+            }
+
             await fetchBootstrapData();
             setModal({ show: true, title: "Sukses", content: <p>Status penukaran berhasil diperbarui.</p> });
         } catch (error: any) {

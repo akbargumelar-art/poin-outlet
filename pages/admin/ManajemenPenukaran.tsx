@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Redemption, User } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -7,15 +8,26 @@ import Modal from '../../components/common/Modal';
 // --- Status Edit Modal Component ---
 const StatusEditModal: React.FC<{
     redemption: Redemption;
-    onSave: (status: string, note: string) => void;
+    onSave: (status: string, note: string, photoFile: File | null) => void;
     onClose: () => void;
 }> = ({ redemption, onSave, onClose }) => {
     const [status, setStatus] = useState(redemption.status || 'Diajukan');
     const [note, setNote] = useState(redemption.statusNote || '');
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(redemption.documentationPhotoUrl || null);
+
     const statusOptions = ['Diajukan', 'Diproses', 'Selesai', 'Ditolak'];
 
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setPhotoFile(file);
+            setPhotoPreview(URL.createObjectURL(file));
+        }
+    };
+
     const handleSave = () => {
-        onSave(status, note);
+        onSave(status, note, photoFile);
     };
 
     return (
@@ -27,6 +39,37 @@ const StatusEditModal: React.FC<{
                         {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                 </div>
+                
+                {status === 'Selesai' && (
+                    <div className="animate-fade-in-down">
+                        <label className="block text-gray-600 text-sm font-semibold mb-2">
+                            Bukti Dokumentasi (Wajib untuk Status Selesai)
+                        </label>
+                        <div className="flex items-center gap-4 border border-dashed border-gray-300 p-4 rounded-lg bg-gray-50">
+                            {photoPreview ? (
+                                <img src={photoPreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg shadow-sm" />
+                            ) : (
+                                <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
+                                    <Icon path={ICONS.camera} className="w-8 h-8" />
+                                </div>
+                            )}
+                            <div>
+                                <label htmlFor="doc-upload" className="neu-button !w-auto px-4 py-2 cursor-pointer text-sm">
+                                    {photoPreview ? 'Ganti Foto' : 'Pilih Foto'}
+                                </label>
+                                <input 
+                                    id="doc-upload" 
+                                    type="file" 
+                                    accept="image/*" 
+                                    onChange={handlePhotoChange} 
+                                    className="hidden" 
+                                />
+                                <p className="text-xs text-gray-500 mt-2">Format: JPG, PNG (Max 5MB)</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div>
                      <label className="block text-gray-600 text-sm font-semibold mb-2">Catatan (Opsional)</label>
                     <textarea value={note} onChange={e => setNote(e.target.value)} className="input-field min-h-[80px]" placeholder="e.g., Hadiah sudah bisa diambil di TAP."/>
@@ -44,7 +87,7 @@ interface ManajemenPenukaranProps {
     redemptions: Redemption[];
     users: User[];
     isReadOnly?: boolean;
-    adminUpdateRedemptionStatus: (redemptionId: number, status: string, statusNote: string) => void;
+    adminUpdateRedemptionStatus: (redemptionId: number, status: string, statusNote: string, photoFile?: File | null) => void;
 }
 
 const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, users, isReadOnly, adminUpdateRedemptionStatus }) => {
@@ -108,9 +151,9 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
         setSearchTerm('');
     };
 
-    const handleUpdateStatus = (status: string, note: string) => {
+    const handleUpdateStatus = (status: string, note: string, photoFile: File | null) => {
         if (editingRedemption) {
-            adminUpdateRedemptionStatus(editingRedemption.id, status, note);
+            adminUpdateRedemptionStatus(editingRedemption.id, status, note, photoFile);
             setEditingRedemption(null);
         }
     };

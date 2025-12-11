@@ -49,6 +49,7 @@ const profileUpload = setupMulter('profiles');
 const rewardUpload = setupMulter('rewards');
 const programUpload = setupMulter('programs');
 const bannerUpload = setupMulter('banners');
+const documentationUpload = setupMulter('documentations');
 
 
 // Multer config for Excel file uploads
@@ -286,6 +287,20 @@ uploadRouter.post('/rewards/:id/photo', rewardUpload.single('photo'), async (req
     const imageUrl = `/uploads/rewards/${req.file.filename}`;
     await db.execute('UPDATE rewards SET image_url = ? WHERE id = ?', [imageUrl, id]);
     res.json({ message: 'Upload berhasil', imageUrl });
+});
+
+// UPLOAD REDEMPTION DOCUMENTATION PHOTO
+uploadRouter.post('/redemptions/:id/documentation', documentationUpload.single('photo'), async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) return res.status(400).json({ message: 'File tidak ditemukan.' });
+    const imageUrl = `/uploads/documentations/${req.file.filename}`;
+    try {
+        await db.execute('UPDATE redemptions SET documentation_photo_url = ? WHERE id = ?', [imageUrl, id]);
+        res.json({ message: 'Upload dokumentasi berhasil', imageUrl });
+    } catch (error) {
+        console.error('Documentation upload DB error:', error);
+        res.status(500).json({ message: 'Gagal menyimpan foto dokumentasi ke database.' });
+    }
 });
 
 // UPLOAD PROGRAM PHOTO
@@ -1491,6 +1506,20 @@ router.get('/redemptions', async (req, res) => {
     const redemptions = await safeQueryDB(redemptionQuery);
     const parsedRedemptions = parseNumerics(redemptions, ['points_spent']);
     res.json(parsedRedemptions.map(r => ({ ...toCamelCase(r), rewardName: r.reward_name || 'Hadiah Dihapus', userName: r.user_name || 'User Dihapus' })));
+});
+
+// UPLOAD REDEMPTION DOCUMENTATION PHOTO
+uploadRouter.post('/redemptions/:id/documentation', documentationUpload.single('photo'), async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) return res.status(400).json({ message: 'File tidak ditemukan.' });
+    const imageUrl = `/uploads/documentations/${req.file.filename}`;
+    try {
+        await db.execute('UPDATE redemptions SET documentation_photo_url = ? WHERE id = ?', [imageUrl, id]);
+        res.json({ message: 'Upload dokumentasi berhasil', imageUrl });
+    } catch (error) {
+        console.error('Documentation upload DB error:', error);
+        res.status(500).json({ message: 'Gagal menyimpan foto dokumentasi ke database.' });
+    }
 });
 
 // --- APPSHEET WEBHOOK ENDPOINT ---
