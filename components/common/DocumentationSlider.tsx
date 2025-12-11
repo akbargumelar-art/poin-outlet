@@ -15,6 +15,9 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
     const [isPaused, setIsPaused] = useState(false);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Kecepatan slider (ms). Ubah nilai ini untuk mempercepat/memperlambat.
+    const AUTO_SLIDE_INTERVAL = 1500; // 1.5 detik
+
     const resetTimeout = () => {
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
@@ -41,7 +44,7 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
         if (validItems.length > 0 && !isPaused) {
             timeoutRef.current = setTimeout(() => {
                 nextSlide();
-            }, 5000); // Durasi 5 detik
+            }, AUTO_SLIDE_INTERVAL);
         }
 
         return () => resetTimeout();
