@@ -1,5 +1,4 @@
 
-
 const express = require('express');
 const db = require('../db');
 const bcrypt = require('bcryptjs');
@@ -106,16 +105,16 @@ const structureUser = (dbUser) => ({
 
 const safeQueryDB = async (query, params = []) => {
     try {
+        if (!db) throw new Error("Database connection pool undefined");
         const [rows] = await db.execute(query, params);
         return rows;
     } catch (error) {
         // Catch ANY database-related error during bootstrap.
         // This makes the app resilient to corrupted data (e.g., bad dates),
         // missing tables, or missing columns.
-        console.warn(`Warning: A query failed during bootstrap, returning empty data for this set. This might be due to schema issues or corrupted data.`);
+        console.warn(`Warning: Query failed in bootstrap. Query: ${query.substring(0, 100)}...`);
         console.warn(` - Error Code: ${error.code}`);
         console.warn(` - Error Message: ${error.message}`);
-        console.warn(` - Query: ${query.substring(0, 100)}...`);
         return []; // Return an empty array to allow the app to load.
     }
 };
@@ -123,6 +122,8 @@ const safeQueryDB = async (query, params = []) => {
 const parseNumerics = (data, fields) => {
     // FIX: Broader check for float fields to prevent incorrect parsing.
     const floatFields = ['harga', 'total', 'multiplier', 'price', 'points'];
+
+    if (!Array.isArray(data)) return [];
 
     return data.map(item => {
         const newItem = { ...item };
@@ -150,7 +151,8 @@ router.get('/bootstrap', async (req, res) => {
             SELECT 
                 r.id, r.user_id, r.reward_id, r.points_spent, r.date, r.status, r.status_note, r.status_updated_at, r.documentation_photo_url,
                 COALESCE(r.reward_name, rw.name) as reward_name,
-                COALESCE(r.user_name, u.nama) as user_name
+                COALESCE(r.user_name, u.nama) as user_name,
+                u.tap as user_tap
             FROM redemptions r 
             LEFT JOIN rewards rw ON r.reward_id = rw.id 
             LEFT JOIN users u ON r.user_id = u.id 
@@ -233,11 +235,27 @@ router.get('/bootstrap', async (req, res) => {
         console.error('--- BOOTSTRAP API ERROR ---');
         console.error(`Timestamp: ${new Date().toISOString()}`);
         console.error('Error Message:', error.message);
-        console.error('Error Code:', error.code); // e.g., ER_BAD_FIELD_ERROR
-        console.error('SQL State:', error.sqlState);
         console.error('Stack Trace:', error.stack);
         console.error('--- END OF ERROR ---');
-        res.status(500).json({ message: 'Gagal mengambil data aplikasi.', error: error.message });
+        
+        // Return partial/empty data instead of 500 to allow the app to load the UI at least.
+        // This prevents the "Failed to fetch initial data" blocking error on the frontend.
+        res.status(200).json({
+            users: [],
+            transactions: [],
+            rewards: [],
+            redemptionHistory: [],
+            loyaltyPrograms: [],
+            runningPrograms: [],
+            rafflePrograms: [],
+            couponRedemptions: [],
+            raffleWinners: [],
+            locations: [],
+            whatsAppSettings: null,
+            specialNumbers: [],
+            specialNumberBannerUrl: null,
+            _error: 'Partial bootstrap due to server error.'
+        });
     }
 });
 
@@ -1463,7 +1481,8 @@ router.get('/redemptions', async (req, res) => {
         SELECT 
             r.id, r.user_id, r.reward_id, r.points_spent, r.date, r.status, r.status_note, r.status_updated_at, r.documentation_photo_url,
             COALESCE(r.reward_name, rw.name) as reward_name,
-            COALESCE(r.user_name, u.nama) as user_name
+            COALESCE(r.user_name, u.nama) as user_name,
+            u.tap as user_tap
         FROM redemptions r 
         LEFT JOIN rewards rw ON r.reward_id = rw.id 
         LEFT JOIN users u ON r.user_id = u.id 
@@ -1484,7 +1503,7 @@ router.post('/appsheet-webhook', async (req, res) => {
         console.warn('[WEBHOOK] APPSHEET_WEBHOOK_SECRET is not set in .env. Skipping security check for development.');
     } else {
         if (!authHeader || authHeader !== `Bearer ${webhookSecret}`) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(413).json({ message: 'Unauthorized' });
         }
     }
 

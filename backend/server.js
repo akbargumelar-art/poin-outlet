@@ -1,3 +1,4 @@
+
 // Load environment variables from .env file
 require('dotenv').config();
 const path = require('path');
@@ -103,7 +104,7 @@ const setupDatabase = async () => {
         const [rewardColumns] = await connection.execute("SHOW COLUMNS FROM rewards LIKE 'display_order'");
         if (rewardColumns.length === 0) {
             console.log("Column 'rewards.display_order' not found. Creating it...");
-            const alterQuery = "ALTER TABLE rewards ADD COLUMN display_order INT NOT NULL DEFAULT 999 AFTER stock";
+            const alterQuery = "ALTER TABLE rewards ADD COLUMN display_order INT NOT NULL DEFAULT 999";
             await connection.execute(alterQuery);
             console.log("Table 'rewards' altered successfully to include 'display_order'.");
         } else {
@@ -114,11 +115,12 @@ const setupDatabase = async () => {
         const [redemptionColumnsStatus] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'status'");
         if (redemptionColumnsStatus.length === 0) {
             console.log("Columns 'status', 'status_note', 'status_updated_at' not found in 'redemptions'. Altering table...");
+            // Removed 'AFTER' clauses to prevent errors if reference columns are missing
             const alterQuery = `
                 ALTER TABLE redemptions
-                ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Diajukan' AFTER points_spent,
-                ADD COLUMN status_note TEXT DEFAULT NULL AFTER status,
-                ADD COLUMN status_updated_at DATETIME DEFAULT NULL AFTER status_note;
+                ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Diajukan',
+                ADD COLUMN status_note TEXT DEFAULT NULL,
+                ADD COLUMN status_updated_at DATETIME DEFAULT NULL;
             `;
             await connection.execute(alterQuery);
             console.log("Table 'redemptions' altered successfully for status.");
@@ -132,8 +134,8 @@ const setupDatabase = async () => {
             console.log("Columns 'user_name' and 'reward_name' not found in 'redemptions'. Altering table...");
             const alterQuery = `
                 ALTER TABLE redemptions
-                ADD COLUMN user_name VARCHAR(255) NULL AFTER user_id,
-                ADD COLUMN reward_name VARCHAR(255) NULL AFTER reward_id;
+                ADD COLUMN user_name VARCHAR(255) NULL,
+                ADD COLUMN reward_name VARCHAR(255) NULL;
             `;
             await connection.execute(alterQuery);
             console.log("Table 'redemptions' altered successfully for names.");
@@ -147,7 +149,7 @@ const setupDatabase = async () => {
             console.log("Column 'documentation_photo_url' not found in 'redemptions'. Altering table...");
             const alterQuery = `
                 ALTER TABLE redemptions
-                ADD COLUMN documentation_photo_url VARCHAR(2048) DEFAULT NULL AFTER status_updated_at;
+                ADD COLUMN documentation_photo_url VARCHAR(2048) DEFAULT NULL;
             `;
             await connection.execute(alterQuery);
             console.log("Table 'redemptions' altered successfully for documentation photo.");
@@ -169,6 +171,13 @@ const backfillRedemptionNames = async () => {
     const connection = await db.getConnection();
     try {
         console.log('Checking for historical redemption records that need name backfilling...');
+        // Only run if the columns actually exist to avoid errors during partial migrations
+        const [columns] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'user_name'");
+        if (columns.length === 0) {
+             console.log('Skipping backfill: Columns do not exist yet.');
+             return;
+        }
+
         const [recordsToUpdate] = await connection.execute(
             "SELECT id, user_id, reward_id FROM redemptions WHERE user_name IS NULL OR reward_name IS NULL"
         );

@@ -846,7 +846,7 @@ function App() {
                     return <RegisterPage handleRegister={handleRegister} setCurrentPage={setCurrentPage} locations={locations} />;
                 case 'landing':
                 default:
-                    return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} />;
+                    return <LandingPage setCurrentPage={setCurrentPage} rewards={rewards} runningPrograms={runningPrograms} raffleWinners={raffleWinners} loyaltyPrograms={loyaltyPrograms} redemptionHistory={redemptionHistory} />;
             }
         }
         

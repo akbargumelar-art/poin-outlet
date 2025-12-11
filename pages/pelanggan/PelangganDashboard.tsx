@@ -4,6 +4,7 @@ import PemenangUndian from '../../components/PemenangUndian';
 import SimulasiPoin from '../../components/SimulasiPoin';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
+import DocumentationSlider from '../../components/common/DocumentationSlider';
 
 
 interface PelangganDashboardProps {
@@ -67,6 +68,9 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Selamat Datang Kembali,</h1>
                 <p className="text-lg md:text-xl text-red-600 font-semibold">{currentUser.profile.nama}!</p>
             </div>
+
+            {/* Slider Foto Penukaran (Global) */}
+            <DocumentationSlider redemptions={redemptionHistory} />
 
             <div className={`neu-card bg-gradient-to-br ${currentLevelGradient} text-white p-6`}>
                 <div className="flex justify-between items-start">

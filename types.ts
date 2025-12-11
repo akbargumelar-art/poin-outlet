@@ -75,6 +75,7 @@ export interface Redemption {
     pointsSpent: number;
     date: string;
     userName?: string; // Ditambahkan untuk halaman admin
+    userTap?: string; // Added for documentation display
     status?: string;
     statusNote?: string;
     statusUpdatedAt?: string;

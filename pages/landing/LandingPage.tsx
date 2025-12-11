@@ -1,9 +1,10 @@
 import React, { useRef } from 'react';
-import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram } from '../../types';
+import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram, Redemption } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import PemenangUndian from '../../components/PemenangUndian';
 import SimulasiPoin from '../../components/SimulasiPoin';
+import DocumentationSlider from '../../components/common/DocumentationSlider';
 
 interface LandingPageProps {
     setCurrentPage: (page: Page) => void;
@@ -11,9 +12,10 @@ interface LandingPageProps {
     runningPrograms: RunningProgram[];
     raffleWinners: RaffleWinner[];
     loyaltyPrograms: LoyaltyProgram[];
+    redemptionHistory: Redemption[];
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms, raffleWinners, loyaltyPrograms }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runningPrograms, raffleWinners, loyaltyPrograms, redemptionHistory }) => {
     const rewardsScrollContainer = useRef<HTMLDivElement>(null);
     const programsScrollContainer = useRef<HTMLDivElement>(null);
 
@@ -69,6 +71,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                         </div>
                     </section>
                 </div>
+                
+                {/* Documentation Slider */}
+                <DocumentationSlider redemptions={redemptionHistory} />
                 
                 {/* Rewards Slider Section */}
                 <section id="hadiah-section" className="my-12 md:my-20 overflow-hidden">
