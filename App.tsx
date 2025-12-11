@@ -24,13 +24,17 @@ import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
 import NomorSpesialPage from './pages/shared/NomorSpesialPage';
 import ManajemenNomor from './pages/admin/ManajemenNomorSpesial';
 import ManajemenTransaksi from './pages/admin/ManajemenTransaksi';
+import LoadingOverlay from './components/common/LoadingOverlay';
 
 
 function App() {
     const [currentPage, setCurrentPage] = useState<Page>('landing');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [modal, setModal] = useState({ show: false, content: <></>, title: '' });
-    const [isLoading, setIsLoading] = useState(true);
+    
+    // Global Loading State
+    const [isGlobalLoading, setIsGlobalLoading] = useState(true);
+    const [loadingMessage, setLoadingMessage] = useState('Memuat Data...');
 
     // State for all application data, will be fetched from backend
     const [users, setUsers] = useState<User[]>([]);
@@ -70,12 +74,15 @@ function App() {
             console.error("Bootstrap failed:", error);
             setModal({ show: true, title: "Error", content: <p>Gagal memuat data dari server. Silakan coba lagi nanti.</p> });
         } finally {
-            setIsLoading(false);
+            setIsGlobalLoading(false);
         }
     }, []);
 
     useEffect(() => {
         const checkSessionAndBootstrap = async () => {
+            setIsGlobalLoading(true);
+            setLoadingMessage('Menyiapkan Aplikasi...');
+            
             // Check for a logged in user in localStorage
             const storedUser = localStorage.getItem('currentUser');
             if (storedUser) {
@@ -99,6 +106,8 @@ function App() {
     
     // --- API HANDLERS ---
     const handleLogin = useCallback(async (id: string, password: string): Promise<boolean> => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Memverifikasi...');
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -119,10 +128,14 @@ function App() {
         } catch (error: any) {
             console.error("Login failed:", error);
             return false;
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, []);
     
     const handleRegister = useCallback(async (formData: any): Promise<boolean> => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mendaftarkan Akun...');
         try {
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
@@ -143,11 +156,15 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: 'Registrasi Gagal', content: <p>{error.message}</p> });
             return false;
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
     
     const updateUserProfile = useCallback(async (profile: UserProfile, photoFile: File | null) => {
         if (!currentUser) return;
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menyimpan Profil...');
         try {
             const profileResponse = await fetch(`/api/users/${currentUser.id}/profile`, {
                 method: 'PUT',
@@ -161,6 +178,7 @@ function App() {
             let updatedUserFromServer: User = await profileResponse.json();
     
             if (photoFile) {
+                setLoadingMessage('Mengunggah Foto Profil...');
                 const formData = new FormData();
                 formData.append('profilePhoto', photoFile);
                 const photoResponse = await fetch(`/api/users/${currentUser.id}/photo`, {
@@ -182,11 +200,15 @@ function App() {
             setModal({ show: true, title: "Berhasil", content: <p className="text-center text-green-600">Profil berhasil diperbarui!</p> });
         } catch (error: any) {
              setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [currentUser, users]);
 
     const handleChangePassword = useCallback(async (oldPassword: string, newPassword: string): Promise<boolean> => {
         if (!currentUser) return false;
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengubah Password...');
         try {
             const response = await fetch(`/api/users/${currentUser.id}/change-password`, {
                 method: 'POST',
@@ -202,17 +224,26 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
             return false;
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [currentUser]);
 
     const handleLogout = useCallback(() => {
-        setCurrentUser(null);
-        localStorage.removeItem('currentUser');
-        setCurrentPage('landing');
+        setIsGlobalLoading(true);
+        setLoadingMessage('Logging out...');
+        setTimeout(() => {
+            setCurrentUser(null);
+            localStorage.removeItem('currentUser');
+            setCurrentPage('landing');
+            setIsGlobalLoading(false);
+        }, 500); // Small delay for effect
     }, []);
     
     const redeemReward = useCallback(async (reward: Reward) => {
         if (!currentUser) return;
+        setIsGlobalLoading(true);
+        setLoadingMessage('Memproses Penukaran...');
         try {
             const isKupon = reward.name.includes('Kupon Undian');
             const response = await fetch('/api/redemptions', {
@@ -233,7 +264,7 @@ function App() {
             
             setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
 
-            // Partially refresh data instead of full bootstrap for performance
+            // Partially refresh data
             fetch('/api/rewards').then(res => res.json()).then(setRewards);
             fetch('/api/redemptions').then(res => res.json()).then(setRedemptionHistory);
 
@@ -241,6 +272,8 @@ function App() {
             setModal({ show: true, title: 'Sukses!', content: <p className="text-center text-green-600">Penukaran <b>{reward.name}</b> berhasil.</p> });
         } catch (error: any) {
              setModal({show: true, title: "Gagal", content: <p>{error.message}</p>});
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [currentUser]);
     
@@ -255,6 +288,8 @@ function App() {
     }, [currentUser, redeemReward]);
     
     const adminAddUser = useCallback(async (newUser: User) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menambahkan User...');
         try {
             const response = await fetch('/api/users', {
                 method: 'POST',
@@ -275,10 +310,14 @@ function App() {
     
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminAddTransaction = useCallback(async (data: Omit<Transaction, 'id' | 'pointsEarned' > & {totalPembelian: number}) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menyimpan Transaksi...');
         try {
             const response = await fetch('/api/transactions', {
                 method: 'POST',
@@ -287,14 +326,18 @@ function App() {
             });
             const result = await response.json();
             if(!response.ok) throw new Error(result.message);
-            await fetchBootstrapData(); // Refresh all data
+            await fetchBootstrapData(); 
             setModal({ show: true, title: "Sukses", content: <p className="text-center text-green-600">Transaksi berhasil ditambahkan. Mitra mendapat <b>{result.pointsEarned}</b> poin.</p> });
         } catch(error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p>});
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const saveReward = useCallback(async (rewardData: Omit<Reward, 'id'> & { id?: number }, photoFile: File | null) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menyimpan Hadiah...');
         try {
             const method = rewardData.id ? 'PUT' : 'POST';
             const url = rewardData.id ? `/api/rewards/${rewardData.id}` : '/api/rewards';
@@ -313,6 +356,7 @@ function App() {
             const savedReward = await textResponse.json();
 
             if (photoFile) {
+                setLoadingMessage('Mengunggah Gambar Hadiah...');
                 const formData = new FormData();
                 formData.append('photo', photoFile);
                 const photoResponse = await fetch(`/api/rewards/${savedReward.id}/photo`, {
@@ -329,10 +373,14 @@ function App() {
             await fetchBootstrapData();
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
     
     const adminDeleteReward = useCallback(async (rewardId: number) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menghapus Hadiah...');
         try {
             const response = await fetch(`/api/rewards/${rewardId}`, {
                 method: 'DELETE',
@@ -345,10 +393,14 @@ function App() {
 
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminUpdateLoyaltyProgram = useCallback(async (program: LoyaltyProgram) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Memperbarui Level...');
         try {
             const response = await fetch(`/api/loyalty-programs/${program.level}`, {
                 method: 'PUT',
@@ -363,10 +415,14 @@ function App() {
 
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminBulkAddTransactions = useCallback(async (file: File) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengunggah & Memproses Transaksi... (Ini mungkin memakan waktu)');
         try {
             const formData = new FormData();
             formData.append('transactionsFile', file);
@@ -400,10 +456,14 @@ function App() {
             });
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
     
     const adminUpdatePointsManual = useCallback(async (userId: string, points: number, action: 'tambah' | 'kurang') => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengupdate Poin...');
         try {
             const response = await fetch(`/api/users/${userId}/points`, {
                 method: 'POST',
@@ -417,10 +477,14 @@ function App() {
             setModal({ show: true, title: "Sukses", content: <p>Poin berhasil diperbarui. Poin baru: {result.newPoints.toLocaleString('id-ID')}</p> });
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const saveProgram = useCallback(async (programData: Omit<RunningProgram, 'id' | 'targets'> & { id?: number; prizeCategory: PrizeCategory; prizeDescription: string; }, photoFile: File | null) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menyimpan Program...');
         try {
             const method = programData.id ? 'PUT' : 'POST';
             const url = programData.id ? `/api/programs/${programData.id}` : '/api/programs';
@@ -437,6 +501,7 @@ function App() {
             const savedProgram = await textResponse.json();
 
             if (photoFile) {
+                setLoadingMessage('Mengunggah Visual Program...');
                 const formData = new FormData();
                 formData.append('photo', photoFile);
                 const photoResponse = await fetch(`/api/programs/${savedProgram.id}/photo`, {
@@ -453,10 +518,14 @@ function App() {
             await fetchBootstrapData();
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminDeleteProgram = useCallback(async (programId: number) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menghapus Program...');
         try {
             const response = await fetch(`/api/programs/${programId}`, {
                 method: 'DELETE',
@@ -469,10 +538,14 @@ function App() {
 
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminUpdateProgramParticipants = useCallback(async (programId: number, participantIds: string[]) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengupdate Peserta...');
         try {
             const response = await fetch(`/api/programs/${programId}/participants`, {
                 method: 'PUT',
@@ -487,10 +560,14 @@ function App() {
             await fetchBootstrapData();
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
     
     const adminBulkAddProgramParticipants = useCallback(async (programId: number, file: File) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengupload Daftar Peserta...');
         try {
             const formData = new FormData();
             formData.append('participantsFile', file);
@@ -512,15 +589,19 @@ function App() {
                 content: <p className="text-center">{result.message}</p>
             });
             
-            await fetchBootstrapData(); // Refresh data to show new participants
+            await fetchBootstrapData(); 
 
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
 
     const adminBulkUpdateProgramProgress = useCallback(async (programId: number, file: File) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengupload Progres Peserta...');
         try {
             const formData = new FormData();
             formData.append('progressFile', file);
@@ -542,14 +623,18 @@ function App() {
                 content: <p className="text-center">{result.message}</p>
             });
             
-            await fetchBootstrapData(); // Refresh data to show new progress
+            await fetchBootstrapData();
     
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const saveRaffleProgram = useCallback(async (program: Omit<RaffleProgram, 'id'> & { id?: number }) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menyimpan Undian...');
         try {
             const method = program.id ? 'PUT' : 'POST';
             const url = program.id ? `/api/raffle-programs/${program.id}` : '/api/raffle-programs';
@@ -564,10 +649,14 @@ function App() {
             setModal({ show: true, title: 'Sukses', content: <p>Program undian berhasil disimpan.</p> });
         } catch (error: any) {
             setModal({ show: true, title: 'Error', content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
     
     const deleteRaffleProgram = useCallback(async (id: number) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menghapus Undian...');
         try {
             const response = await fetch(`/api/raffle-programs/${id}`, { method: 'DELETE' });
             const result = await response.json();
@@ -576,10 +665,14 @@ function App() {
             setModal({ show: true, title: 'Sukses', content: <p>Program undian berhasil dihapus.</p> });
         } catch (error: any) {
             setModal({ show: true, title: 'Error', content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminSaveWhatsAppSettings = useCallback(async (settings: WhatsAppSettings): Promise<boolean> => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menyimpan Pengaturan WA...');
         try {
             const response = await fetch('/api/settings/whatsapp', {
                 method: 'POST',
@@ -587,7 +680,6 @@ function App() {
                 body: JSON.stringify(settings),
             });
     
-            // Check for non-JSON responses first
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
                  throw new Error("Gagal terhubung. URL Webhook mungkin salah atau server WAHA sedang tidak aktif. Pastikan URL sudah benar dan server berjalan.");
@@ -600,17 +692,20 @@ function App() {
             setModal({ show: true, title: "Sukses", content: <p>Pengaturan notifikasi WhatsApp berhasil disimpan.</p> });
             return true;
         } catch (error: any) {
-            // Catch the specific error for HTML response, or any other error.
             if (error instanceof SyntaxError && error.message.includes("Unexpected token '<'")) {
                  setModal({ show: true, title: "Error Konfigurasi", content: <p>Gagal terhubung. URL Webhook mungkin salah atau server WAHA sedang tidak aktif. Pastikan URL sudah benar dan server berjalan.</p> });
             } else {
                 setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
             }
             return false;
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
     
     const adminUpdateUserLevel = useCallback(async (userId: string, level: string) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengupdate Level User...');
         try {
             const response = await fetch(`/api/users/${userId}/level`, {
                 method: 'PUT',
@@ -624,10 +719,14 @@ function App() {
             setModal({ show: true, title: "Sukses", content: <p>Level untuk user <b>{result.profile.nama}</b> berhasil diubah menjadi <b>{result.level}</b>.</p> });
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminResetPassword = useCallback(async (userId: string) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mereset Password...');
         try {
             const response = await fetch(`/api/users/${userId}/reset-password`, {
                 method: 'POST',
@@ -638,10 +737,14 @@ function App() {
             setModal({ show: true, title: "Sukses", content: <p>{result.message}</p> });
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, []);
 
     const adminBulkUpdateLevels = useCallback(async (file: File) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengupdate Level Massal...');
         try {
             const formData = new FormData();
             formData.append('levelFile', file);
@@ -683,10 +786,14 @@ function App() {
                     </div>
                 )
             });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminManageSpecialNumber = useCallback(async (numberData: Omit<SpecialNumber, 'id' | 'isSold'> & { id?: number }) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menyimpan Nomor...');
         try {
             const method = numberData.id ? 'PUT' : 'POST';
             const url = numberData.id ? `/api/special-numbers/${numberData.id}` : '/api/special-numbers';
@@ -701,10 +808,14 @@ function App() {
             setModal({ show: true, title: "Sukses", content: <p>Nomor spesial berhasil disimpan.</p> });
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminDeleteSpecialNumber = useCallback(async (id: number) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menghapus Nomor...');
         try {
             const response = await fetch(`/api/special-numbers/${id}`, { method: 'DELETE' });
             const result = await response.json();
@@ -713,10 +824,14 @@ function App() {
             setModal({ show: true, title: "Sukses", content: <p>{result.message}</p> });
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminUpdateSpecialNumberStatus = useCallback(async (id: number, isSold: boolean) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengupdate Status...');
         try {
             const response = await fetch(`/api/special-numbers/${id}/status`, {
                 method: 'PATCH',
@@ -735,10 +850,14 @@ function App() {
     
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminBulkUploadNumbers = useCallback(async (file: File) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengupload Nomor Massal...');
         try {
             const formData = new FormData();
             formData.append('specialNumbersFile', file);
@@ -768,10 +887,14 @@ function App() {
             });
         } catch (error: any) {
             setModal({ show: true, title: "Error Upload", content: <p>{error.message || "Terjadi kesalahan."}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminUploadSpecialNumberBanner = useCallback(async (file: File) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengupload Banner...');
         try {
             const formData = new FormData();
             formData.append('bannerFile', file);
@@ -791,10 +914,14 @@ function App() {
             });
         } catch (error: any) {
             setModal({ show: true, title: "Error Upload", content: <p>{error.message || "Terjadi kesalahan."}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
     
     const adminReorderRewards = useCallback(async (orderData: { id: number, displayOrder: number }[]): Promise<boolean> => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menyimpan Urutan...');
         try {
             const response = await fetch('/api/rewards/reorder', {
                 method: 'POST',
@@ -814,10 +941,14 @@ function App() {
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
             return false;
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
     const adminUpdateRedemptionStatus = useCallback(async (redemptionId: number, status: string, statusNote: string, photoFile?: File | null) => {
+        setIsGlobalLoading(true);
+        setLoadingMessage('Mengupdate Status Penukaran...');
         try {
             const response = await fetch(`/api/redemptions/${redemptionId}/status`, {
                 method: 'PATCH',
@@ -829,6 +960,7 @@ function App() {
 
             // Upload photo if provided
             if (photoFile) {
+                setLoadingMessage('Mengunggah Dokumentasi...');
                 const formData = new FormData();
                 formData.append('photo', photoFile);
                 const uploadResponse = await fetch(`/api/redemptions/${redemptionId}/documentation`, {
@@ -845,13 +977,11 @@ function App() {
             setModal({ show: true, title: "Sukses", content: <p>Status penukaran berhasil diperbarui.</p> });
         } catch (error: any) {
             setModal({ show: true, title: "Error", content: <p>{error.message}</p> });
+        } finally {
+            setIsGlobalLoading(false);
         }
     }, [fetchBootstrapData]);
 
-
-    if (isLoading) {
-        return <div className="min-h-screen flex justify-center items-center neu-bg"><p className="text-xl font-semibold text-gray-600">Memuat Aplikasi...</p></div>
-    }
 
     const renderPage = () => {
         if (!currentUser) {
@@ -907,6 +1037,7 @@ function App() {
 
     return (
         <>
+            <LoadingOverlay isVisible={isGlobalLoading} message={loadingMessage} />
             {renderPage()}
             <Modal show={modal.show} onClose={() => setModal({show: false, title:'', content:<></>})} title={modal.title}>{modal.content}</Modal>
         </>
