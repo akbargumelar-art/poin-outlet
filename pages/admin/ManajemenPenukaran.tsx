@@ -174,7 +174,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
         return stats;
     }, [filteredRedemptions]);
 
-    // Calculate Unique Partners based on filtered data
+    // Calculate Unique Partners (Outlet) based on filtered data
     const uniquePartnersCount = useMemo(() => {
         return new Set(filteredRedemptions.map(r => r.userId)).size;
     }, [filteredRedemptions]);
@@ -304,7 +304,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
             {/* Summary Statistics (Status) */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                 <SummaryCard title="Total Request" count={summaryStats.Total} colorClass="text-gray-700" icon={ICONS.dashboard} />
-                <SummaryCard title="Mitra Unik" count={uniquePartnersCount} colorClass="text-purple-600" icon={ICONS.users} />
+                <SummaryCard title="Outlet" count={uniquePartnersCount} colorClass="text-purple-600" icon={ICONS.store} />
                 <SummaryCard title="Diajukan" count={summaryStats.Diajukan} colorClass="text-blue-600" icon={ICONS.upload} />
                 <SummaryCard title="Diproses" count={summaryStats.Diproses} colorClass="text-amber-600" icon={ICONS.history} />
                 <SummaryCard title="Selesai" count={summaryStats.Selesai} colorClass="text-green-600" icon={ICONS.trophy} />
