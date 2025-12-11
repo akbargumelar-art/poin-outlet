@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Reward, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -12,6 +13,11 @@ interface LevelFormProps {
 }
 const LevelForm: React.FC<LevelFormProps> = ({ level, onSave, onCancel }) => {
     const [formData, setFormData] = useState(level);
+    
+    // Simulasi perhitungan
+    const examplePurchase = 1000000; // 1 Juta Rupiah
+    const calculatedPoints = Math.floor((examplePurchase / 1000) * (formData.multiplier || 0));
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: name === 'pointsNeeded' || name === 'multiplier' ? parseFloat(value) : value }));
@@ -22,10 +28,53 @@ const LevelForm: React.FC<LevelFormProps> = ({ level, onSave, onCancel }) => {
     };
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div><label className="block text-gray-600 text-sm font-semibold mb-1">Level</label><input value={formData.level} className="input-field-disabled" readOnly /></div>
-            <div><label className="block text-gray-600 text-sm font-semibold mb-1">Poin Dibutuhkan</label><input type="number" name="pointsNeeded" value={formData.pointsNeeded} onChange={handleChange} className="input-field" required /></div>
-            <div><label className="block text-gray-600 text-sm font-semibold mb-1">Pengali Poin (e.g., 1.2 untuk 1.2x)</label><input type="number" step="0.1" name="multiplier" value={formData.multiplier} onChange={handleChange} className="input-field" required /></div>
-            <div><label className="block text-gray-600 text-sm font-semibold mb-1">Deskripsi Keuntungan</label><textarea name="benefit" value={formData.benefit} onChange={handleChange} className="input-field" required /></div>
+            <div>
+                <label className="block text-gray-600 text-sm font-semibold mb-1">Level</label>
+                <input value={formData.level} className="input-field-disabled" readOnly />
+            </div>
+            <div>
+                <label className="block text-gray-600 text-sm font-semibold mb-1">Syarat Poin (Minimum)</label>
+                <input type="number" name="pointsNeeded" value={formData.pointsNeeded} onChange={handleChange} className="input-field" required />
+            </div>
+            
+            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                <label className="block text-blue-800 text-sm font-bold mb-1">Pengaturan Pendapatan Poin</label>
+                <p className="text-xs text-blue-600 mb-2">
+                    Rumus Dasar: (Total Belanja / 1.000) x <b>Multiplier</b>
+                </p>
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-semibold">Multiplier:</span>
+                    <input 
+                        type="number" 
+                        step="0.1" 
+                        name="multiplier" 
+                        value={formData.multiplier} 
+                        onChange={handleChange} 
+                        className="input-field !w-24 text-center font-bold text-blue-700" 
+                        required 
+                    />
+                    <span className="text-sm text-gray-500">x (kali lipat)</span>
+                </div>
+                
+                {/* Simulation Box */}
+                <div className="bg-white/80 p-3 rounded-lg text-sm border border-blue-200">
+                    <p className="font-semibold text-gray-600 text-xs uppercase tracking-wider mb-1">Simulasi Perhitungan:</p>
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-500">Belanja Rp {examplePurchase.toLocaleString('id-ID')}</span>
+                        <div className="flex items-center gap-2">
+                            <Icon path={ICONS.chevronRight} className="w-4 h-4 text-gray-400" />
+                            <span className="font-bold text-green-600 text-lg">
+                                {calculatedPoints.toLocaleString('id-ID')} Poin
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-gray-600 text-sm font-semibold mb-1">Deskripsi Keuntungan</label>
+                <textarea name="benefit" value={formData.benefit} onChange={handleChange} className="input-field min-h-[80px]" required />
+            </div>
             <div className="flex gap-4 pt-4"><button type="button" onClick={onCancel} className="neu-button">Batal</button><button type="submit" className="neu-button text-red-600">Simpan Perubahan</button></div>
         </form>
     );
@@ -248,14 +297,16 @@ const ManajemenHadiah: React.FC<ManajemenHadiahProps> = ({ rewards, onSave, dele
             </div>
             
             <div className="neu-card p-6 mb-8">
-                <h2 className="text-xl font-bold text-gray-700 mb-4">Aturan Level Loyalitas</h2>
+                <h2 className="text-xl font-bold text-gray-700 mb-4">Aturan Level & Pendapatan Poin</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {loyaltyPrograms.map(level => (
                         <div key={level.level} className={`neu-card-flat p-4 flex justify-between items-center border-l-4 ${levelCardStyles[level.level] || 'border-gray-400'}`}>
                             <div>
                                 <p className="font-bold text-lg text-gray-800">{level.level}</p>
-                                <p className="text-sm text-gray-500">Min: {(level.pointsNeeded || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin | Pengali: {level.multiplier}x</p>
-                                <p className="text-xs text-gray-600 mt-1">{level.benefit}</p>
+                                <p className="text-sm text-gray-600 font-semibold bg-white/50 px-2 py-1 rounded inline-block mt-1">
+                                    Rate: {level.multiplier}x Poin
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">Min. Poin: {(level.pointsNeeded || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
                             </div>
                             {!isReadOnly && (
                                 <button onClick={() => setEditingLevel(level)} className="neu-button-icon text-blue-600 flex-shrink-0">

@@ -180,17 +180,19 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ currentUser, users, loyal
                                 </div>
 
                                 {selectedUser && (
-                                    <div className="neu-inset p-3 rounded-lg text-sm space-y-2 mt-4">
-                                        <div className="flex justify-between">
+                                    <div className="neu-inset p-3 rounded-lg text-sm space-y-2 mt-4 border border-blue-200 bg-blue-50">
+                                        <div className="flex justify-between items-center">
                                             <span className="text-gray-600">Level Mitra:</span>
-                                            <span className="font-bold text-gray-800">{selectedUser.level}</span>
+                                            <span className="font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+                                                {selectedUser.level} <span className="text-xs text-gray-500 font-normal">({multiplier}x Multiplier)</span>
+                                            </span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Poin Saat Ini:</span>
                                             <span className="font-bold text-gray-800">{(selectedUser.points || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin</span>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Poin Akan Didapat:</span>
+                                        <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">
+                                            <span className="text-gray-700 font-semibold">Estimasi Poin Didapat:</span>
                                             <span className="font-bold text-green-600">+{potentialPoints.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Poin</span>
                                         </div>
                                     </div>
