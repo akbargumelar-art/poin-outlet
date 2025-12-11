@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Redemption } from '../../types';
 import Icon from './Icon';
@@ -15,8 +16,8 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
     const [isPaused, setIsPaused] = useState(false);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Kecepatan slider (ms). Ubah nilai ini untuk mempercepat/memperlambat.
-    const AUTO_SLIDE_INTERVAL = 1500; // 1.5 detik
+    // Kecepatan slider (ms).
+    const AUTO_SLIDE_INTERVAL = 2500; // 2.5 detik
 
     const resetTimeout = () => {
         if (timeoutRef.current) {
@@ -24,18 +25,22 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
         }
     };
 
-    // Fungsi untuk pindah ke slide berikutnya
+    // Fungsi untuk memilih slide berikutnya secara acak
     const nextSlide = () => {
-        setCurrentIndex((prevIndex) => 
-            prevIndex === validItems.length - 1 ? 0 : prevIndex + 1
-        );
+        if (validItems.length <= 1) return;
+
+        let newIndex;
+        // Pastikan index baru tidak sama dengan index sekarang agar transisi terlihat
+        do {
+            newIndex = Math.floor(Math.random() * validItems.length);
+        } while (newIndex === currentIndex);
+
+        setCurrentIndex(newIndex);
     };
 
-    // Fungsi untuk pindah ke slide sebelumnya
+    // Fungsi prev tetap menggunakan logika acak agar konsisten
     const prevSlide = () => {
-        setCurrentIndex((prevIndex) => 
-            prevIndex === 0 ? validItems.length - 1 : prevIndex - 1
-        );
+        nextSlide(); 
     };
 
     useEffect(() => {
@@ -112,13 +117,6 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
                                 <div className="inline-block bg-blue-100 text-blue-800 rounded-md px-2 py-0.5 text-[10px] font-bold mt-1">
                                     TAP {currentItem.userTap || 'Unknown Area'}
                                 </div>
-                            </div>
-
-                            <div className="pt-3 border-t border-gray-200 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                                <p className="text-xs text-gray-500 font-medium italic flex items-center gap-2">
-                                    <Icon path={ICONS.history} className="w-3 h-3" />
-                                    Diserahkan pada {new Date(currentItem.statusUpdatedAt || currentItem.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                </p>
                             </div>
                         </div>
                     </div>
