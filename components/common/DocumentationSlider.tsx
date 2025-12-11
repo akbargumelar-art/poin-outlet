@@ -53,10 +53,10 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
     const currentItem = validItems[currentIndex];
 
     return (
-        <div className="w-full max-w-4xl mx-auto my-12 md:my-16 px-4">
-             <div className="text-center mb-8">
-                <h3 className="text-2xl md:text-3xl font-bold text-gray-700">Bukti Penyerahan Hadiah</h3>
-                <p className="text-gray-500 text-sm mt-2">Dokumentasi asli penyerahan reward kepada Mitra Outlet setia kami.</p>
+        <div className="w-full max-w-3xl mx-auto my-8 md:my-10 px-4">
+             <div className="text-center mb-6">
+                <h3 className="text-xl md:text-2xl font-bold text-gray-700">Bukti Penyerahan Hadiah</h3>
+                <p className="text-gray-500 text-xs mt-1">Dokumentasi asli penyerahan reward kepada Mitra Outlet setia kami.</p>
              </div>
              
              {/* Main Card Container */}
@@ -65,11 +65,11 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
              >
-                <div className="flex flex-col md:flex-row min-h-[450px] md:h-[400px]">
+                <div className="flex flex-col md:flex-row min-h-[400px] md:h-[320px]">
                     
                     {/* Image Section (Half Width) */}
                     <div className="w-full md:w-1/2 p-4 flex items-center justify-center bg-gray-50/50">
-                        <div className="relative w-full h-full max-h-[350px] neu-inset p-2 rounded-xl flex items-center justify-center overflow-hidden group">
+                        <div className="relative w-full h-full max-h-[280px] neu-inset p-2 rounded-xl flex items-center justify-center overflow-hidden group">
                             {/* Loading Placeholder / Image */}
                             <img 
                                 key={currentItem.id} // Key helps react verify DOM change for animation
@@ -77,43 +77,43 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
                                 alt={currentItem.rewardName} 
                                 className="w-full h-full object-contain rounded-lg shadow-sm transition-transform duration-500 hover:scale-105"
                             />
-                            <div className="absolute top-4 right-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md animate-fade-in-down">
+                            <div className="absolute top-4 right-4 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md animate-fade-in-down">
                                 Terverifikasi
                             </div>
                         </div>
                     </div>
 
                     {/* Content Section (Half Width) */}
-                    <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-center text-left relative">
+                    <div className="w-full md:w-1/2 p-5 md:p-6 flex flex-col justify-center text-left relative">
                         {/* Quote Icon Background */}
                         <div className="absolute top-4 right-6 text-gray-200 pointer-events-none">
-                            <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.01691 21L5.01691 18C5.01691 16.8954 5.91234 16 7.01691 16H10.0169C10.5692 16 11.0169 15.5523 11.0169 15V9C11.0169 8.44772 10.5692 8 10.0169 8H6.01691C5.46462 8 5.01691 8.44772 5.01691 9V11C5.01691 11.5523 4.56919 12 4.01691 12H3.01691V5H13.0169V15C13.0169 18.3137 10.3306 21 7.01691 21H5.01691Z" /></svg>
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.01691 21L5.01691 18C5.01691 16.8954 5.91234 16 7.01691 16H10.0169C10.5692 16 11.0169 15.5523 11.0169 15V9C11.0169 8.44772 10.5692 8 10.0169 8H6.01691C5.46462 8 5.01691 8.44772 5.01691 9V11C5.01691 11.5523 4.56919 12 4.01691 12H3.01691V5H13.0169V15C13.0169 18.3137 10.3306 21 7.01691 21H5.01691Z" /></svg>
                         </div>
 
-                        <div className="space-y-6 z-10">
+                        <div className="space-y-4 z-10">
                             <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                                <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-1">Hadiah</p>
-                                <h4 className="text-2xl md:text-3xl font-extrabold text-red-600 drop-shadow-sm leading-tight">
+                                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Hadiah</p>
+                                <h4 className="text-xl md:text-2xl font-extrabold text-red-600 drop-shadow-sm leading-tight">
                                     {currentItem.rewardName}
                                 </h4>
                             </div>
 
                             <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                                <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-1">Penerima</p>
+                                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Penerima</p>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
+                                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-xs">
                                         {currentItem.userName ? currentItem.userName.charAt(0) : 'M'}
                                     </div>
-                                    <h4 className="text-xl font-bold text-gray-800">{currentItem.userName || 'Mitra Setia'}</h4>
+                                    <h4 className="text-lg font-bold text-gray-800">{currentItem.userName || 'Mitra Setia'}</h4>
                                 </div>
-                                <div className="inline-block bg-blue-100 text-blue-800 rounded-md px-2 py-1 text-xs font-bold mt-2">
+                                <div className="inline-block bg-blue-100 text-blue-800 rounded-md px-2 py-0.5 text-[10px] font-bold mt-1">
                                     TAP {currentItem.userTap || 'Unknown Area'}
                                 </div>
                             </div>
 
-                            <div className="pt-4 border-t border-gray-200 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                                <p className="text-sm text-gray-500 font-medium italic flex items-center gap-2">
-                                    <Icon path={ICONS.history} className="w-4 h-4" />
+                            <div className="pt-3 border-t border-gray-200 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                                <p className="text-xs text-gray-500 font-medium italic flex items-center gap-2">
+                                    <Icon path={ICONS.history} className="w-3 h-3" />
                                     Diserahkan pada {new Date(currentItem.statusUpdatedAt || currentItem.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                                 </p>
                             </div>
@@ -123,26 +123,26 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
 
                 {/* Navigation Arrows (Visible on Hover or Mobile) */}
                 <button 
-                    className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 md:p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity md:opacity-0 opacity-100"
+                    className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity md:opacity-0 opacity-100"
                     onClick={prevSlide}
                     aria-label="Previous Slide"
                 >
-                    <Icon path={ICONS.chevronLeft} className="w-6 h-6" />
+                    <Icon path={ICONS.chevronLeft} className="w-5 h-5" />
                 </button>
                 <button 
-                    className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 md:p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity md:opacity-0 opacity-100"
+                    className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity md:opacity-0 opacity-100"
                     onClick={nextSlide}
                     aria-label="Next Slide"
                 >
-                    <Icon path={ICONS.chevronRight} className="w-6 h-6" />
+                    <Icon path={ICONS.chevronRight} className="w-5 h-5" />
                 </button>
 
                 {/* Progress Indicators */}
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-20">
                     {validItems.map((_, idx) => (
                         <button 
                             key={idx} 
-                            className={`h-1.5 rounded-full transition-all duration-300 ${currentIndex === idx ? 'bg-red-600 w-8' : 'bg-gray-300 w-2 hover:bg-gray-400'}`}
+                            className={`h-1 rounded-full transition-all duration-300 ${currentIndex === idx ? 'bg-red-600 w-6' : 'bg-gray-300 w-1.5 hover:bg-gray-400'}`}
                             onClick={() => setCurrentIndex(idx)}
                             aria-label={`Go to slide ${idx + 1}`}
                         ></button>

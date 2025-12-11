@@ -72,9 +72,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                     </section>
                 </div>
                 
-                {/* Documentation Slider */}
-                <DocumentationSlider redemptions={redemptionHistory} />
-                
                 {/* Rewards Slider Section */}
                 <section id="hadiah-section" className="my-12 md:my-20 overflow-hidden">
                     <div className="max-w-3xl xl:max-w-6xl mx-auto">
@@ -105,6 +102,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                     </div>
                      <p className="text-center mt-8 text-gray-600 max-w-3xl xl:max-w-6xl mx-auto">Dan masih banyak lagi hadiah lainnya!</p>
                 </section>
+
+                {/* Documentation Slider (Moved Below Rewards) */}
+                <DocumentationSlider redemptions={redemptionHistory} />
 
                 {/* Simulasi Poin Section */}
                 <section id="kalkulator-section" className="my-12 md:my-20 max-w-3xl xl:max-w-6xl mx-auto">

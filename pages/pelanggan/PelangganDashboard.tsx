@@ -69,9 +69,6 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
                 <p className="text-lg md:text-xl text-red-600 font-semibold">{currentUser.profile.nama}!</p>
             </div>
 
-            {/* Slider Foto Penukaran (Global) */}
-            <DocumentationSlider redemptions={redemptionHistory} />
-
             <div className={`neu-card bg-gradient-to-br ${currentLevelGradient} text-white p-6`}>
                 <div className="flex justify-between items-start">
                     <div>
@@ -189,6 +186,9 @@ const PelangganDashboard: React.FC<PelangganDashboardProps> = ({ currentUser, tr
             )}
 
             <PemenangUndian winners={raffleWinners} />
+
+            {/* Slider Foto Penukaran (Global) - Moved to bottom */}
+            <DocumentationSlider redemptions={redemptionHistory} />
         </div>
     );
 };
