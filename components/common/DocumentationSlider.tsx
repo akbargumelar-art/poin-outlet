@@ -89,13 +89,14 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
                     Actually better to show 2 cols on mobile too if items are small, OR stack them vertically.
                     Here we use grid-cols-1 for mobile (stacked) and grid-cols-2 for desktop.
                     Fixed height ensures stability.
+                    Updated Height: h-[750px] for mobile, h-[500px] for desktop to accommodate larger images.
                 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 h-[600px] md:h-[350px] divide-y md:divide-y-0 md:divide-x divide-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 h-[750px] md:h-[500px] divide-y md:divide-y-0 md:divide-x divide-gray-200">
                     
                     {currentGroup.map((item, index) => (
                         <div key={item.id || index} className="relative w-full h-full p-4 flex flex-col items-center justify-center group">
-                            {/* Image Area */}
-                            <div className="relative w-full h-48 md:h-56 mb-3 neu-inset p-2 rounded-xl overflow-hidden">
+                            {/* Image Area - Increased Height */}
+                            <div className="relative w-full h-64 md:h-80 mb-4 neu-inset p-2 rounded-xl overflow-hidden">
                                 <img 
                                     src={item.documentationPhotoUrl} 
                                     alt={item.rewardName} 
