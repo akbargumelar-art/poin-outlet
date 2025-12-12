@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { User, Transaction, RunningProgram, LoyaltyProgram, SpecialNumber, Redemption } from '../../types';
 import Icon from '../../components/common/Icon';

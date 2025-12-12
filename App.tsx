@@ -52,6 +52,7 @@ const App: React.FC = () => {
 
     const fetchBootstrapData = useCallback(async () => {
         try {
+            // Placeholder for data fetching - ensure these endpoints exist or replace with actual logic
             const responses = await Promise.all([
                 fetch('/api/users').then(res => res.ok ? res.json() : []),
                 fetch('/api/transactions').then(res => res.ok ? res.json() : []),
@@ -98,6 +99,7 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
+        // Fetch public data even if not logged in
         fetchBootstrapData();
     }, [fetchBootstrapData]);
 
@@ -167,6 +169,7 @@ const App: React.FC = () => {
             if (res.ok) {
                 fetchBootstrapData();
                 setModal({ show: true, title: "Sukses", content: <p>Penukaran berhasil diajukan.</p> });
+                // Update local user points optimistically or wait for fetchBootstrapData
             } else {
                 const err = await res.json();
                 setModal({ show: true, title: "Error", content: <p>{err.message}</p> });
@@ -192,6 +195,7 @@ const App: React.FC = () => {
             });
             if (res.ok) {
                 await fetchBootstrapData();
+                // Update current user locally to reflect changes immediately
                 const updatedUser = await res.json();
                 setCurrentUser(updatedUser);
                 setModal({ show: true, title: "Sukses", content: <p>Profil berhasil diperbarui.</p> });
