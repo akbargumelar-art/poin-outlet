@@ -629,7 +629,7 @@ router.post('/redemptions', async (req, res) => {
     }
 });
 
-// PATCH /redemptions/:id/status (Defined in previous turn, keep it here for completeness)
+// PATCH /redemptions/:id/status
 router.patch('/redemptions/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status, statusNote } = req.body;
@@ -638,6 +638,35 @@ router.patch('/redemptions/:id/status', async (req, res) => {
         res.json({ message: 'Status updated' });
     } catch (e) {
         res.status(500).json({ message: 'Error updating status' });
+    }
+});
+
+// POST /redemptions/bulk/status (NEW - Fix for API Endpoint Not Found)
+router.post('/redemptions/bulk/status', async (req, res) => {
+    const { ids, status, statusNote } = req.body; // ids is array of numbers
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: 'No IDs provided' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        
+        // Dynamically create placeholders for IN clause
+        const placeholders = ids.map(() => '?').join(',');
+        const sql = `UPDATE redemptions SET status = ?, status_note = ?, status_updated_at = NOW() WHERE id IN (${placeholders})`;
+        const params = [status, statusNote, ...ids];
+        
+        await connection.execute(sql, params);
+        await connection.commit();
+        
+        res.json({ message: `${ids.length} status penukaran berhasil diperbarui.` });
+    } catch (e) {
+        await connection.rollback();
+        console.error(e);
+        res.status(500).json({ message: 'Gagal memperbarui status massal.' });
+    } finally {
+        connection.release();
     }
 });
 
