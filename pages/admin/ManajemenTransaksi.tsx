@@ -114,6 +114,43 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
     }, [transactionsWithUserData, filter, searchTerm, produkFilter, sortConfig]);
     
+    // --- Summary Calculations ---
+    const summaryStats = useMemo(() => {
+        let totalRevenue = 0;
+        let totalPoints = 0;
+        const uniquePartners = new Set<string>();
+        const productSales: Record<string, number> = {};
+
+        filteredTransactions.forEach(t => {
+            totalRevenue += Number(t.totalPembelian || 0);
+            totalPoints += Number(t.pointsEarned || 0);
+            uniquePartners.add(t.userId);
+
+            const prodName = t.produk || 'Unknown';
+            // Aggregate quantity for best seller logic
+            productSales[prodName] = (productSales[prodName] || 0) + Number(t.kuantiti || 0);
+        });
+
+        // Find Best Seller
+        let bestSeller = '-';
+        let maxQty = 0;
+        Object.entries(productSales).forEach(([name, qty]) => {
+            if (qty > maxQty) {
+                maxQty = qty;
+                bestSeller = name;
+            }
+        });
+
+        return {
+            totalRevenue,
+            totalTransactions: filteredTransactions.length,
+            uniquePartners: uniquePartners.size,
+            totalPoints,
+            bestSeller,
+            bestSellerQty: maxQty
+        };
+    }, [filteredTransactions]);
+
     // Pagination Logic
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -179,6 +216,19 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         }
     };
 
+    const SummaryCard = ({ title, value, subtext, colorClass, icon }: { title: string, value: string, subtext?: string, colorClass: string, icon: string }) => (
+        <div className="neu-card p-4 flex items-center justify-between">
+            <div className="flex-grow min-w-0 pr-2">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide truncate">{title}</p>
+                <p className={`text-xl font-bold mt-1 truncate ${colorClass}`} title={value}>{value}</p>
+                {subtext && <p className="text-xs text-gray-400 mt-0.5 truncate">{subtext}</p>}
+            </div>
+            <div className={`p-2 rounded-full flex-shrink-0 ${colorClass.replace('text-', 'bg-').replace('600', '100').replace('700', '100')}`}>
+                <Icon path={icon} className={`w-6 h-6 ${colorClass}`} />
+            </div>
+        </div>
+    );
+
     return (
         <div>
             <div>
@@ -187,6 +237,45 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                     <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
                         <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel
                     </button>
+                </div>
+
+                {/* Summary Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+                    <SummaryCard 
+                        title="Total Omzet" 
+                        value={`Rp ${summaryStats.totalRevenue.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}`} 
+                        subtext="Dari data difilter"
+                        colorClass="text-green-600" 
+                        icon={ICONS.history} 
+                    />
+                    <SummaryCard 
+                        title="Total Transaksi" 
+                        value={summaryStats.totalTransactions.toLocaleString('id-ID')} 
+                        subtext="Frekuensi"
+                        colorClass="text-blue-600" 
+                        icon={ICONS.dashboard} 
+                    />
+                    <SummaryCard 
+                        title="Mitra Berbelanja" 
+                        value={summaryStats.uniquePartners.toLocaleString('id-ID')} 
+                        subtext="Mitra unik"
+                        colorClass="text-purple-600" 
+                        icon={ICONS.users} 
+                    />
+                    <SummaryCard 
+                        title="Produk Terlaris" 
+                        value={summaryStats.bestSeller} 
+                        subtext={`${summaryStats.bestSellerQty} terjual`}
+                        colorClass="text-amber-600" 
+                        icon={ICONS.ticket} 
+                    />
+                    <SummaryCard 
+                        title="Poin Diberikan" 
+                        value={summaryStats.totalPoints.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })} 
+                        subtext="Total Reward"
+                        colorClass="text-red-600" 
+                        icon={ICONS.gift} 
+                    />
                 </div>
                 
                 <div className="mb-6 neu-card-flat p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center">

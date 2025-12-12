@@ -66,7 +66,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
     }, [safeSpecialNumbers, tapFilter]);
 
     const soldSpecialNumbers = filteredSpecialNumbers.filter(n => n.isSold);
-    const totalSpecialNumberRevenue = soldSpecialNumbers.reduce((sum, n) => sum + n.price, 0);
+    
+    // FIX: Force convert to number using parseFloat to handle potential strings from DB and avoid concatenation
+    const totalSpecialNumberRevenue = soldSpecialNumbers.reduce((sum, n) => {
+        const price = typeof n.price === 'string' ? parseFloat(n.price) : n.price;
+        return sum + (isNaN(price) ? 0 : price);
+    }, 0);
+    
     const soldSpecialNumberCount = soldSpecialNumbers.length;
 
     // Redemption Stats
@@ -74,7 +80,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
     const redemptionProcessing = filteredRedemptions.filter(r => r.status === 'Diproses').length;
     const redemptionDonePoints = filteredRedemptions
         .filter(r => r.status === 'Selesai')
-        .reduce((sum, r) => sum + r.pointsSpent, 0);
+        .reduce((sum, r) => sum + Number(r.pointsSpent || 0), 0);
 
     const handleShowList = (program: RunningProgram, type: 'participants' | 'achievers') => {
         const userList = safeUsers.filter(user => {
@@ -136,70 +142,72 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
             {/* Business Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
                 {/* Mitra Stats */}
-                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-blue-500">
-                    <div className="p-3 bg-blue-100 rounded-full"><Icon path={ICONS.users} className="w-8 h-8 text-blue-600"/></div>
-                    <div>
-                        <p className="text-gray-500 text-sm font-semibold uppercase">Total Mitra Outlet</p>
-                        <p className="text-2xl font-bold text-gray-800">{totalPelanggan}</p>
-                        <p className="text-xs text-gray-400 mt-1">Akun Terdaftar</p>
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-blue-500 overflow-hidden">
+                    <div className="p-3 bg-blue-100 rounded-full flex-shrink-0"><Icon path={ICONS.users} className="w-8 h-8 text-blue-600"/></div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-gray-500 text-sm font-semibold uppercase truncate">Total Mitra Outlet</p>
+                        <p className="text-2xl font-bold text-gray-800 truncate">{totalPelanggan}</p>
+                        <p className="text-xs text-gray-400 mt-1 truncate">Akun Terdaftar</p>
                     </div>
                 </div>
 
                 {/* Transaction Stats */}
-                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-green-500">
-                    <div className="p-3 bg-green-100 rounded-full"><Icon path={ICONS.history} className="w-8 h-8 text-green-600"/></div>
-                    <div>
-                        <p className="text-gray-500 text-sm font-semibold uppercase">Total Penjualan</p>
-                        <p className="text-xl font-bold text-gray-800">Rp {totalPenjualan.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
-                        <p className="text-xs text-gray-400 mt-1">{totalTransaksiCount} Transaksi</p>
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-green-500 overflow-hidden">
+                    <div className="p-3 bg-green-100 rounded-full flex-shrink-0"><Icon path={ICONS.history} className="w-8 h-8 text-green-600"/></div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-gray-500 text-sm font-semibold uppercase truncate">Total Penjualan</p>
+                        <p className="text-xl font-bold text-gray-800 truncate">Rp {totalPenjualan.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
+                        <p className="text-xs text-gray-400 mt-1 truncate">{totalTransaksiCount} Transaksi</p>
                     </div>
                 </div>
 
                 {/* Special Number Sales */}
-                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-purple-500">
-                    <div className="p-3 bg-purple-100 rounded-full"><Icon path={ICONS.simCard} className="w-8 h-8 text-purple-600"/></div>
-                    <div>
-                        <p className="text-gray-500 text-sm font-semibold uppercase">Penjualan No. Spesial</p>
-                        <p className="text-xl font-bold text-gray-800">Rp {totalSpecialNumberRevenue.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
-                        <p className="text-xs text-gray-400 mt-1">{soldSpecialNumberCount} Nomor Terjual</p>
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-purple-500 overflow-hidden">
+                    <div className="p-3 bg-purple-100 rounded-full flex-shrink-0"><Icon path={ICONS.simCard} className="w-8 h-8 text-purple-600"/></div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-gray-500 text-sm font-semibold uppercase truncate">Penjualan No. Spesial</p>
+                        <p className="text-xl font-bold text-gray-800 truncate" title={`Rp ${totalSpecialNumberRevenue.toLocaleString('id-ID')}`}>
+                            Rp {totalSpecialNumberRevenue.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1 truncate">{soldSpecialNumberCount} Nomor Terjual</p>
                     </div>
                 </div>
 
                 {/* Points Circulation */}
-                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-yellow-500">
-                    <div className="p-3 bg-yellow-100 rounded-full"><Icon path={ICONS.gift} className="w-8 h-8 text-yellow-600"/></div>
-                    <div>
-                        <p className="text-gray-500 text-sm font-semibold uppercase">Poin Beredar</p>
-                        <p className="text-xl font-bold text-gray-800">{totalPoin.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
-                        <p className="text-xs text-gray-400 mt-1">Potensi Tukar</p>
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-yellow-500 overflow-hidden">
+                    <div className="p-3 bg-yellow-100 rounded-full flex-shrink-0"><Icon path={ICONS.gift} className="w-8 h-8 text-yellow-600"/></div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-gray-500 text-sm font-semibold uppercase truncate">Poin Beredar</p>
+                        <p className="text-xl font-bold text-gray-800 truncate">{totalPoin.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
+                        <p className="text-xs text-gray-400 mt-1 truncate">Potensi Tukar</p>
                     </div>
                 </div>
 
                 {/* Redemption Summary */}
-                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-red-500">
-                    <div className="p-3 bg-red-100 rounded-full"><Icon path={ICONS.trophy} className="w-8 h-8 text-red-600"/></div>
-                    <div>
-                        <p className="text-gray-500 text-sm font-semibold uppercase">Penukaran Poin</p>
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-red-500 overflow-hidden">
+                    <div className="p-3 bg-red-100 rounded-full flex-shrink-0"><Icon path={ICONS.trophy} className="w-8 h-8 text-red-600"/></div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-gray-500 text-sm font-semibold uppercase truncate">Penukaran Poin</p>
                         <div className="flex gap-4">
                             <div>
-                                <p className="text-xl font-bold text-red-600">{redemptionPending}</p>
-                                <p className="text-[10px] text-gray-400 uppercase">Diajukan</p>
+                                <p className="text-xl font-bold text-red-600 truncate">{redemptionPending}</p>
+                                <p className="text-[10px] text-gray-400 uppercase truncate">Diajukan</p>
                             </div>
                             <div>
-                                <p className="text-xl font-bold text-amber-600">{redemptionProcessing}</p>
-                                <p className="text-[10px] text-gray-400 uppercase">Diproses</p>
+                                <p className="text-xl font-bold text-amber-600 truncate">{redemptionProcessing}</p>
+                                <p className="text-[10px] text-gray-400 uppercase truncate">Diproses</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Completed Redemptions Value */}
-                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-teal-500">
-                    <div className="p-3 bg-teal-100 rounded-full"><Icon path={ICONS.ticket} className="w-8 h-8 text-teal-600"/></div>
-                    <div>
-                        <p className="text-gray-500 text-sm font-semibold uppercase">Poin Tertukar (Selesai)</p>
-                        <p className="text-xl font-bold text-gray-800">{redemptionDonePoints.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
-                        <p className="text-xs text-gray-400 mt-1">Total Redeem Sukses</p>
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-teal-500 overflow-hidden">
+                    <div className="p-3 bg-teal-100 rounded-full flex-shrink-0"><Icon path={ICONS.ticket} className="w-8 h-8 text-teal-600"/></div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-gray-500 text-sm font-semibold uppercase truncate">Poin Tertukar (Selesai)</p>
+                        <p className="text-xl font-bold text-gray-800 truncate">{redemptionDonePoints.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
+                        <p className="text-xs text-gray-400 mt-1 truncate">Total Redeem Sukses</p>
                     </div>
                 </div>
             </div>
@@ -221,8 +229,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
                             return (
                                  <div key={program.id} className="neu-card p-6 hover:scale-[1.02] transition-transform duration-300">
                                     <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-bold text-lg text-red-600">{program.name}</h3>
-                                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{program.prizeCategory}</span>
+                                        <h3 className="font-bold text-lg text-red-600 truncate pr-2">{program.name}</h3>
+                                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded whitespace-nowrap">{program.prizeCategory}</span>
                                     </div>
                                     <p className="text-sm text-gray-500 mb-4">{formatDateRange(program.startDate, program.endDate)}</p>
                                     
