@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { User, Transaction, RunningProgram, LoyaltyProgram, SpecialNumber, Redemption } from '../../types';
+import { User, Transaction, RunningProgram, LoyaltyProgram } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
@@ -10,7 +10,6 @@ interface AdminDashboardProps {
     transactions: Transaction[];
     runningPrograms: RunningProgram[];
     loyaltyPrograms: LoyaltyProgram[];
-    // Removed specialNumbers and redemptions to simplify and fix crash
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, runningPrograms, loyaltyPrograms }) => {

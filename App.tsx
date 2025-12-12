@@ -52,8 +52,15 @@ const App: React.FC = () => {
 
     const fetchBootstrapData = useCallback(async () => {
         try {
+            // Cek koneksi awal ke API
+            const testConnection = await fetch('/api/users');
+            if (!testConnection.ok) {
+                throw new Error(`Gagal terhubung ke API (Status: ${testConnection.status})`);
+            }
+
+            // Gunakan Promise.allSettled agar satu error tidak mematikan semua data
             const results = await Promise.allSettled([
-                fetch('/api/users').then(res => res.ok ? res.json() : []),
+                testConnection.json(), // Users (sudah di-fetch di atas)
                 fetch('/api/transactions').then(res => res.ok ? res.json() : []),
                 fetch('/api/rewards').then(res => res.ok ? res.json() : []),
                 fetch('/api/redemptions').then(res => res.ok ? res.json() : []),
@@ -85,10 +92,17 @@ const App: React.FC = () => {
 
         } catch (error) {
             console.error("Failed to fetch bootstrap data", error);
+            // Tampilkan modal error jika koneksi benar-benar mati
             setModal({
                 show: true,
                 title: "Koneksi Bermasalah",
-                content: <p>Gagal mengambil data dari server. Silakan muat ulang.</p>
+                content: (
+                    <div className="text-center">
+                        <p className="text-red-600 mb-2 font-bold">Gagal mengambil data dari server.</p>
+                        <p className="text-sm text-gray-500">Mohon periksa koneksi internet Anda atau hubungi admin jika masalah berlanjut.</p>
+                        <button onClick={() => window.location.reload()} className="mt-4 neu-button !w-auto px-6">Muat Ulang Halaman</button>
+                    </div>
+                )
             });
         }
     }, []);
@@ -118,6 +132,7 @@ const App: React.FC = () => {
             }
             return false;
         } catch (e) {
+            console.error("Login error:", e);
             return false;
         }
     };
