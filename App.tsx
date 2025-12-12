@@ -52,7 +52,6 @@ const App: React.FC = () => {
 
     const fetchBootstrapData = useCallback(async () => {
         try {
-            // Menggunakan Promise.allSettled agar satu kegagalan tidak menghentikan semua request
             const results = await Promise.allSettled([
                 fetch('/api/users').then(res => res.ok ? res.json() : []),
                 fetch('/api/transactions').then(res => res.ok ? res.json() : []),
@@ -68,7 +67,6 @@ const App: React.FC = () => {
                 fetch('/api/locations').then(res => res.ok ? res.json() : [])
             ]);
 
-            // Helper untuk mengambil value atau default
             const getValue = <T,>(result: PromiseSettledResult<T>, defaultValue: T): T => 
                 result.status === 'fulfilled' ? result.value : defaultValue;
 
@@ -90,13 +88,12 @@ const App: React.FC = () => {
             setModal({
                 show: true,
                 title: "Koneksi Bermasalah",
-                content: <p>Gagal mengambil data dari server. Silakan periksa koneksi internet Anda atau coba muat ulang halaman.</p>
+                content: <p>Gagal mengambil data dari server. Silakan muat ulang.</p>
             });
         }
     }, []);
 
     useEffect(() => {
-        // Fetch public data even if not logged in
         fetchBootstrapData();
     }, [fetchBootstrapData]);
 
@@ -121,7 +118,6 @@ const App: React.FC = () => {
             }
             return false;
         } catch (e) {
-            console.error("Login failed", e);
             return false;
         }
     };
@@ -592,7 +588,7 @@ const App: React.FC = () => {
         pencapaianProgram: <PencapaianProgram currentUser={currentUser!} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} />,
         tukarPoin: <TukarPoin currentUser={currentUser!} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} loyaltyPrograms={loyaltyPrograms} />,
         editProfile: <EditProfilePage currentUser={currentUser!} updateUserProfile={updateUserProfile} handleLogout={handleLogout} handleChangePassword={handleChangePassword} />,
-        adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms} specialNumbers={specialNumbers} redemptions={redemptionHistory} />,
+        adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms} />,
         manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={handlePageChange} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} adminResetPassword={adminResetPassword} />,
         tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
         manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} adminBulkAddProgramParticipants={adminBulkAddProgramParticipants} isReadOnly={isSupervisor} />,
