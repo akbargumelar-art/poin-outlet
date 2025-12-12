@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { User, Transaction, RunningProgram, LoyaltyProgram } from '../../types';
+import { User, Transaction, RunningProgram, LoyaltyProgram, SpecialNumber, Redemption } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
@@ -10,16 +10,20 @@ interface AdminDashboardProps {
     transactions: Transaction[];
     runningPrograms: RunningProgram[];
     loyaltyPrograms: LoyaltyProgram[];
+    specialNumbers: SpecialNumber[];
+    redemptions: Redemption[];
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, runningPrograms, loyaltyPrograms }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, runningPrograms, loyaltyPrograms, specialNumbers, redemptions }) => {
     const [tapFilter, setTapFilter] = useState('');
     const [modalData, setModalData] = useState<{title: string, users: User[]} | null>(null);
     
-    // Ensure users is an array to prevent crashes
+    // Ensure data is array to prevent crashes
     const safeUsers = Array.isArray(users) ? users : [];
     const safeTransactions = Array.isArray(transactions) ? transactions : [];
     const safeRunningPrograms = Array.isArray(runningPrograms) ? runningPrograms : [];
+    const safeSpecialNumbers = Array.isArray(specialNumbers) ? specialNumbers : [];
+    const safeRedemptions = Array.isArray(redemptions) ? redemptions : [];
 
     const allTaps = useMemo(() => {
         return [...new Set(safeUsers.filter(u => u.role === 'pelanggan' && u.profile.tap).map(u => u.profile.tap!))].sort();
@@ -34,16 +38,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
 
     const filteredUserIds = useMemo(() => new Set(filteredUsers.map(u => u.id)), [filteredUsers]);
 
+    // Filter transactions based on TAP filter
     const filteredTransactions = useMemo(() => {
         if (!tapFilter) return safeTransactions;
         return safeTransactions.filter(t => filteredUserIds.has(t.userId));
     }, [safeTransactions, filteredUserIds, tapFilter]);
 
+    // Filter redemptions based on TAP filter
+    const filteredRedemptions = useMemo(() => {
+        if (!tapFilter) return safeRedemptions;
+        return safeRedemptions.filter(r => filteredUserIds.has(r.userId));
+    }, [safeRedemptions, filteredUserIds, tapFilter]);
+
     // --- Statistics Calculation ---
     const totalPelanggan = filteredUsers.length;
     const totalPenjualan = filteredTransactions.reduce((sum, t) => sum + Number(t.totalPembelian || 0), 0);
+    const totalTransaksiCount = filteredTransactions.length;
     const totalPoin = filteredUsers.reduce((sum, u) => sum + Number(u.points || 0), 0);
     
+    // Special Numbers Stats
+    // Note: Special numbers don't strictly link to users/TAP in this context unless we track buyer ID in specialNumbers table (which we don't currently for filtering). 
+    // We will show global stats or try to filter if 'lokasi' matches TAP.
+    const filteredSpecialNumbers = useMemo(() => {
+        if (!tapFilter) return safeSpecialNumbers;
+        // Assuming 'lokasi' in special numbers might match TAP names roughly
+        return safeSpecialNumbers.filter(n => n.lokasi && n.lokasi.toLowerCase().includes(tapFilter.toLowerCase())); 
+    }, [safeSpecialNumbers, tapFilter]);
+
+    const soldSpecialNumbers = filteredSpecialNumbers.filter(n => n.isSold);
+    const totalSpecialNumberRevenue = soldSpecialNumbers.reduce((sum, n) => sum + n.price, 0);
+    const soldSpecialNumberCount = soldSpecialNumbers.length;
+
+    // Redemption Stats
+    const redemptionPending = filteredRedemptions.filter(r => r.status === 'Diajukan').length;
+    const redemptionProcessing = filteredRedemptions.filter(r => r.status === 'Diproses').length;
+    const redemptionDonePoints = filteredRedemptions
+        .filter(r => r.status === 'Selesai')
+        .reduce((sum, r) => sum + r.pointsSpent, 0);
+
     const handleShowList = (program: RunningProgram, type: 'participants' | 'achievers') => {
         const userList = safeUsers.filter(user => {
             if (tapFilter && user.profile.tap !== tapFilter) return false;
@@ -101,27 +133,73 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
                 </div>
             </div>
 
-            {/* Summary Cards */}
+            {/* Business Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+                {/* Mitra Stats */}
                 <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-blue-500">
                     <div className="p-3 bg-blue-100 rounded-full"><Icon path={ICONS.users} className="w-8 h-8 text-blue-600"/></div>
                     <div>
                         <p className="text-gray-500 text-sm font-semibold uppercase">Total Mitra Outlet</p>
                         <p className="text-2xl font-bold text-gray-800">{totalPelanggan}</p>
+                        <p className="text-xs text-gray-400 mt-1">Akun Terdaftar</p>
                     </div>
                 </div>
-                 <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-green-500">
+
+                {/* Transaction Stats */}
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-green-500">
                     <div className="p-3 bg-green-100 rounded-full"><Icon path={ICONS.history} className="w-8 h-8 text-green-600"/></div>
                     <div>
                         <p className="text-gray-500 text-sm font-semibold uppercase">Total Penjualan</p>
                         <p className="text-xl font-bold text-gray-800">Rp {totalPenjualan.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
+                        <p className="text-xs text-gray-400 mt-1">{totalTransaksiCount} Transaksi</p>
                     </div>
                 </div>
-                 <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-yellow-500">
+
+                {/* Special Number Sales */}
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-purple-500">
+                    <div className="p-3 bg-purple-100 rounded-full"><Icon path={ICONS.simCard} className="w-8 h-8 text-purple-600"/></div>
+                    <div>
+                        <p className="text-gray-500 text-sm font-semibold uppercase">Penjualan No. Spesial</p>
+                        <p className="text-xl font-bold text-gray-800">Rp {totalSpecialNumberRevenue.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
+                        <p className="text-xs text-gray-400 mt-1">{soldSpecialNumberCount} Nomor Terjual</p>
+                    </div>
+                </div>
+
+                {/* Points Circulation */}
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-yellow-500">
                     <div className="p-3 bg-yellow-100 rounded-full"><Icon path={ICONS.gift} className="w-8 h-8 text-yellow-600"/></div>
                     <div>
                         <p className="text-gray-500 text-sm font-semibold uppercase">Poin Beredar</p>
                         <p className="text-xl font-bold text-gray-800">{totalPoin.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
+                        <p className="text-xs text-gray-400 mt-1">Potensi Tukar</p>
+                    </div>
+                </div>
+
+                {/* Redemption Summary */}
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-red-500">
+                    <div className="p-3 bg-red-100 rounded-full"><Icon path={ICONS.trophy} className="w-8 h-8 text-red-600"/></div>
+                    <div>
+                        <p className="text-gray-500 text-sm font-semibold uppercase">Penukaran Poin</p>
+                        <div className="flex gap-4">
+                            <div>
+                                <p className="text-xl font-bold text-red-600">{redemptionPending}</p>
+                                <p className="text-[10px] text-gray-400 uppercase">Diajukan</p>
+                            </div>
+                            <div>
+                                <p className="text-xl font-bold text-amber-600">{redemptionProcessing}</p>
+                                <p className="text-[10px] text-gray-400 uppercase">Diproses</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Completed Redemptions Value */}
+                <div className="neu-card p-6 flex items-center gap-4 border-l-4 border-teal-500">
+                    <div className="p-3 bg-teal-100 rounded-full"><Icon path={ICONS.ticket} className="w-8 h-8 text-teal-600"/></div>
+                    <div>
+                        <p className="text-gray-500 text-sm font-semibold uppercase">Poin Tertukar (Selesai)</p>
+                        <p className="text-xl font-bold text-gray-800">{redemptionDonePoints.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}</p>
+                        <p className="text-xs text-gray-400 mt-1">Total Redeem Sukses</p>
                     </div>
                 </div>
             </div>
