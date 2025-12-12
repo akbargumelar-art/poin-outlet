@@ -32,6 +32,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/validate-digipos', digiposRoutes);
 app.use('/api', dataRoutes);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date() });
+});
+
 // If a request starts with /api/ but doesn't match any route, send a 404 response.
 app.use('/api/*', (req, res) => {
     res.status(404).json({ message: 'API endpoint not found' });
