@@ -52,8 +52,8 @@ const App: React.FC = () => {
 
     const fetchBootstrapData = useCallback(async () => {
         try {
-            // Placeholder for data fetching - ensure these endpoints exist or replace with actual logic
-            const responses = await Promise.all([
+            // Menggunakan Promise.allSettled agar satu kegagalan tidak menghentikan semua request
+            const results = await Promise.allSettled([
                 fetch('/api/users').then(res => res.ok ? res.json() : []),
                 fetch('/api/transactions').then(res => res.ok ? res.json() : []),
                 fetch('/api/rewards').then(res => res.ok ? res.json() : []),
@@ -68,32 +68,29 @@ const App: React.FC = () => {
                 fetch('/api/locations').then(res => res.ok ? res.json() : [])
             ]);
 
-            setUsers(responses[0] || []);
-            setTransactions(responses[1] || []);
-            setRewards(responses[2] || []);
-            setRedemptionHistory(responses[3] || []);
-            setLoyaltyPrograms(responses[4] || []);
-            setRunningPrograms(responses[5] || []);
-            setRafflePrograms(responses[6] || []);
-            setCouponRedemptions(responses[7] || []);
-            setRaffleWinners(responses[8] || []);
-            setSpecialNumbers(responses[9] || []);
-            setWhatsAppSettings(responses[10]);
-            setLocations(responses[11] || []);
+            // Helper untuk mengambil value atau default
+            const getValue = <T,>(result: PromiseSettledResult<T>, defaultValue: T): T => 
+                result.status === 'fulfilled' ? result.value : defaultValue;
+
+            setUsers(getValue(results[0], []));
+            setTransactions(getValue(results[1], []));
+            setRewards(getValue(results[2], []));
+            setRedemptionHistory(getValue(results[3], []));
+            setLoyaltyPrograms(getValue(results[4], []));
+            setRunningPrograms(getValue(results[5], []));
+            setRafflePrograms(getValue(results[6], []));
+            setCouponRedemptions(getValue(results[7], []));
+            setRaffleWinners(getValue(results[8], []));
+            setSpecialNumbers(getValue(results[9], []));
+            setWhatsAppSettings(getValue(results[10], null));
+            setLocations(getValue(results[11], []));
 
         } catch (error) {
             console.error("Failed to fetch bootstrap data", error);
-            // Show error modal if fetch completely fails (e.g. backend down)
             setModal({
                 show: true,
-                title: "Gagal Terhubung ke Server",
-                content: (
-                    <div className="text-center text-red-600">
-                        <p>Tidak dapat mengambil data dari database.</p>
-                        <p className="text-sm text-gray-500 mt-2">Mohon periksa koneksi internet atau status server Anda.</p>
-                        <button onClick={() => window.location.reload()} className="mt-4 neu-button !w-auto px-4">Muat Ulang</button>
-                    </div>
-                )
+                title: "Koneksi Bermasalah",
+                content: <p>Gagal mengambil data dari server. Silakan periksa koneksi internet Anda atau coba muat ulang halaman.</p>
             });
         }
     }, []);
@@ -124,6 +121,7 @@ const App: React.FC = () => {
             }
             return false;
         } catch (e) {
+            console.error("Login failed", e);
             return false;
         }
     };
@@ -169,7 +167,6 @@ const App: React.FC = () => {
             if (res.ok) {
                 fetchBootstrapData();
                 setModal({ show: true, title: "Sukses", content: <p>Penukaran berhasil diajukan.</p> });
-                // Update local user points optimistically or wait for fetchBootstrapData
             } else {
                 const err = await res.json();
                 setModal({ show: true, title: "Error", content: <p>{err.message}</p> });
@@ -195,7 +192,6 @@ const App: React.FC = () => {
             });
             if (res.ok) {
                 await fetchBootstrapData();
-                // Update current user locally to reflect changes immediately
                 const updatedUser = await res.json();
                 setCurrentUser(updatedUser);
                 setModal({ show: true, title: "Sukses", content: <p>Profil berhasil diperbarui.</p> });
