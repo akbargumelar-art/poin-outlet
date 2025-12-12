@@ -84,14 +84,55 @@ const StatusEditModal: React.FC<{
     );
 };
 
+// --- Bulk Status Update Modal ---
+const BulkStatusModal: React.FC<{
+    count: number;
+    onSave: (status: string, note: string) => void;
+    onClose: () => void;
+}> = ({ count, onSave, onClose }) => {
+    const [status, setStatus] = useState('Diproses');
+    const [note, setNote] = useState('');
+    const statusOptions = ['Diajukan', 'Diproses', 'Selesai', 'Ditolak'];
+
+    return (
+        <Modal show={true} onClose={onClose} title={`Update Status Massal (${count} Data)`}>
+            <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                    Anda akan mengubah status untuk <b>{count}</b> penukaran yang dipilih.
+                </p>
+                <div>
+                    <label className="block text-gray-600 text-sm font-semibold mb-2">Status Baru</label>
+                    <select value={status} onChange={e => setStatus(e.target.value)} className="input-field">
+                        {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                </div>
+                {status === 'Selesai' && (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                        <strong>Perhatian:</strong> Update massal ke status "Selesai" tidak akan menyertakan foto dokumentasi. Pastikan Anda telah memiliki bukti penyerahan manual atau gunakan update satuan jika foto diperlukan.
+                    </div>
+                )}
+                <div>
+                     <label className="block text-gray-600 text-sm font-semibold mb-2">Catatan Massal (Opsional)</label>
+                    <textarea value={note} onChange={e => setNote(e.target.value)} className="input-field min-h-[80px]" placeholder="Catatan ini akan diterapkan ke semua item yang dipilih."/>
+                </div>
+                 <div className="flex justify-end gap-4 pt-4">
+                    <button onClick={onClose} className="neu-button">Batal</button>
+                    <button onClick={() => onSave(status, note)} className="neu-button text-red-600">Terapkan Update</button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
 interface ManajemenPenukaranProps {
     redemptions: Redemption[];
     users: User[];
     isReadOnly?: boolean;
     adminUpdateRedemptionStatus: (redemptionId: number, status: string, statusNote: string, photoFile?: File | null) => void;
+    adminBulkUpdateRedemptionStatus: (ids: number[], status: string, statusNote: string) => void;
 }
 
-const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, users, isReadOnly, adminUpdateRedemptionStatus }) => {
+const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, users, isReadOnly, adminUpdateRedemptionStatus, adminBulkUpdateRedemptionStatus }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState({ from: '', to: '' });
     
@@ -103,6 +144,10 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
     const [editingRedemption, setEditingRedemption] = useState<Redemption | null>(null);
     const [viewingPhoto, setViewingPhoto] = useState<Redemption | null>(null);
     
+    // Bulk Action State
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [showBulkModal, setShowBulkModal] = useState(false);
+
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(20);
@@ -217,6 +262,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
     // Reset page when filter changes
     useEffect(() => {
         setCurrentPage(1);
+        setSelectedIds(new Set()); // Clear selection on filter change to avoid confusion
     }, [searchTerm, statusFilter, tapFilter, salesforceFilter, filter]);
 
     const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
@@ -231,13 +277,44 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
         setStatusFilter('');
         setTapFilter('');
         setSalesforceFilter('');
+        setSelectedIds(new Set());
     };
+
+    // Bulk selection handlers
+    const handleSelectRow = (id: number) => {
+        setSelectedIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) newSet.delete(id);
+            else newSet.add(id);
+            return newSet;
+        });
+    };
+
+    const handleSelectAllOnPage = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            const newIds = currentItems.map(item => item.id);
+            setSelectedIds(prev => new Set([...prev, ...newIds]));
+        } else {
+            // Deselect only items on current page
+            const newSet = new Set(selectedIds);
+            currentItems.forEach(item => newSet.delete(item.id));
+            setSelectedIds(newSet);
+        }
+    };
+
+    const isAllSelectedOnPage = currentItems.length > 0 && currentItems.every(item => selectedIds.has(item.id));
 
     const handleUpdateStatus = (status: string, note: string, photoFile: File | null) => {
         if (editingRedemption) {
             adminUpdateRedemptionStatus(editingRedemption.id, status, note, photoFile);
             setEditingRedemption(null);
         }
+    };
+
+    const handleBulkSave = (status: string, note: string) => {
+        adminBulkUpdateRedemptionStatus(Array.from(selectedIds), status, note);
+        setShowBulkModal(false);
+        setSelectedIds(new Set());
     };
 
     const handleExport = () => {
@@ -316,12 +393,28 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                     </div>
                 </Modal>
             )}
+            
+            {showBulkModal && (
+                <BulkStatusModal 
+                    count={selectedIds.size}
+                    onClose={() => setShowBulkModal(false)}
+                    onSave={handleBulkSave}
+                />
+            )}
 
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Riwayat Penukaran Poin Mitra</h1>
-                <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
-                    <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel
-                </button>
+                <div className="flex gap-2">
+                    {selectedIds.size > 0 && !isReadOnly && (
+                        <button onClick={() => setShowBulkModal(true)} className="neu-button !w-auto px-4 flex items-center gap-2 bg-purple-600 text-white hover:bg-purple-700 shadow-md">
+                            <Icon path={ICONS.edit} className="w-5 h-5"/>
+                            Update {selectedIds.size} Terpilih
+                        </button>
+                    )}
+                    <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
+                        <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel
+                    </button>
+                </div>
             </div>
 
             {/* Summary Statistics (Status) */}
@@ -413,6 +506,16 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                     <table className="w-full min-w-max text-left">
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
+                                {!isReadOnly && (
+                                    <th className="p-4 w-10">
+                                        <input 
+                                            type="checkbox" 
+                                            className="w-5 h-5 rounded cursor-pointer"
+                                            checked={isAllSelectedOnPage}
+                                            onChange={handleSelectAllOnPage}
+                                        />
+                                    </th>
+                                )}
                                 <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
                                 <th className="p-4 font-semibold text-gray-600">Nama Mitra</th>
                                 <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">TAP</th>
@@ -425,7 +528,17 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                         </thead>
                         <tbody>
                             {currentItems.length > 0 ? currentItems.map((item, index) => (
-                                <tr key={item.id || index} className="border-t border-slate-200/80">
+                                <tr key={item.id || index} className={`border-t border-slate-200/80 ${selectedIds.has(item.id) ? 'bg-purple-50' : ''}`}>
+                                    {!isReadOnly && (
+                                        <td className="p-4">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-5 h-5 rounded cursor-pointer"
+                                                checked={selectedIds.has(item.id)}
+                                                onChange={() => handleSelectRow(item.id)}
+                                            />
+                                        </td>
+                                    )}
                                     <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                                     <td className="p-4">
                                         <p className="font-semibold text-gray-800">{item.userName || 'Nama Tidak Ditemukan'}</p>
@@ -468,7 +581,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                 </tr>
                             )) : (
                                  <tr>
-                                    <td colSpan={8} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
+                                    <td colSpan={isReadOnly ? 8 : 9} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
                                 </tr>
                             )}
                         </tbody>
