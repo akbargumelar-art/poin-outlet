@@ -55,12 +55,14 @@ const App: React.FC = () => {
             // Cek koneksi awal ke API
             const testConnection = await fetch('/api/users');
             if (!testConnection.ok) {
-                throw new Error(`Gagal terhubung ke API (Status: ${testConnection.status})`);
+                // If API is reachable but returns error (e.g. 500 from backend DB error),
+                // we handle it gracefully here
+                console.warn(`API Connection Test Failed: ${testConnection.status}`);
             }
 
             // Gunakan Promise.allSettled agar satu error tidak mematikan semua data
             const results = await Promise.allSettled([
-                testConnection.json(), // Users (sudah di-fetch di atas)
+                fetch('/api/users').then(res => res.ok ? res.json() : []),
                 fetch('/api/transactions').then(res => res.ok ? res.json() : []),
                 fetch('/api/rewards').then(res => res.ok ? res.json() : []),
                 fetch('/api/redemptions').then(res => res.ok ? res.json() : []),
@@ -92,7 +94,6 @@ const App: React.FC = () => {
 
         } catch (error) {
             console.error("Failed to fetch bootstrap data", error);
-            // Tampilkan modal error jika koneksi benar-benar mati
             setModal({
                 show: true,
                 title: "Koneksi Bermasalah",

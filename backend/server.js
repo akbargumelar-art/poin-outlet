@@ -56,8 +56,11 @@ const PORT = process.env.PORT || 4001;
 
 // Function to check and set up the database schema
 const setupDatabase = async () => {
-    const connection = await db.getConnection();
+    // We get a connection from the pool. If pool is invalid, this throws.
+    // We catch it inside to prevent server crash.
+    let connection; 
     try {
+        connection = await db.getConnection();
         console.log('Checking database schema...');
         
         // --- Check for special_numbers table ---
@@ -115,7 +118,6 @@ const setupDatabase = async () => {
         const [redemptionColumnsStatus] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'status'");
         if (redemptionColumnsStatus.length === 0) {
             console.log("Columns 'status', 'status_note', 'status_updated_at' not found in 'redemptions'. Altering table...");
-            // Removed 'AFTER' clauses to prevent errors if reference columns are missing
             const alterQuery = `
                 ALTER TABLE redemptions
                 ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Diajukan',
@@ -158,20 +160,21 @@ const setupDatabase = async () => {
         }
 
     } catch (err) {
-        console.error('Database setup failed:', err);
-        process.exit(1); // Exit if setup fails
+        console.error('Database setup ERROR:', err);
+        // Do NOT exit process here. Let server run so it can respond with 500s instead of 502s.
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 };
 
 
 // --- Function to backfill names in historical redemption data ---
 const backfillRedemptionNames = async () => {
-    const connection = await db.getConnection();
+    let connection;
     try {
+        connection = await db.getConnection();
         console.log('Checking for historical redemption records that need name backfilling...');
-        // Only run if the columns actually exist to avoid errors during partial migrations
+        
         const [columns] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'user_name'");
         if (columns.length === 0) {
              console.log('Skipping backfill: Columns do not exist yet.');
@@ -196,7 +199,7 @@ const backfillRedemptionNames = async () => {
             const userName = userRows[0]?.nama || null;
             const rewardName = rewardRows[0]?.name || null;
 
-            // Only update if we found at least one name, to avoid unnecessary writes
+            // Only update if we found at least one name
             if (userName || rewardName) {
                  await connection.execute(
                     "UPDATE redemptions SET user_name = ?, reward_name = ? WHERE id = ?",
@@ -210,31 +213,19 @@ const backfillRedemptionNames = async () => {
     } catch (err) {
         console.error('Failed during redemption name backfill:', err);
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 };
 
 
-// Function to check DB connection and then start the server
-const startServer = async () => {
-    try {
-        const connection = await db.getConnection();
-        console.log('Successfully connected to the database.');
-        connection.release();
-        
-        app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
-        });
-    } catch (err) {
-        console.error('FATAL: Could not connect to the database. Server is not starting.');
-        console.error('Full Error Details:', err);
-        process.exit(1); // Exit the process with an error code
-    }
-};
-
-// Start the server after ensuring the database is set up and backfilled
-setupDatabase().then(() => {
-    backfillRedemptionNames().then(() => {
-        startServer();
-    });
+// START THE SERVER IMMEDIATELY
+// We do not wait for DB setup to finish before listening.
+// This prevents 502 Bad Gateway errors from Nginx if DB connection is slow or fails.
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    
+    // Run DB setup in the background
+    setupDatabase()
+        .then(() => backfillRedemptionNames())
+        .catch(err => console.error("Critical Background Setup Error:", err));
 });
