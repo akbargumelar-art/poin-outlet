@@ -122,13 +122,17 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         const productSales: Record<string, number> = {};
 
         filteredTransactions.forEach(t => {
-            totalRevenue += Number(t.totalPembelian || 0);
-            totalPoints += Number(t.pointsEarned || 0);
+            // FIX: Force parseFloat to avoid string concatenation issues or NaN
+            const revenue = typeof t.totalPembelian === 'string' ? parseFloat(t.totalPembelian) : t.totalPembelian;
+            const points = typeof t.pointsEarned === 'string' ? parseFloat(t.pointsEarned) : t.pointsEarned;
+            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti) : t.kuantiti;
+
+            totalRevenue += (isNaN(revenue) ? 0 : revenue);
+            totalPoints += (isNaN(points) ? 0 : points);
             uniquePartners.add(t.userId);
 
             const prodName = t.produk || 'Unknown';
-            // Aggregate quantity for best seller logic
-            productSales[prodName] = (productSales[prodName] || 0) + Number(t.kuantiti || 0);
+            productSales[prodName] = (productSales[prodName] || 0) + (isNaN(qty) ? 0 : qty);
         });
 
         // Find Best Seller
@@ -157,8 +161,13 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
         // 1. Identify Top 5 Products by Total Revenue in this period
         const productRevenue: Record<string, number> = {};
+        
         filteredTransactions.forEach(t => {
-            productRevenue[t.produk] = (productRevenue[t.produk] || 0) + t.totalPembelian;
+            // Strict number conversion
+            const revenue = typeof t.totalPembelian === 'string' ? parseFloat(t.totalPembelian) : t.totalPembelian;
+            const safeRevenue = isNaN(revenue) ? 0 : revenue;
+            
+            productRevenue[t.produk] = (productRevenue[t.produk] || 0) + safeRevenue;
         });
         
         const topProducts = Object.entries(productRevenue)
@@ -172,23 +181,31 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         topProducts.forEach((prod, index) => {
             productColors[prod] = colors[index];
         });
-        const otherColor = '#94a3b8'; // Slate 400 for "Others"
+        const otherColor = '#94a3b8'; // Slate 400 for "Lainnya"
 
         // 3. Group Data by Date
         const dailyGroups: Record<string, { total: number, breakdown: Record<string, number> }> = {};
         
         filteredTransactions.forEach(t => {
-            const dateKey = new Date(t.date).toISOString().split('T')[0];
+            let dateKey: string;
+            try {
+                dateKey = new Date(t.date).toISOString().split('T')[0];
+            } catch (e) {
+                return; // Skip invalid dates
+            }
+
             if (!dailyGroups[dateKey]) {
                 dailyGroups[dateKey] = { total: 0, breakdown: {} };
             }
             
-            const revenue = t.totalPembelian;
-            dailyGroups[dateKey].total += revenue;
+            const revenue = typeof t.totalPembelian === 'string' ? parseFloat(t.totalPembelian) : t.totalPembelian;
+            const safeRevenue = isNaN(revenue) ? 0 : revenue;
+
+            dailyGroups[dateKey].total += safeRevenue;
             
             // Group into Top 5 or "Others"
             const key = topProducts.includes(t.produk) ? t.produk : 'Lainnya';
-            dailyGroups[dateKey].breakdown[key] = (dailyGroups[dateKey].breakdown[key] || 0) + revenue;
+            dailyGroups[dateKey].breakdown[key] = (dailyGroups[dateKey].breakdown[key] || 0) + safeRevenue;
         });
 
         // 4. Transform to sorted array
@@ -202,7 +219,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
         const maxTotal = Math.max(...data.map(d => d.total));
 
-        return { data, topProducts, productColors, otherColor, maxTotal };
+        return { data, topProducts, productColors, otherColor, maxTotal: maxTotal || 1 }; // Ensure maxTotal is at least 1 to avoid /0
     }, [filteredTransactions]);
 
 
@@ -358,15 +375,15 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
                         {/* Scrollable Chart Container */}
                         <div className="w-full overflow-x-auto pb-2">
+                            {/* Min-width calculation ensures bars don't get too thin */}
                             <div className="h-64 relative" style={{ minWidth: `${Math.max(100, chartData.data.length * 60)}px` }}>
                                 <div className="absolute inset-0 flex items-end justify-between px-2 gap-2 sm:gap-4">
                                     {chartData.data.map((day, index) => {
-                                        // Stack calculation
                                         let currentHeightPercent = 0;
                                         return (
                                             <div key={day.date} className="flex flex-col items-center justify-end h-full flex-1 group relative">
                                                 {/* Tooltip Overlay */}
-                                                <div className="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-gray-800 text-white text-xs rounded p-2 shadow-lg w-max max-w-[200px]">
+                                                <div className="absolute bottom-full mb-2 hidden group-hover:block z-20 bg-gray-800 text-white text-xs rounded p-2 shadow-lg w-max max-w-[200px]">
                                                     <p className="font-bold mb-1 border-b border-gray-600 pb-1">{day.displayDate}</p>
                                                     <p className="font-bold">Total: Rp {day.total.toLocaleString('id-ID', { compactDisplay: 'short' })}</p>
                                                     <div className="mt-1 space-y-0.5">
@@ -505,10 +522,10 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                         <p className="text-xs text-gray-500 font-mono">{item.userId}</p>
                                     </td>
                                     <td className="p-4 font-semibold">{item.produk}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">Rp {(item.harga || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">{(item.kuantiti || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">Rp {(item.totalPembelian || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
-                                    <td className="p-4 font-bold text-right text-green-600 whitespace-nowrap">+{(item.pointsEarned || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
+                                    <td className="p-4 text-right whitespace-nowrap">Rp {(Number(item.harga) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
+                                    <td className="p-4 text-right whitespace-nowrap">{(Number(item.kuantiti) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
+                                    <td className="p-4 text-right whitespace-nowrap">Rp {(Number(item.totalPembelian) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
+                                    <td className="p-4 font-bold text-right text-green-600 whitespace-nowrap">+{(Number(item.pointsEarned) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
                                 </tr>
                             )) : (
                                  <tr>
