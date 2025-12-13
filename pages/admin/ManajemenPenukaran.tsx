@@ -323,7 +323,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
             return;
         }
     
-        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Hadiah', 'Poin Dihabiskan', 'Status', 'Catatan Status'].join(',');
+        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Hadiah', 'Poin Dihabiskan', 'Status', 'Catatan Status', 'Penerima', 'Surveyor', 'Lokasi'].join(',');
         
         const csvRows = filteredRedemptions.map(r => {
             const cleanRewardName = `"${(r.rewardName || 'N/A').replace(/"/g, '""')}"`;
@@ -334,6 +334,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
             }).replace(/\./g, ':');
             const statusText = r.status || 'Diajukan';
             const statusNote = `"${(r.statusNote || '').replace(/"/g, '""')}"`;
+            const receiverInfo = r.receiverName ? `${r.receiverName} (${r.receiverRole || '-'})` : '-';
 
             return [
                 formattedDate,
@@ -344,7 +345,10 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                 cleanRewardName,
                 r.pointsSpent,
                 statusText,
-                statusNote
+                statusNote,
+                `"${receiverInfo}"`,
+                `"${r.surveyorName || '-'}"`,
+                `"${r.locationCoordinates || '-'}"`
             ].join(',');
         });
     
@@ -384,12 +388,67 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                     onClose={() => setEditingRedemption(null)}
                 />
             )}
-             {viewingPhoto && viewingPhoto.documentationPhotoUrl && (
-                <Modal show={true} onClose={() => setViewingPhoto(null)} title={`Dokumentasi: ${viewingPhoto.rewardName}`}>
-                    <div className="text-center">
-                        <img src={viewingPhoto.documentationPhotoUrl} alt={`Dokumentasi untuk ${viewingPhoto.rewardName}`} className="w-full max-h-[70vh] object-contain rounded-lg mb-4"/>
-                        <p><strong>Mitra:</strong> {viewingPhoto.userName}</p>
-                        <p><strong>Tanggal:</strong> {new Date(viewingPhoto.date).toLocaleString('id-ID')}</p>
+             {viewingPhoto && (
+                <Modal show={true} onClose={() => setViewingPhoto(null)} title={`Detail Penyerahan: ${viewingPhoto.rewardName}`}>
+                    <div className="flex flex-col md:flex-row gap-6">
+                        {/* Photo Section */}
+                        <div className="w-full md:w-1/2 flex items-center justify-center bg-gray-100 rounded-lg p-2">
+                            {viewingPhoto.documentationPhotoUrl ? (
+                                <img 
+                                    src={viewingPhoto.documentationPhotoUrl} 
+                                    alt="Dokumentasi" 
+                                    className="w-full h-auto object-contain max-h-[60vh] rounded-lg"
+                                />
+                            ) : (
+                                <div className="text-center py-20 text-gray-400">
+                                    <Icon path={ICONS.camera} className="w-12 h-12 mx-auto mb-2 opacity-50"/>
+                                    <p>Tidak ada foto dokumentasi</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Details Section */}
+                        <div className="w-full md:w-1/2 space-y-4">
+                            <div>
+                                <h4 className="font-bold text-gray-700 text-lg mb-1">Informasi Penerima</h4>
+                                <table className="w-full text-sm">
+                                    <tbody>
+                                        <tr><td className="text-gray-500 py-1 w-32">Nama Mitra:</td><td className="font-semibold">{viewingPhoto.userName}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">ID Mitra:</td><td className="font-mono">{viewingPhoto.userId}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Nama Penerima:</td><td>{viewingPhoto.receiverName || '-'}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Jabatan:</td><td>{viewingPhoto.receiverRole || '-'}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="border-t pt-4">
+                                <h4 className="font-bold text-gray-700 text-lg mb-1">Detail Penyerahan</h4>
+                                <table className="w-full text-sm">
+                                    <tbody>
+                                        <tr><td className="text-gray-500 py-1 w-32">Tanggal:</td><td>{new Date(viewingPhoto.date).toLocaleString('id-ID')}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Surveyor:</td><td>{viewingPhoto.surveyorName || '-'}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Lokasi:</td><td>
+                                            {viewingPhoto.locationCoordinates ? (
+                                                <a 
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${viewingPhoto.locationCoordinates}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:underline flex items-center gap-1"
+                                                >
+                                                    <Icon path={ICONS.location} className="w-4 h-4"/>
+                                                    {viewingPhoto.locationCoordinates}
+                                                </a>
+                                            ) : '-'}
+                                        </td></tr>
+                                        <tr><td className="text-gray-500 py-1">Catatan:</td><td className="italic text-gray-600">"{viewingPhoto.statusNote || '-'}"</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div className="pt-4 mt-auto">
+                                <button onClick={() => setViewingPhoto(null)} className="neu-button w-full">Tutup</button>
+                            </div>
+                        </div>
                     </div>
                 </Modal>
             )}
@@ -553,24 +612,18 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                         </p>
                                         {item.status === 'Selesai' && item.statusUpdatedAt && 
                                             <p className="text-xs text-gray-500">
-                                                pada {new Date(item.statusUpdatedAt).toLocaleDateString('id-ID')}
+                                                {new Date(item.statusUpdatedAt).toLocaleDateString('id-ID')}
                                             </p>
                                         }
-                                        {item.statusNote && <p className="text-xs text-gray-500 italic">"{item.statusNote}"</p>}
+                                        {item.statusNote && <p className="text-xs text-gray-500 italic max-w-[150px] truncate">"{item.statusNote}"</p>}
                                     </td>
                                     <td className="p-4 font-bold text-right text-red-600 whitespace-nowrap">{(item.pointsSpent || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
                                     <td className="p-4">
                                         <div className="flex gap-2">
-                                            {item.documentationPhotoUrl && (
-                                                <button onClick={() => setViewingPhoto(item)} className="neu-button-icon text-purple-600" title="Lihat Foto Dokumentasi">
-                                                    <Icon path={ICONS.camera} className="w-5 h-5"/>
-                                                </button>
-                                            )}
-                                            {item.status === 'Selesai' && !item.documentationPhotoUrl && (
-                                                <div className="neu-button-icon cursor-not-allowed opacity-50" title="Dokumentasi tidak tersedia">
-                                                    <Icon path={ICONS.camera} className="w-5 h-5 text-gray-400"/>
-                                                </div>
-                                            )}
+                                            <button onClick={() => setViewingPhoto(item)} className="neu-button-icon text-purple-600" title="Lihat Detail & Bukti">
+                                                <Icon path={ICONS.eye} className="w-5 h-5"/>
+                                            </button>
+                                            
                                             {!isReadOnly && (
                                                 <button onClick={() => setEditingRedemption(item)} className="neu-button-icon text-blue-600" title="Ubah Status">
                                                     <Icon path={ICONS.edit} className="w-5 h-5"/>

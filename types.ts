@@ -1,5 +1,4 @@
 
-
 export type UserRole = 'admin' | 'pelanggan' | 'supervisor' | 'operator';
 export type Page = 
     | 'landing'
@@ -80,6 +79,11 @@ export interface Redemption {
     statusNote?: string;
     statusUpdatedAt?: string;
     documentationPhotoUrl?: string;
+    // AppSheet / Integration Fields
+    receiverName?: string;
+    receiverRole?: string;
+    surveyorName?: string;
+    locationCoordinates?: string;
 }
 
 // Tipe baru untuk menyatukan history
