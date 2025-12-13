@@ -427,7 +427,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
                             {/* Scrollable Chart Container */}
                             <div className="w-full overflow-x-auto pb-2">
-                                <div className="h-[500px] relative" style={{ minWidth: `${Math.max(100, chartData.data.length * 40)}px` }}>
+                                <div className="h-64 relative" style={{ minWidth: `${Math.max(100, chartData.data.length * 40)}px` }}>
                                     <div className="absolute inset-0 flex items-end justify-between px-2 gap-2">
                                         {chartData.data.map((day, index) => {
                                             return (
@@ -511,7 +511,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                 </div>
                             </div>
 
-                            <div className="max-h-[500px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+                            <div className="h-64 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                                 {momChartData.data.map(item => {
                                     const currentPercent = (item.current / momChartData.maxValue) * 100;
                                     const lastPercent = (item.last / momChartData.maxValue) * 100;
