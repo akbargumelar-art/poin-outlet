@@ -193,6 +193,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
             if (searchTerm.trim()) {
                 const lowercasedSearchTerm = searchTerm.toLowerCase();
                 return (
+                    item.id.toString().includes(lowercasedSearchTerm) ||
                     item.userName?.toLowerCase().includes(lowercasedSearchTerm) ||
                     item.userId.toLowerCase().includes(lowercasedSearchTerm) ||
                     item.rewardName.toLowerCase().includes(lowercasedSearchTerm) ||
@@ -323,7 +324,8 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
             return;
         }
     
-        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Hadiah', 'Poin Dihabiskan', 'Status', 'Catatan Status', 'Penerima', 'Surveyor', 'Lokasi'].join(',');
+        // Updated Header to include Transaction ID
+        const csvHeader = ['ID Transaksi', 'Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Hadiah', 'Poin Dihabiskan', 'Status', 'Catatan Status', 'Penerima', 'Surveyor', 'Lokasi'].join(',');
         
         const csvRows = filteredRedemptions.map(r => {
             const cleanRewardName = `"${(r.rewardName || 'N/A').replace(/"/g, '""')}"`;
@@ -337,6 +339,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
             const receiverInfo = r.receiverName ? `${r.receiverName} (${r.receiverRole || '-'})` : '-';
 
             return [
+                r.id, // Added Transaction ID
                 formattedDate,
                 r.userId,
                 cleanUserName,
@@ -426,6 +429,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                 <table className="w-full text-sm">
                                     <tbody>
                                         <tr><td className="text-gray-500 py-1 w-32">Tanggal:</td><td>{new Date(viewingPhoto.date).toLocaleString('id-ID')}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">ID Transaksi:</td><td className="font-mono">{viewingPhoto.id}</td></tr>
                                         <tr><td className="text-gray-500 py-1">Surveyor:</td><td>{viewingPhoto.surveyorName || '-'}</td></tr>
                                         <tr><td className="text-gray-500 py-1">Lokasi:</td><td>
                                             {viewingPhoto.locationCoordinates ? (
@@ -575,6 +579,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                         />
                                     </th>
                                 )}
+                                <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">ID</th>
                                 <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">Tanggal</th>
                                 <th className="p-4 font-semibold text-gray-600">Nama Mitra</th>
                                 <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">TAP</th>
@@ -598,6 +603,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                             />
                                         </td>
                                     )}
+                                    <td className="p-4 font-mono text-sm text-gray-500">{item.id}</td>
                                     <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                                     <td className="p-4">
                                         <p className="font-semibold text-gray-800">{item.userName || 'Nama Tidak Ditemukan'}</p>
@@ -634,7 +640,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                 </tr>
                             )) : (
                                  <tr>
-                                    <td colSpan={isReadOnly ? 8 : 9} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
+                                    <td colSpan={isReadOnly ? 9 : 10} className="p-8 text-center text-gray-500">Tidak ada riwayat penukaran yang cocok.</td>
                                 </tr>
                             )}
                         </tbody>
