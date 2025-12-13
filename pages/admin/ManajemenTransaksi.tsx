@@ -427,7 +427,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
                             {/* Scrollable Chart Container */}
                             <div className="w-full overflow-x-auto pb-2">
-                                <div className="h-64 relative" style={{ minWidth: `${Math.max(100, chartData.data.length * 40)}px` }}>
+                                <div className="h-[500px] relative" style={{ minWidth: `${Math.max(100, chartData.data.length * 40)}px` }}>
                                     <div className="absolute inset-0 flex items-end justify-between px-2 gap-2">
                                         {chartData.data.map((day, index) => {
                                             return (
@@ -497,7 +497,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                             <div className="flex justify-between items-start mb-6">
                                 <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
                                     <Icon path={ICONS.history} className="w-5 h-5 text-blue-500" />
-                                    Komparasi MTD (Qty - Semua)
+                                    Komparasi MTD (Qty)
                                 </h2>
                                 <div className="text-xs text-right">
                                     <div className="flex items-center justify-end gap-2 mb-1">
