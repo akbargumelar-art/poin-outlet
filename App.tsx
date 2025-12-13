@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Page, Transaction, Reward, Redemption, LoyaltyProgram, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, SpecialNumber, WhatsAppSettings, UserProfile, Location, UserRole } from './types';
 import MainLayout from './components/layout/MainLayout';
@@ -26,6 +27,10 @@ import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
 import NomorSpesialPage from './pages/shared/NomorSpesialPage';
 import ManajemenNomor from './pages/admin/ManajemenNomorSpesial';
 
+const SESSION_KEY = 'mitra_app_session';
+const PAGE_KEY = 'mitra_app_last_page';
+const SESSION_DURATION = 24 * 60 * 60 * 1000; // 1 Hari dalam milidetik
+
 const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [currentPage, setCurrentPage] = useState<Page>('landing');
@@ -50,18 +55,59 @@ const App: React.FC = () => {
 
     const isSupervisor = currentUser?.role === 'supervisor';
 
+    // --- Session Management ---
+    const saveSession = (user: User) => {
+        const sessionData = {
+            user,
+            expiry: Date.now() + SESSION_DURATION
+        };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+        setCurrentUser(user);
+    };
+
+    const clearSession = () => {
+        localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(PAGE_KEY);
+        setCurrentUser(null);
+        setCurrentPage('landing');
+    };
+
+    // Check session on mount
+    useEffect(() => {
+        const storedSession = localStorage.getItem(SESSION_KEY);
+        if (storedSession) {
+            try {
+                const parsedSession = JSON.parse(storedSession);
+                if (Date.now() < parsedSession.expiry) {
+                    // Session Valid
+                    setCurrentUser(parsedSession.user);
+                    
+                    // Restore Last Page if available
+                    const lastPage = localStorage.getItem(PAGE_KEY) as Page;
+                    if (lastPage) {
+                        setCurrentPage(lastPage);
+                    } else {
+                        // Default dashboard based on role
+                        const role = parsedSession.user.role;
+                        if (role === 'pelanggan') setCurrentPage('pelangganDashboard');
+                        else if (role === 'operator') setCurrentPage('manajemenNomor');
+                        else setCurrentPage('adminDashboard');
+                    }
+                } else {
+                    // Session Expired
+                    clearSession();
+                }
+            } catch (e) {
+                console.error("Failed to parse session", e);
+                clearSession();
+            }
+        }
+    }, []);
+
     const fetchBootstrapData = useCallback(async () => {
         try {
-            // Cek koneksi awal ke API
-            const testConnection = await fetch('/api/users');
-            if (!testConnection.ok) {
-                // If API is reachable but returns error (e.g. 500 from backend DB error),
-                // we handle it gracefully here
-                console.warn(`API Connection Test Failed: ${testConnection.status}`);
-            }
-
-            // Gunakan Promise.allSettled agar satu error tidak mematikan semua data
-            const results = await Promise.allSettled([
+            // Placeholder for data fetching - ensure these endpoints exist or replace with actual logic
+            const responses = await Promise.all([
                 fetch('/api/users').then(res => res.ok ? res.json() : []),
                 fetch('/api/transactions').then(res => res.ok ? res.json() : []),
                 fetch('/api/rewards').then(res => res.ok ? res.json() : []),
@@ -76,44 +122,35 @@ const App: React.FC = () => {
                 fetch('/api/locations').then(res => res.ok ? res.json() : [])
             ]);
 
-            const getValue = <T,>(result: PromiseSettledResult<T>, defaultValue: T): T => 
-                result.status === 'fulfilled' ? result.value : defaultValue;
-
-            setUsers(getValue(results[0], []));
-            setTransactions(getValue(results[1], []));
-            setRewards(getValue(results[2], []));
-            setRedemptionHistory(getValue(results[3], []));
-            setLoyaltyPrograms(getValue(results[4], []));
-            setRunningPrograms(getValue(results[5], []));
-            setRafflePrograms(getValue(results[6], []));
-            setCouponRedemptions(getValue(results[7], []));
-            setRaffleWinners(getValue(results[8], []));
-            setSpecialNumbers(getValue(results[9], []));
-            setWhatsAppSettings(getValue(results[10], null));
-            setLocations(getValue(results[11], []));
+            setUsers(responses[0] || []);
+            setTransactions(responses[1] || []);
+            setRewards(responses[2] || []);
+            setRedemptionHistory(responses[3] || []);
+            setLoyaltyPrograms(responses[4] || []);
+            setRunningPrograms(responses[5] || []);
+            setRafflePrograms(responses[6] || []);
+            setCouponRedemptions(responses[7] || []);
+            setRaffleWinners(responses[8] || []);
+            setSpecialNumbers(responses[9] || []);
+            setWhatsAppSettings(responses[10]);
+            setLocations(responses[11] || []);
 
         } catch (error) {
             console.error("Failed to fetch bootstrap data", error);
-            setModal({
-                show: true,
-                title: "Koneksi Bermasalah",
-                content: (
-                    <div className="text-center">
-                        <p className="text-red-600 mb-2 font-bold">Gagal mengambil data dari server.</p>
-                        <p className="text-sm text-gray-500">Mohon periksa koneksi internet Anda atau hubungi admin jika masalah berlanjut.</p>
-                        <button onClick={() => window.location.reload()} className="mt-4 neu-button !w-auto px-6">Muat Ulang Halaman</button>
-                    </div>
-                )
-            });
         }
     }, []);
 
     useEffect(() => {
+        // Fetch public data even if not logged in
         fetchBootstrapData();
     }, [fetchBootstrapData]);
 
     const handlePageChange = (page: Page) => {
         setCurrentPage(page);
+        // Persist page change if logged in
+        if (currentUser) {
+            localStorage.setItem(PAGE_KEY, page);
+        }
     };
 
     const handleLogin = async (id: string, password: string): Promise<boolean> => {
@@ -125,15 +162,16 @@ const App: React.FC = () => {
             });
             if (res.ok) {
                 const user = await res.json();
-                setCurrentUser(user);
-                setCurrentPage(user.role === 'pelanggan' ? 'pelangganDashboard' : 'adminDashboard');
-                if (user.role === 'operator') setCurrentPage('manajemenNomor');
+                saveSession(user); // Save to localStorage
+                
+                const defaultPage = user.role === 'pelanggan' ? 'pelangganDashboard' : (user.role === 'operator' ? 'manajemenNomor' : 'adminDashboard');
+                handlePageChange(defaultPage);
+                
                 fetchBootstrapData();
                 return true;
             }
             return false;
         } catch (e) {
-            console.error("Login error:", e);
             return false;
         }
     };
@@ -147,8 +185,8 @@ const App: React.FC = () => {
             });
             if (res.ok) {
                 const user = await res.json();
-                setCurrentUser(user);
-                setCurrentPage('pelangganDashboard');
+                saveSession(user); // Save to localStorage
+                handlePageChange('pelangganDashboard');
                 fetchBootstrapData();
                 return true;
             } else {
@@ -163,8 +201,7 @@ const App: React.FC = () => {
     };
 
     const handleLogout = () => {
-        setCurrentUser(null);
-        setCurrentPage('landing');
+        clearSession();
     };
 
     const handleTukarClick = async (reward: Reward) => {
@@ -179,6 +216,7 @@ const App: React.FC = () => {
             if (res.ok) {
                 fetchBootstrapData();
                 setModal({ show: true, title: "Sukses", content: <p>Penukaran berhasil diajukan.</p> });
+                // Update local user points optimistically or wait for fetchBootstrapData
             } else {
                 const err = await res.json();
                 setModal({ show: true, title: "Error", content: <p>{err.message}</p> });
@@ -204,8 +242,11 @@ const App: React.FC = () => {
             });
             if (res.ok) {
                 await fetchBootstrapData();
+                // Update current user locally to reflect changes immediately
                 const updatedUser = await res.json();
-                setCurrentUser(updatedUser);
+                // Important: Update localStorage too so it persists on refresh
+                saveSession(updatedUser); 
+                
                 setModal({ show: true, title: "Sukses", content: <p>Profil berhasil diperbarui.</p> });
             } else {
                 throw new Error('Gagal update profil');
