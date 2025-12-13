@@ -151,6 +151,61 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         };
     }, [filteredTransactions]);
 
+    // --- Chart Data Calculation (Daily Stacked Bar) ---
+    const chartData = useMemo(() => {
+        if (filteredTransactions.length === 0) return null;
+
+        // 1. Identify Top 5 Products by Total Revenue in this period
+        const productRevenue: Record<string, number> = {};
+        filteredTransactions.forEach(t => {
+            productRevenue[t.produk] = (productRevenue[t.produk] || 0) + t.totalPembelian;
+        });
+        
+        const topProducts = Object.entries(productRevenue)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(entry => entry[0]);
+
+        // 2. Colors for Top Products
+        const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
+        const productColors: Record<string, string> = {};
+        topProducts.forEach((prod, index) => {
+            productColors[prod] = colors[index];
+        });
+        const otherColor = '#94a3b8'; // Slate 400 for "Others"
+
+        // 3. Group Data by Date
+        const dailyGroups: Record<string, { total: number, breakdown: Record<string, number> }> = {};
+        
+        filteredTransactions.forEach(t => {
+            const dateKey = new Date(t.date).toISOString().split('T')[0];
+            if (!dailyGroups[dateKey]) {
+                dailyGroups[dateKey] = { total: 0, breakdown: {} };
+            }
+            
+            const revenue = t.totalPembelian;
+            dailyGroups[dateKey].total += revenue;
+            
+            // Group into Top 5 or "Others"
+            const key = topProducts.includes(t.produk) ? t.produk : 'Lainnya';
+            dailyGroups[dateKey].breakdown[key] = (dailyGroups[dateKey].breakdown[key] || 0) + revenue;
+        });
+
+        // 4. Transform to sorted array
+        const sortedDates = Object.keys(dailyGroups).sort();
+        const data = sortedDates.map(date => ({
+            date,
+            displayDate: new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+            total: dailyGroups[date].total,
+            breakdown: dailyGroups[date].breakdown
+        }));
+
+        const maxTotal = Math.max(...data.map(d => d.total));
+
+        return { data, topProducts, productColors, otherColor, maxTotal };
+    }, [filteredTransactions]);
+
+
     // Pagination Logic
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -277,6 +332,98 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                         icon={ICONS.gift} 
                     />
                 </div>
+
+                {/* Daily Product Sales Chart */}
+                {chartData && chartData.data.length > 0 && (
+                    <div className="neu-card p-6 mb-6">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                            <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
+                                <Icon path={ICONS.store} className="w-5 h-5 text-red-500" />
+                                Tren Penjualan Harian per Produk
+                            </h2>
+                            {/* Legend */}
+                            <div className="flex flex-wrap gap-3 mt-2 md:mt-0">
+                                {chartData.topProducts.map(prod => (
+                                    <div key={prod} className="flex items-center gap-1 text-xs text-gray-600">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartData.productColors[prod] }}></div>
+                                        <span>{prod}</span>
+                                    </div>
+                                ))}
+                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartData.otherColor }}></div>
+                                    <span>Lainnya</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Scrollable Chart Container */}
+                        <div className="w-full overflow-x-auto pb-2">
+                            <div className="h-64 relative" style={{ minWidth: `${Math.max(100, chartData.data.length * 60)}px` }}>
+                                <div className="absolute inset-0 flex items-end justify-between px-2 gap-2 sm:gap-4">
+                                    {chartData.data.map((day, index) => {
+                                        // Stack calculation
+                                        let currentHeightPercent = 0;
+                                        return (
+                                            <div key={day.date} className="flex flex-col items-center justify-end h-full flex-1 group relative">
+                                                {/* Tooltip Overlay */}
+                                                <div className="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-gray-800 text-white text-xs rounded p-2 shadow-lg w-max max-w-[200px]">
+                                                    <p className="font-bold mb-1 border-b border-gray-600 pb-1">{day.displayDate}</p>
+                                                    <p className="font-bold">Total: Rp {day.total.toLocaleString('id-ID', { compactDisplay: 'short' })}</p>
+                                                    <div className="mt-1 space-y-0.5">
+                                                        {Object.entries(day.breakdown).sort((a,b)=>b[1]-a[1]).map(([prod, val]) => (
+                                                            <div key={prod} className="flex justify-between gap-4">
+                                                                <span className="opacity-80">{prod}:</span>
+                                                                <span>{val.toLocaleString('id-ID', { compactDisplay: 'short' })}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Bars Stack */}
+                                                <div className="w-full max-w-[40px] h-full flex flex-col-reverse justify-start rounded-t-md overflow-hidden bg-gray-100 relative">
+                                                    {/* Draw Top Products */}
+                                                    {chartData.topProducts.map(prod => {
+                                                        const val = day.breakdown[prod] || 0;
+                                                        if (val === 0) return null;
+                                                        const height = (val / chartData.maxTotal) * 100;
+                                                        currentHeightPercent += height;
+                                                        return (
+                                                            <div 
+                                                                key={prod} 
+                                                                style={{ height: `${height}%`, backgroundColor: chartData.productColors[prod] }}
+                                                                className="w-full transition-all duration-300 hover:opacity-80"
+                                                            ></div>
+                                                        )
+                                                    })}
+                                                    {/* Draw Others */}
+                                                    {day.breakdown['Lainnya'] > 0 && (
+                                                        <div 
+                                                            style={{ height: `${(day.breakdown['Lainnya'] / chartData.maxTotal) * 100}%`, backgroundColor: chartData.otherColor }}
+                                                            className="w-full transition-all duration-300 hover:opacity-80"
+                                                        ></div>
+                                                    )}
+                                                </div>
+                                                
+                                                {/* X-Axis Label */}
+                                                <p className="text-[10px] text-gray-500 mt-2 font-medium whitespace-nowrap rotate-0 truncate w-full text-center">
+                                                    {day.displayDate}
+                                                </p>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                                {/* Y-Axis Grid Lines (Background) */}
+                                <div className="absolute inset-0 pointer-events-none flex flex-col justify-between text-[10px] text-gray-300 font-mono select-none">
+                                    <div className="border-t border-gray-200 w-full relative"><span className="absolute -top-2 left-0 bg-white/50 px-1 text-gray-400">Rp {chartData.maxTotal.toLocaleString('id-ID', {compactDisplay: 'short'})}</span></div>
+                                    <div className="border-t border-gray-100 w-full"></div>
+                                    <div className="border-t border-gray-100 w-full"></div>
+                                    <div className="border-t border-gray-100 w-full"></div>
+                                    <div className="border-t border-gray-200 w-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 
                 <div className="mb-6 neu-card-flat p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center">
                     <input
