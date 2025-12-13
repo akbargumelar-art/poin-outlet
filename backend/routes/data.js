@@ -35,6 +35,17 @@ const getFileUrl = (req, filename) => {
     return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
 };
 
+// Helper to normalize object keys (lowercase, underscore instead of space)
+// e.g., "ID Digipos" -> "id_digipos", "Tanggal " -> "tanggal"
+const normalizeRow = (row) => {
+    const newRow = {};
+    Object.keys(row).forEach(key => {
+        const cleanKey = key.toLowerCase().trim().replace(/ /g, '_');
+        newRow[cleanKey] = row[key];
+    });
+    return newRow;
+};
+
 // ==========================================
 // UPLOAD ROUTER (Multipart/Form-Data)
 // ==========================================
@@ -44,25 +55,41 @@ uploadRouter.post('/transactions/bulk', upload.single('file'), async (req, res) 
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     
     try {
-        const workbook = xlsx.readFile(req.file.path);
+        // FIX: cellDates: true ensures dates are parsed as JS Date objects, not Excel serial numbers (integers)
+        const workbook = xlsx.readFile(req.file.path, { cellDates: true });
         const sheetName = workbook.SheetNames[0];
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        const rawData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
-        // Expected columns: tanggal, id_digipos, produk, harga, kuantiti
         let successCount = 0;
         const connection = await db.getConnection();
         
         try {
             await connection.beginTransaction();
-            for (const row of data) {
+            for (const rawRow of rawData) {
+                const row = normalizeRow(rawRow); // Handle "ID Digipos" vs "id_digipos"
+
                 if (!row.id_digipos || !row.produk) continue;
                 
                 const userId = String(row.id_digipos);
                 const harga = Number(row.harga) || 0;
                 const kuantiti = Number(row.kuantiti) || 1;
                 const total = harga * kuantiti;
-                const date = row.tanggal ? new Date(row.tanggal) : new Date();
                 
+                // Date Handling
+                let date;
+                if (row.tanggal instanceof Date) {
+                    // It's already a date object thanks to cellDates: true
+                    date = row.tanggal;
+                    // Adjust for timezone offset if needed (Excel dates are sometimes technically UTC+0 in JS)
+                    // Usually not strictly necessary if just storing date, but good practice if times are off.
+                    // For now, raw date object is usually closest to what user intended visually in Excel.
+                } else if (row.tanggal) {
+                    // Fallback for strings
+                    date = new Date(row.tanggal);
+                } else {
+                    date = new Date();
+                }
+
                 // Get user multiplier
                 const [userRows] = await connection.execute('SELECT level FROM users WHERE id = ?', [userId]);
                 let multiplier = 1;
@@ -96,7 +123,7 @@ uploadRouter.post('/transactions/bulk', upload.single('file'), async (req, res) 
         }
     } catch (error) {
         console.error('Bulk transaction error:', error);
-        res.status(500).json({ message: 'Gagal memproses file excel.' });
+        res.status(500).json({ message: 'Gagal memproses file excel. Pastikan format tanggal benar.' });
     }
 });
 
@@ -244,12 +271,13 @@ uploadRouter.post('/running-programs/:id/progress', upload.single('file'), async
     
     try {
         const workbook = xlsx.readFile(req.file.path);
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        const rawData = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
         
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
-            for (const row of data) {
+            for (const rawRow of rawData) {
+                const row = normalizeRow(rawRow);
                 if (row.id_digipos && row.progress !== undefined) {
                     // Upsert target
                     const [existing] = await connection.execute(
@@ -288,14 +316,15 @@ uploadRouter.post('/running-programs/:id/participants/bulk', upload.single('file
     
     try {
         const workbook = xlsx.readFile(req.file.path);
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        const rawData = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
         
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
             // Clear existing? Maybe not, just add new ones or ensure exist
             // Strategy: Insert ignore or check exist
-            for (const row of data) {
+            for (const rawRow of rawData) {
+                const row = normalizeRow(rawRow);
                 if (row.id_digipos) {
                     const [existing] = await connection.execute(
                         'SELECT id FROM program_targets WHERE program_id = ? AND user_id = ?',
@@ -327,15 +356,13 @@ uploadRouter.post('/special-numbers/bulk', upload.single('file'), async (req, re
     
     try {
         const workbook = xlsx.readFile(req.file.path);
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        const rawData = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
         
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
-            // Remove all existing? Or append? Usually append or update.
-            // Let's TRUNCATE for "fresh stock" or INSERT IGNORE. User requested bulk upload.
-            // Safest is to upsert based on phone_number
-            for (const row of data) {
+            for (const rawRow of rawData) {
+                const row = normalizeRow(rawRow);
                 // Columns: nomor, harga, sn, lokasi
                 if (row.nomor && row.harga) {
                     await connection.execute(
@@ -386,12 +413,13 @@ uploadRouter.post('/users/levels/bulk', upload.single('file'), async (req, res) 
     
     try {
         const workbook = xlsx.readFile(req.file.path);
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        const rawData = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
         
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
-            for (const row of data) {
+            for (const rawRow of rawData) {
+                const row = normalizeRow(rawRow);
                 if (row.id_digipos && row.level) {
                     await connection.execute('UPDATE users SET level = ? WHERE id = ?', [row.level, row.id_digipos]);
                 }
@@ -641,7 +669,7 @@ router.patch('/redemptions/:id/status', async (req, res) => {
     }
 });
 
-// POST /redemptions/bulk/status (NEW - Fix for API Endpoint Not Found)
+// POST /redemptions/bulk/status
 router.post('/redemptions/bulk/status', async (req, res) => {
     const { ids, status, statusNote } = req.body; // ids is array of numbers
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -732,10 +760,6 @@ router.put('/running-programs/:id/participants', async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        // Clear existing targets not in list? Or just add new ones?
-        // Usually "Update Participants" implies setting the list to exactly what's provided.
-        // But removing targets deletes progress. Let's be safe: Add missing, maybe don't delete to preserve history?
-        // Or user expects full sync. Let's assume full sync but try to keep progress if ID exists.
         
         // 1. Get current IDs
         const [current] = await connection.execute('SELECT user_id FROM program_targets WHERE program_id = ?', [programId]);
@@ -825,10 +849,8 @@ router.delete('/raffle-programs/:id', async (req, res) => {
 });
 
 // GET /raffle-winners (Mock or DB?)
-// Assuming DB table exists or just returning empty for now if no table
 router.get('/raffle-winners', async (req, res) => {
     try {
-        // Check if table exists first to avoid error if not created
         const [rows] = await db.query("SHOW TABLES LIKE 'raffle_winners'");
         if (rows.length === 0) return res.json([]);
         
@@ -887,7 +909,6 @@ router.patch('/special-numbers/:id/status', async (req, res) => {
 // GET /whatsapp-settings
 router.get('/whatsapp-settings', async (req, res) => {
     try {
-        // Mock single row table
         const [rows] = await db.query("SHOW TABLES LIKE 'whatsapp_settings'");
         if (rows.length === 0) return res.json(null);
         
@@ -912,7 +933,6 @@ router.put('/whatsapp-settings', async (req, res) => {
     const s = req.body;
     const connection = await db.getConnection();
     try {
-        // Create table if not exists (Lazy init)
         await connection.execute(`
             CREATE TABLE IF NOT EXISTS whatsapp_settings (
                 id INT PRIMARY KEY DEFAULT 1,
@@ -926,7 +946,6 @@ router.put('/whatsapp-settings', async (req, res) => {
             )
         `);
         
-        // Upsert
         const sql = `
             INSERT INTO whatsapp_settings (id, webhook_url, sender_number, recipient_type, recipient_id, api_key, session_name, special_number_recipient)
             VALUES (1, ?, ?, ?, ?, ?, ?, ?)
@@ -942,8 +961,6 @@ router.put('/whatsapp-settings', async (req, res) => {
 // GET /locations
 router.get('/locations', async (req, res) => {
     try {
-        // Assuming 'locations' table exists or just deriving from user data for now if not
-        // Let's derive from users to ensure data exists if no table
         const [rows] = await db.query('SELECT DISTINCT kabupaten, kecamatan FROM users WHERE kabupaten IS NOT NULL');
         const locs = rows.map((r, i) => ({ id: i, kabupaten: r.kabupaten, kecamatan: r.kecamatan }));
         res.json(locs);
@@ -952,7 +969,6 @@ router.get('/locations', async (req, res) => {
 
 // GET /coupon-redemptions (Stub)
 router.get('/coupon-redemptions', async (req, res) => {
-    // If you have a separate table, query it. For now return empty.
     res.json([]);
 });
 
@@ -964,7 +980,6 @@ router.post('/users/:id/points', async (req, res) => {
         const op = action === 'tambah' ? '+' : '-';
         await db.execute(`UPDATE users SET points = points ${op} ? WHERE id = ?`, [points, userId]);
         
-        // Log as special transaction?
         await db.execute(
             'INSERT INTO transactions (user_id, date, produk, harga, kuantiti, total_pembelian, points_earned) VALUES (?, NOW(), ?, 0, 1, 0, ?)',
             [userId, `Manual Adjustment (${action})`, action === 'tambah' ? points : -points]

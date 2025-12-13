@@ -411,9 +411,12 @@ const App: React.FC = () => {
              const formData = new FormData();
             formData.append('file', file);
             const res = await fetch('/api/transactions/bulk', { method: 'POST', body: formData });
+            const result = await res.json();
             if(res.ok) {
-                 setModal({ show: true, title: "Sukses", content: <p>Transaksi berhasil diupload.</p> });
+                 setModal({ show: true, title: "Sukses", content: <p>{result.message}</p> });
                  fetchBootstrapData();
+            } else {
+                 setModal({ show: true, title: "Gagal", content: <p>{result.message}</p> });
             }
         } catch(e) { console.error(e); } finally { setIsGlobalLoading(false); }
     };
