@@ -164,6 +164,23 @@ const setupDatabase = async () => {
             console.log("Documentation photo column already exists in 'redemptions'.");
         }
 
+        // --- NEW: Check for AppSheet delivery details in redemptions table ---
+        const [redemptionColumnsDelivery] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'receiver_name'");
+        if (redemptionColumnsDelivery.length === 0) {
+            console.log("Columns for AppSheet delivery details (receiver_name, surveyor_name, etc.) not found. Altering table...");
+            const alterQuery = `
+                ALTER TABLE redemptions
+                ADD COLUMN receiver_name VARCHAR(255) DEFAULT NULL,
+                ADD COLUMN receiver_role VARCHAR(100) DEFAULT NULL,
+                ADD COLUMN surveyor_name VARCHAR(255) DEFAULT NULL,
+                ADD COLUMN location_coordinates VARCHAR(100) DEFAULT NULL;
+            `;
+            await connection.execute(alterQuery);
+            console.log("Table 'redemptions' altered successfully for delivery details.");
+        } else {
+            console.log("Delivery detail columns already exist in 'redemptions'.");
+        }
+
     } catch (err) {
         console.error('Database setup ERROR:', err);
         // Do NOT exit process here. Let server run so it can respond with 500s instead of 502s.
