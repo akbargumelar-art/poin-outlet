@@ -604,6 +604,7 @@ router.post('/integration/redemption/update', async (req, res) => {
         id, 
         note, 
         photo_base64, 
+        photo_url, // NEW: Support for direct public URL
         receiver_name, 
         receiver_role, 
         surveyor_name, 
@@ -619,26 +620,35 @@ router.post('/integration/redemption/update', async (req, res) => {
 
     const connection = await db.getConnection();
     try {
-        // 1. Handle Photo Upload if Base64 is provided
-        let photoUrl = null;
+        let finalPhotoUrl = null;
+
+        // 1. Handle Photo Upload if Base64 is provided (Priority 1)
         if (photo_base64) {
-            // Remove header if present (e.g., "data:image/jpeg;base64,")
-            const base64Data = photo_base64.replace(/^data:image\/\w+;base64,/, "");
-            const buffer = Buffer.from(base64Data, 'base64');
-            
-            const filename = `appsheet-doc-${Date.now()}-${id}.jpg`;
-            
-            if (!fs.existsSync(uploadDir)) {
-                fs.mkdirSync(uploadDir, { recursive: true });
+            try {
+                // Remove header if present (e.g., "data:image/jpeg;base64,")
+                const base64Data = photo_base64.replace(/^data:image\/\w+;base64,/, "");
+                const buffer = Buffer.from(base64Data, 'base64');
+                
+                const filename = `appsheet-doc-${Date.now()}-${id}.jpg`;
+                
+                if (!fs.existsSync(uploadDir)) {
+                    fs.mkdirSync(uploadDir, { recursive: true });
+                }
+                
+                const filePath = path.join(uploadDir, filename);
+                fs.writeFileSync(filePath, buffer);
+                
+                finalPhotoUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+            } catch (err) {
+                console.error("Failed to process base64 photo:", err);
             }
-            
-            const filePath = path.join(uploadDir, filename);
-            fs.writeFileSync(filePath, buffer);
-            
-            photoUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+        } 
+        // 2. Handle Direct URL if provided and no base64 (Priority 2)
+        else if (photo_url) {
+            finalPhotoUrl = photo_url;
         }
 
-        // 2. Update Database with new fields
+        // 3. Update Database with new fields
         let query = `
             UPDATE redemptions SET 
             status = ?, 
@@ -659,9 +669,9 @@ router.post('/integration/redemption/update', async (req, res) => {
             location || null
         ];
 
-        if (photoUrl) {
+        if (finalPhotoUrl) {
             query += ', documentation_photo_url = ?';
-            params.push(photoUrl);
+            params.push(finalPhotoUrl);
         }
 
         query += ' WHERE id = ?';
@@ -677,7 +687,7 @@ router.post('/integration/redemption/update', async (req, res) => {
             message: 'Status updated successfully', 
             id, 
             status, 
-            photo_url: photoUrl 
+            photo_url: finalPhotoUrl 
         });
 
     } catch (error) {
