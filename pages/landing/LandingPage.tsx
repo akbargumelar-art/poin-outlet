@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram, Redemption } from '../../types';
 import Icon from '../../components/common/Icon';
-import { ICONS } from '../../constants';
+import { ICONS, APP_VERSION } from '../../constants';
 import PemenangUndian from '../../components/PemenangUndian';
 import SimulasiPoin from '../../components/SimulasiPoin';
 import DocumentationSlider from '../../components/common/DocumentationSlider';
@@ -176,6 +176,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, rewards, runn
                  {/* Footer Section */}
                 <footer className="text-center py-10 border-t border-gray-200/80 mt-16">
                     <p className="text-gray-500">&copy; {new Date().getFullYear()} PT Agrabudi Komunika. All rights reserved.</p>
+                    <p className="text-xs text-gray-300 mt-2">{APP_VERSION}</p>
                      <div className="flex justify-center gap-4 mt-4">
                         <a href="#" className="text-gray-400 hover:text-red-500"><Icon path={ICONS.whatsapp} className="w-6 h-6"/></a>
                         <a href="#" className="text-gray-400 hover:text-red-500"><Icon path={ICONS.instagram} className="w-6 h-6"/></a>

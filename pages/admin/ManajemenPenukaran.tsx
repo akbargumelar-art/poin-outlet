@@ -230,18 +230,35 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
         return new Set(filteredRedemptions.map(r => r.userId)).size;
     }, [filteredRedemptions]);
 
-    // Calculate summary based on filtered data (Rewards)
+    // Calculate summary based on filtered data (Rewards) with Status Breakdown
     const rewardStats = useMemo(() => {
-        const stats: { [key: string]: { count: number; totalPoints: number; userIds: Set<string> } } = {};
+        const stats: { 
+            [key: string]: { 
+                count: number; 
+                totalPoints: number; 
+                userIds: Set<string>;
+                statusCounts: { [key: string]: number };
+            } 
+        } = {};
         
         filteredRedemptions.forEach(r => {
             const name = r.rewardName || 'Unknown';
             if (!stats[name]) {
-                stats[name] = { count: 0, totalPoints: 0, userIds: new Set() };
+                stats[name] = { 
+                    count: 0, 
+                    totalPoints: 0, 
+                    userIds: new Set(),
+                    statusCounts: { 'Diajukan': 0, 'Diproses': 0, 'Selesai': 0, 'Ditolak': 0 }
+                };
             }
             stats[name].count++;
             stats[name].totalPoints += (r.pointsSpent || 0);
             stats[name].userIds.add(r.userId);
+            
+            const status = r.status || 'Diajukan';
+            if (stats[name].statusCounts[status] !== undefined) {
+                stats[name].statusCounts[status]++;
+            }
         });
 
         // Convert to array and sort by count descending
@@ -250,7 +267,8 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                 name, 
                 count: data.count, 
                 totalPoints: data.totalPoints,
-                outletCount: data.userIds.size // Count of unique outlets per reward
+                outletCount: data.userIds.size,
+                statusCounts: data.statusCounts
             }))
             .sort((a, b) => b.count - a.count);
     }, [filteredRedemptions]);
@@ -567,12 +585,32 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                     <p className="text-2xl font-bold text-gray-800">{stat.count}</p>
                                     <span className="text-xs text-gray-500">Unit</span>
                                 </div>
-                                {/* New: Outlet Count */}
                                 <div className="flex items-center gap-1 mt-1 text-xs text-purple-600 font-medium bg-purple-50 px-2 py-0.5 rounded w-fit">
                                     <Icon path={ICONS.store} className="w-3 h-3" />
                                     <span>{stat.outletCount} Outlet</span>
                                 </div>
                             </div>
+                            
+                            {/* STATUS BREAKDOWN SECTION */}
+                            <div className="mt-3 pt-2 border-t border-gray-100 grid grid-cols-2 gap-y-1 gap-x-2 text-[10px]">
+                                <div className="flex justify-between items-center text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded" title="Diajukan">
+                                    <span>Diajukan</span>
+                                    <span className="font-bold">{stat.statusCounts['Diajukan']}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded" title="Diproses">
+                                    <span>Diproses</span>
+                                    <span className="font-bold">{stat.statusCounts['Diproses']}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-green-600 bg-green-50 px-1.5 py-0.5 rounded" title="Selesai">
+                                    <span>Selesai</span>
+                                    <span className="font-bold">{stat.statusCounts['Selesai']}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-red-600 bg-red-50 px-1.5 py-0.5 rounded" title="Ditolak">
+                                    <span>Ditolak</span>
+                                    <span className="font-bold">{stat.statusCounts['Ditolak']}</span>
+                                </div>
+                            </div>
+
                             <div className="mt-2 text-right">
                                 <p className="text-xs text-red-600 font-bold bg-red-50 px-2 py-1 rounded inline-block">
                                     -{stat.totalPoints.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })} Poin

@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Page } from '../../types';
-import { ICONS } from '../../constants';
+import { ICONS, APP_VERSION } from '../../constants';
 import Icon from '../common/Icon';
 
 interface MainLayoutProps {
@@ -81,7 +82,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         <div className="h-screen w-full flex flex-col font-sans neu-bg">
             <div className="flex-shrink-0 w-full">
                 <header className="w-full max-w-4xl xl:max-w-7xl mx-auto h-16 flex items-center justify-between px-4 md:px-6">
-                    <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-12 sm:h-14" />
+                    <img src="/logo.png" alt="Logo Agrabudi Komunika" className="h-12 sm:h-14" title={APP_VERSION} />
                     <div className="flex items-center gap-4">
                         <button onClick={() => setCurrentPage('editProfile')} className="flex items-center gap-3 group">
                             <div className="text-right">
