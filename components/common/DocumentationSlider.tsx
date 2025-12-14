@@ -226,27 +226,57 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
                 <Modal 
                     show={true} 
                     onClose={() => setViewingItem(null)} 
-                    title="Bukti Penyerahan Hadiah"
+                    title={`Detail Penyerahan: ${viewingItem.rewardName}`}
                 >
-                    <div className="flex flex-col items-center">
-                        <div className="relative w-full max-h-[70vh] flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden mb-4">
+                    <div className="flex flex-col md:flex-row gap-6">
+                        {/* Photo */}
+                        <div className="w-full md:w-1/2 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden min-h-[300px]">
                             <img 
                                 src={viewingItem.documentationPhotoUrl} 
                                 alt={viewingItem.rewardName} 
-                                className="max-w-full max-h-full object-contain"
+                                className="w-full h-auto object-contain max-h-[60vh] rounded-lg shadow-sm"
                             />
                         </div>
-                        <div className="text-center w-full">
-                            <h4 className="text-xl font-bold text-gray-800">{viewingItem.rewardName}</h4>
-                            <div className="flex justify-center items-center gap-2 mt-2 text-gray-600">
-                                <Icon path={ICONS.users} className="w-4 h-4" />
-                                <span className="font-semibold">{viewingItem.userName}</span>
+                        {/* Details */}
+                        <div className="w-full md:w-1/2 space-y-6">
+                            <div>
+                                <h4 className="font-bold text-gray-700 text-lg mb-2 border-b pb-2">Informasi Penerima</h4>
+                                <table className="w-full text-sm">
+                                    <tbody>
+                                        <tr><td className="text-gray-500 py-1 w-32">Nama Mitra:</td><td className="font-semibold">{viewingItem.userName}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">TAP:</td><td className="font-mono">{viewingItem.userTap || '-'}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Nama Penerima:</td><td className="font-medium">{viewingItem.receiverName || '-'}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Jabatan:</td><td>{viewingItem.receiverRole || '-'}</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div className="flex justify-center items-center gap-4 mt-2 text-sm text-gray-500 border-t border-gray-200 pt-2 w-fit mx-auto">
-                                {viewingItem.userTap && (
-                                    <span className="bg-gray-200 px-2 py-0.5 rounded text-xs font-mono uppercase">{viewingItem.userTap}</span>
-                                )}
-                                <span>{new Date(viewingItem.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</span>
+
+                            <div>
+                                <h4 className="font-bold text-gray-700 text-lg mb-2 border-b pb-2">Detail Penyerahan</h4>
+                                <table className="w-full text-sm">
+                                    <tbody>
+                                        <tr><td className="text-gray-500 py-1 w-32">Tanggal:</td><td>{new Date(viewingItem.date).toLocaleString('id-ID')}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Surveyor:</td><td>{viewingItem.surveyorName || '-'}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Lokasi:</td><td>
+                                            {viewingItem.locationCoordinates ? (
+                                                <a 
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${viewingItem.locationCoordinates}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:underline flex items-center gap-1"
+                                                >
+                                                    <Icon path={ICONS.location} className="w-4 h-4"/>
+                                                    {viewingItem.locationCoordinates}
+                                                </a>
+                                            ) : '-'}
+                                        </td></tr>
+                                        <tr><td className="text-gray-500 py-1">Catatan:</td><td className="italic text-gray-600">"{viewingItem.statusNote || '-'}"</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div className="pt-4 mt-auto">
+                                <button onClick={() => setViewingItem(null)} className="neu-button w-full">Tutup</button>
                             </div>
                         </div>
                     </div>

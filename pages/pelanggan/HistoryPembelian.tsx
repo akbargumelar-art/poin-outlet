@@ -31,6 +31,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
         const transactionHistory: HistoryItem[] = transactions
             .filter(t => t.userId === currentUser.id)
             .map(t => ({
+                id: t.id,
                 date: t.date,
                 type: 'Pembelian',
                 description: t.produk,
@@ -43,6 +44,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
         const redemptionHistoryItems: HistoryItem[] = redemptionHistory
             .filter(r => r.userId === currentUser.id)
             .map(r => ({
+                id: r.id,
                 date: r.date,
                 type: 'Penukaran',
                 description: r.rewardName,
@@ -52,6 +54,11 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                 statusNote: r.statusNote,
                 statusUpdatedAt: r.statusUpdatedAt,
                 documentationPhotoUrl: r.documentationPhotoUrl,
+                // Add Integration Fields
+                receiverName: r.receiverName,
+                receiverRole: r.receiverRole,
+                surveyorName: r.surveyorName,
+                locationCoordinates: r.locationCoordinates
             }));
 
         return [...transactionHistory, ...redemptionHistoryItems]
@@ -128,11 +135,60 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
     return (
         <div>
             {viewingPhoto && viewingPhoto.documentationPhotoUrl && (
-                <Modal show={true} onClose={() => setViewingPhoto(null)} title={`Dokumentasi Penyerahan Hadiah`}>
-                    <div className="text-center">
-                        <img src={viewingPhoto.documentationPhotoUrl} alt={`Dokumentasi untuk ${viewingPhoto.description}`} className="w-full max-h-[70vh] object-contain rounded-lg mb-4"/>
-                        <p><strong>Hadiah:</strong> {viewingPhoto.description}</p>
-                        <p><strong>Tanggal:</strong> {new Date(viewingPhoto.date).toLocaleString('id-ID')}</p>
+                <Modal show={true} onClose={() => setViewingPhoto(null)} title={`Detail Penyerahan: ${viewingPhoto.description}`}>
+                    <div className="flex flex-col md:flex-row gap-6">
+                        {/* Photo Section */}
+                        <div className="w-full md:w-1/2 flex items-center justify-center bg-gray-100 rounded-lg p-2 min-h-[300px]">
+                            <img 
+                                src={viewingPhoto.documentationPhotoUrl} 
+                                alt={`Dokumentasi ${viewingPhoto.description}`} 
+                                className="w-full h-auto object-contain max-h-[60vh] rounded-lg shadow-sm"
+                            />
+                        </div>
+
+                        {/* Details Section */}
+                        <div className="w-full md:w-1/2 space-y-6">
+                            <div>
+                                <h4 className="font-bold text-gray-700 text-lg mb-2 border-b pb-2">Informasi Penerima</h4>
+                                <table className="w-full text-sm">
+                                    <tbody>
+                                        <tr><td className="text-gray-500 py-1 w-32">Nama Mitra:</td><td className="font-semibold">{currentUser.profile.nama}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">ID Mitra:</td><td className="font-mono">{currentUser.id}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Nama Penerima:</td><td className="font-medium">{viewingPhoto.receiverName || '-'}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Jabatan:</td><td>{viewingPhoto.receiverRole || '-'}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div>
+                                <h4 className="font-bold text-gray-700 text-lg mb-2 border-b pb-2">Detail Penyerahan</h4>
+                                <table className="w-full text-sm">
+                                    <tbody>
+                                        <tr><td className="text-gray-500 py-1 w-32">Tanggal:</td><td>{new Date(viewingPhoto.date).toLocaleString('id-ID')}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">ID Transaksi:</td><td className="font-mono">{viewingPhoto.id}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Surveyor:</td><td>{viewingPhoto.surveyorName || '-'}</td></tr>
+                                        <tr><td className="text-gray-500 py-1">Lokasi:</td><td>
+                                            {viewingPhoto.locationCoordinates ? (
+                                                <a 
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${viewingPhoto.locationCoordinates}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:underline flex items-center gap-1"
+                                                >
+                                                    <Icon path={ICONS.location} className="w-4 h-4"/>
+                                                    {viewingPhoto.locationCoordinates}
+                                                </a>
+                                            ) : '-'}
+                                        </td></tr>
+                                        <tr><td className="text-gray-500 py-1">Catatan:</td><td className="italic text-gray-600">"{viewingPhoto.statusNote || '-'}"</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div className="pt-4 mt-auto">
+                                <button onClick={() => setViewingPhoto(null)} className="neu-button w-full">Tutup</button>
+                            </div>
+                        </div>
                     </div>
                 </Modal>
             )}
@@ -217,9 +273,9 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                                                  </span>
                                                  {item.statusNote && <p className="text-xs text-gray-500 mt-1 italic max-w-xs">"{item.statusNote}"</p>}
                                                  {item.documentationPhotoUrl && (
-                                                    <button onClick={() => setViewingPhoto(item)} className="text-xs text-blue-600 font-semibold mt-1 flex items-center gap-1 hover:underline">
-                                                        <Icon path={ICONS.camera} className="w-4 h-4"/>
-                                                        Lihat Foto
+                                                    <button onClick={() => setViewingPhoto(item)} className="neu-button !w-auto !p-1.5 !px-3 text-xs flex items-center gap-1 mt-2 bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200">
+                                                        <Icon path={ICONS.eye} className="w-3 h-3"/>
+                                                        Lihat Detail
                                                     </button>
                                                  )}
                                                  {item.status === 'Selesai' && !item.documentationPhotoUrl && (

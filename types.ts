@@ -88,6 +88,7 @@ export interface Redemption {
 
 // Tipe baru untuk menyatukan history
 export type HistoryItem = {
+    id?: number; // Added optional ID for reference
     date: string;
     type: 'Pembelian' | 'Penukaran';
     description: string;
@@ -99,6 +100,11 @@ export type HistoryItem = {
     statusNote?: string;
     statusUpdatedAt?: string;
     documentationPhotoUrl?: string;
+    // New fields for Partner View
+    receiverName?: string;
+    receiverRole?: string;
+    surveyorName?: string;
+    locationCoordinates?: string;
 };
 
 
