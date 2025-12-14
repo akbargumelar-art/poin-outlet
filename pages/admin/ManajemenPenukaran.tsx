@@ -325,7 +325,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
         }
     
         // Updated Header to include Transaction ID
-        const csvHeader = ['ID Transaksi', 'Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Hadiah', 'Poin Dihabiskan', 'Status', 'Catatan Status', 'Penerima', 'Surveyor', 'Lokasi'].join(',');
+        const csvHeader = ['ID Transaksi', 'Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Hadiah', 'Poin Dihabiskan', 'Status', 'Catatan Status', 'Penerima', 'Surveyor', 'Lokasi', 'URL Bukti'].join(',');
         
         const csvRows = filteredRedemptions.map(r => {
             const cleanRewardName = `"${(r.rewardName || 'N/A').replace(/"/g, '""')}"`;
@@ -351,7 +351,8 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                 statusNote,
                 `"${receiverInfo}"`,
                 `"${r.surveyorName || '-'}"`,
-                `"${r.locationCoordinates || '-'}"`
+                `"${r.locationCoordinates || '-'}"`,
+                r.documentationPhotoUrl || '-'
             ].join(',');
         });
     
@@ -368,6 +369,63 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
             link.click();
             document.body.removeChild(link);
         }
+    };
+
+    // --- NEW EXPORT FUNCTION FOR APPSHEET ---
+    const handleExportAppSheet = () => {
+        if (filteredRedemptions.length === 0) {
+            alert("Tidak ada data untuk diekspor.");
+            return;
+        }
+
+        // Columns based on User's Google Sheet Screenshot (excluding generated ID)
+        // Updated to include URL Dokumentasi as per user request
+        const csvHeader = [
+            'Tanggal',
+            'Long - Lat',
+            'TAP',
+            'Surveyor',
+            'Nama Surveyor',
+            'ID Digipos',
+            'Nama Outlet',
+            'Hadiah',
+            'ID Redeem',
+            'Penerima Hadiah',
+            'Nama Penerima',
+            'Photo Dokumentasi',
+            'URL Dokumentasi' // Kolom baru untuk menampung link
+        ].join(',');
+
+        const csvRows = filteredRedemptions.map(r => {
+            const cleanRewardName = `"${(r.rewardName || 'N/A').replace(/"/g, '""')}"`;
+            const cleanUserName = `"${(r.userName || 'N/A').replace(/"/g, '""')}"`;
+            // Simple date format for Sheet: YYYY-MM-DD HH:mm
+            const dateObj = new Date(r.date);
+            const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth()+1}/${dateObj.getFullYear()}`;
+
+            return [
+                formattedDate,          // Tanggal
+                '',                     // Long - Lat (Empty, filled by surveyor)
+                r.userTap,              // TAP
+                'Salesforce',           // Surveyor (Default)
+                '',                     // Nama Surveyor (Empty, filled by surveyor)
+                r.userId,               // ID Digipos
+                cleanUserName,          // Nama Outlet
+                cleanRewardName,        // Hadiah
+                r.id,                   // ID Redeem (Kunci Utama!)
+                '',                     // Penerima Hadiah (Empty)
+                '',                     // Nama Penerima (Empty)
+                '',                     // Photo Dokumentasi (Empty, AppSheet fills this)
+                ''                      // URL Dokumentasi (Empty, can be filled by bot later)
+            ].join(',');
+        });
+
+        const csv = [csvHeader, ...csvRows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'template_appsheet_upload.csv';
+        link.click();
     };
 
     const SummaryCard = ({ title, count, colorClass, icon }: { title: string, count: number, colorClass: string, icon: string }) => (
@@ -474,8 +532,12 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                             Update {selectedIds.size} Terpilih
                         </button>
                     )}
+                    <button onClick={handleExportAppSheet} className="neu-button !w-auto px-4 flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 shadow-md">
+                        <Icon path={ICONS.simCard} className="w-5 h-5"/>
+                        Template AppSheet
+                    </button>
                     <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
-                        <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel
+                        <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Laporan
                     </button>
                 </div>
             </div>
