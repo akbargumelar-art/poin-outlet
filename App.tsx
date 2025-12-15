@@ -27,10 +27,6 @@ import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
 import NomorSpesialPage from './pages/shared/NomorSpesialPage';
 import ManajemenNomor from './pages/admin/ManajemenNomorSpesial';
 
-const SESSION_KEY = 'mitra_app_session';
-const PAGE_KEY = 'mitra_app_last_page';
-const SESSION_DURATION = 24 * 60 * 60 * 1000; // 1 Hari dalam milidetik
-
 const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [currentPage, setCurrentPage] = useState<Page>('landing');
@@ -54,55 +50,6 @@ const App: React.FC = () => {
     const [locations, setLocations] = useState<Location[]>([]);
 
     const isSupervisor = currentUser?.role === 'supervisor';
-
-    // --- Session Management ---
-    const saveSession = (user: User) => {
-        const sessionData = {
-            user,
-            expiry: Date.now() + SESSION_DURATION
-        };
-        localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-        setCurrentUser(user);
-    };
-
-    const clearSession = () => {
-        localStorage.removeItem(SESSION_KEY);
-        localStorage.removeItem(PAGE_KEY);
-        setCurrentUser(null);
-        setCurrentPage('landing');
-    };
-
-    // Check session on mount
-    useEffect(() => {
-        const storedSession = localStorage.getItem(SESSION_KEY);
-        if (storedSession) {
-            try {
-                const parsedSession = JSON.parse(storedSession);
-                if (Date.now() < parsedSession.expiry) {
-                    // Session Valid
-                    setCurrentUser(parsedSession.user);
-                    
-                    // Restore Last Page if available
-                    const lastPage = localStorage.getItem(PAGE_KEY) as Page;
-                    if (lastPage) {
-                        setCurrentPage(lastPage);
-                    } else {
-                        // Default dashboard based on role
-                        const role = parsedSession.user.role;
-                        if (role === 'pelanggan') setCurrentPage('pelangganDashboard');
-                        else if (role === 'operator') setCurrentPage('manajemenNomor');
-                        else setCurrentPage('adminDashboard');
-                    }
-                } else {
-                    // Session Expired
-                    clearSession();
-                }
-            } catch (e) {
-                console.error("Failed to parse session", e);
-                clearSession();
-            }
-        }
-    }, []);
 
     const fetchBootstrapData = useCallback(async () => {
         try {
@@ -147,10 +94,6 @@ const App: React.FC = () => {
 
     const handlePageChange = (page: Page) => {
         setCurrentPage(page);
-        // Persist page change if logged in
-        if (currentUser) {
-            localStorage.setItem(PAGE_KEY, page);
-        }
     };
 
     const handleLogin = async (id: string, password: string): Promise<boolean> => {
@@ -162,11 +105,9 @@ const App: React.FC = () => {
             });
             if (res.ok) {
                 const user = await res.json();
-                saveSession(user); // Save to localStorage
-                
-                const defaultPage = user.role === 'pelanggan' ? 'pelangganDashboard' : (user.role === 'operator' ? 'manajemenNomor' : 'adminDashboard');
-                handlePageChange(defaultPage);
-                
+                setCurrentUser(user);
+                setCurrentPage(user.role === 'pelanggan' ? 'pelangganDashboard' : 'adminDashboard');
+                if (user.role === 'operator') setCurrentPage('manajemenNomor');
                 fetchBootstrapData();
                 return true;
             }
@@ -185,8 +126,8 @@ const App: React.FC = () => {
             });
             if (res.ok) {
                 const user = await res.json();
-                saveSession(user); // Save to localStorage
-                handlePageChange('pelangganDashboard');
+                setCurrentUser(user);
+                setCurrentPage('pelangganDashboard');
                 fetchBootstrapData();
                 return true;
             } else {
@@ -201,7 +142,8 @@ const App: React.FC = () => {
     };
 
     const handleLogout = () => {
-        clearSession();
+        setCurrentUser(null);
+        setCurrentPage('landing');
     };
 
     const handleTukarClick = async (reward: Reward) => {
@@ -244,9 +186,7 @@ const App: React.FC = () => {
                 await fetchBootstrapData();
                 // Update current user locally to reflect changes immediately
                 const updatedUser = await res.json();
-                // Important: Update localStorage too so it persists on refresh
-                saveSession(updatedUser); 
-                
+                setCurrentUser(updatedUser);
                 setModal({ show: true, title: "Sukses", content: <p>Profil berhasil diperbarui.</p> });
             } else {
                 throw new Error('Gagal update profil');
@@ -411,12 +351,9 @@ const App: React.FC = () => {
              const formData = new FormData();
             formData.append('file', file);
             const res = await fetch('/api/transactions/bulk', { method: 'POST', body: formData });
-            const result = await res.json();
             if(res.ok) {
-                 setModal({ show: true, title: "Sukses", content: <p>{result.message}</p> });
+                 setModal({ show: true, title: "Sukses", content: <p>Transaksi berhasil diupload.</p> });
                  fetchBootstrapData();
-            } else {
-                 setModal({ show: true, title: "Gagal", content: <p>{result.message}</p> });
             }
         } catch(e) { console.error(e); } finally { setIsGlobalLoading(false); }
     };
@@ -649,7 +586,7 @@ const App: React.FC = () => {
         tukarPoin: <TukarPoin currentUser={currentUser!} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} loyaltyPrograms={loyaltyPrograms} />,
         editProfile: <EditProfilePage currentUser={currentUser!} updateUserProfile={updateUserProfile} handleLogout={handleLogout} handleChangePassword={handleChangePassword} />,
         adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms} specialNumbers={specialNumbers} redemptions={redemptionHistory} />,
-        manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} setCurrentPage={handlePageChange} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} adminResetPassword={adminResetPassword} />,
+        manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} redemptions={redemptionHistory} setCurrentPage={handlePageChange} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} adminResetPassword={adminResetPassword} />,
         tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
         manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} adminBulkAddProgramParticipants={adminBulkAddProgramParticipants} isReadOnly={isSupervisor} />,
         manajemenPoin: <ManajemenPoin currentUser={currentUser!} users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} adminBulkUpdateLevels={adminBulkUpdateLevels} isReadOnly={isSupervisor} />,

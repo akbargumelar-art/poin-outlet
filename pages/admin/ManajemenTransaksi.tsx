@@ -513,9 +513,9 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
                             <div className="h-64 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                                 {momChartData.data.map(item => {
-                                    const currentPercent = (item.current / momChartData.maxValue) * 100;
-                                    const lastPercent = (item.last / momChartData.maxValue) * 100;
-                                    const growth = item.last > 0 ? ((item.current - item.last) / item.last) * 100 : 100;
+                                    const currentPercent = (Number(item.current) / Number(momChartData.maxValue)) * 100;
+                                    const lastPercent = (Number(item.last) / Number(momChartData.maxValue)) * 100;
+                                    const growth = Number(item.last) > 0 ? ((Number(item.current) - Number(item.last)) / Number(item.last)) * 100 : 100;
                                     const isPositive = growth >= 0;
 
                                     return (
@@ -523,7 +523,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                             <div className="flex justify-between text-xs mb-1">
                                                 <span className="font-bold text-gray-700 truncate w-40" title={item.name}>{item.name}</span>
                                                 <div className="flex gap-2">
-                                                    <span className="text-gray-500 font-mono">{item.current.toLocaleString('id-ID')} unit</span>
+                                                    <span className="text-gray-500 font-mono">{Number(item.current).toLocaleString('id-ID')} unit</span>
                                                     <span className={`font-mono font-bold w-12 text-right ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
                                                         {isPositive ? '+' : ''}{growth.toFixed(0)}%
                                                     </span>
@@ -544,8 +544,8 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                             {/* Tooltip */}
                                             <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 hidden group-hover:block z-30 bg-gray-800 text-white text-xs rounded p-2 shadow-lg w-max pointer-events-none">
                                                 <p className="font-bold border-b border-gray-600 pb-1 mb-1">{item.name}</p>
-                                                <p>{momChartData.monthNames.current}: {item.current.toLocaleString('id-ID')} Unit</p>
-                                                <p className="text-gray-400">{momChartData.monthNames.last}: {item.last.toLocaleString('id-ID')} Unit</p>
+                                                <p>{momChartData.monthNames.current}: {Number(item.current).toLocaleString('id-ID')} Unit</p>
+                                                <p className="text-gray-400">{momChartData.monthNames.last}: {Number(item.last).toLocaleString('id-ID')} Unit</p>
                                             </div>
                                         </div>
                                     )

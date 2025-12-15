@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo } from 'react';
-import { User, Page, Transaction, LoyaltyProgram, UserRole } from '../../types';
+import { User, Page, Transaction, LoyaltyProgram, UserRole, Redemption } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 import Modal from '../../components/common/Modal';
@@ -7,6 +8,7 @@ import Modal from '../../components/common/Modal';
 interface ManajemenPelangganProps {
     users: User[];
     transactions: Transaction[];
+    redemptions: Redemption[]; // Added prop
     setCurrentPage: (page: Page) => void;
     isReadOnly?: boolean;
     loyaltyPrograms: LoyaltyProgram[];
@@ -16,14 +18,153 @@ interface ManajemenPelangganProps {
 
 type SortableKeys = 'nama' | 'id' | 'tap' | 'salesforce' | 'totalPembelian' | 'points' | 'level' | 'role';
 
+// --- History Audit Modal ---
+const HistoryAuditModal: React.FC<{
+    user: User;
+    userTransactions: Transaction[];
+    userRedemptions: Redemption[];
+    onClose: () => void;
+}> = ({ user, userTransactions, userRedemptions, onClose }) => {
+    
+    // Combine and Sort Data
+    const historyData = useMemo(() => {
+        const txItems = userTransactions.map(t => ({
+            id: `TX-${t.id}`,
+            date: t.date,
+            type: 'Masuk',
+            desc: `Pembelian: ${t.produk}`,
+            nominal: t.totalPembelian,
+            points: t.pointsEarned,
+            meta: `Harga: ${t.harga} x ${t.kuantiti}`
+        }));
 
-const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword }) => {
+        const rdItems = userRedemptions.map(r => ({
+            id: `RD-${r.id}`,
+            date: r.date,
+            type: 'Keluar',
+            desc: `Redeem: ${r.rewardName}`,
+            nominal: 0,
+            points: -r.pointsSpent,
+            meta: `Status: ${r.status}`
+        }));
+
+        return [...txItems, ...rdItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [userTransactions, userRedemptions]);
+
+    // Audit Calculations
+    const totalPointsIn = userTransactions.reduce((sum, t) => sum + t.pointsEarned, 0);
+    const totalPointsOut = userRedemptions.reduce((sum, r) => sum + r.pointsSpent, 0);
+    const calculatedBalance = totalPointsIn - totalPointsOut;
+    const actualBalance = user.points || 0;
+    const discrepancy = actualBalance - calculatedBalance;
+
+    return (
+        <Modal show={true} onClose={onClose} title={`Audit Poin: ${user.profile.nama}`}>
+            <div className="space-y-6">
+                
+                {/* Header Info */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <div>
+                        <p className="text-xs text-gray-500 uppercase font-bold">Mitra Outlet</p>
+                        <p className="font-bold text-gray-800 text-lg">{user.profile.nama}</p>
+                        <p className="text-sm text-gray-600 font-mono">{user.id} | TAP: {user.profile.tap}</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-xs text-gray-500 uppercase font-bold">Poin Saat Ini (Database)</p>
+                        <p className="font-bold text-3xl text-blue-600">{actualBalance.toLocaleString('id-ID')}</p>
+                    </div>
+                </div>
+
+                {/* Audit Summary Card */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="neu-card-flat p-3 bg-green-50 border-green-200 border">
+                        <p className="text-xs text-green-700 font-bold uppercase">Total Poin Masuk</p>
+                        <p className="text-xl font-bold text-green-700">+{totalPointsIn.toLocaleString('id-ID')}</p>
+                        <p className="text-[10px] text-green-600">Dari {userTransactions.length} Transaksi</p>
+                    </div>
+                    <div className="neu-card-flat p-3 bg-red-50 border-red-200 border">
+                        <p className="text-xs text-red-700 font-bold uppercase">Total Poin Keluar</p>
+                        <p className="text-xl font-bold text-red-700">-{totalPointsOut.toLocaleString('id-ID')}</p>
+                        <p className="text-[10px] text-red-600">Dari {userRedemptions.length} Penukaran</p>
+                    </div>
+                    <div className={`neu-card-flat p-3 border ${discrepancy !== 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}>
+                        <p className={`text-xs font-bold uppercase ${discrepancy !== 0 ? 'text-yellow-700' : 'text-gray-600'}`}>
+                            Selisih (Manual/Inject)
+                        </p>
+                        <p className={`text-xl font-bold ${discrepancy > 0 ? 'text-green-600' : discrepancy < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                            {discrepancy > 0 ? '+' : ''}{discrepancy.toLocaleString('id-ID')}
+                        </p>
+                        <p className="text-[10px] text-gray-500">Actual vs Kalkulasi History</p>
+                    </div>
+                </div>
+
+                {discrepancy !== 0 && (
+                    <div className="text-xs text-yellow-800 bg-yellow-100 p-2 rounded border border-yellow-200">
+                        <span className="font-bold">Catatan Admin:</span> Terdapat selisih poin sebesar <b>{discrepancy}</b>. Ini biasanya disebabkan oleh penambahan/pengurangan poin manual (inject) atau data transaksi lama yang tidak tercatat di sistem ini.
+                    </div>
+                )}
+
+                {/* History Table */}
+                <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-slate-100 px-4 py-2 border-b font-bold text-gray-700 text-sm">Riwayat Kronologis</div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 sticky top-0">
+                                <tr>
+                                    <th className="p-3 font-semibold text-gray-600">Tanggal</th>
+                                    <th className="p-3 font-semibold text-gray-600">Aktivitas</th>
+                                    <th className="p-3 font-semibold text-gray-600">Detail</th>
+                                    <th className="p-3 font-semibold text-gray-600 text-right">Poin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {historyData.length > 0 ? historyData.map((item, idx) => (
+                                    <tr key={idx} className="border-t border-gray-100 hover:bg-slate-50">
+                                        <td className="p-3 whitespace-nowrap text-gray-500">
+                                            {new Date(item.date).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: '2-digit'})}
+                                            <div className="text-[10px]">{new Date(item.date).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</div>
+                                        </td>
+                                        <td className="p-3">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.type === 'Masuk' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {item.type}
+                                            </span>
+                                        </td>
+                                        <td className="p-3">
+                                            <p className="font-semibold text-gray-800">{item.desc}</p>
+                                            <p className="text-xs text-gray-500">{item.meta}</p>
+                                            {item.nominal > 0 && <p className="text-xs text-gray-500">Val: Rp {item.nominal.toLocaleString('id-ID')}</p>}
+                                        </td>
+                                        <td className={`p-3 text-right font-bold ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {item.points > 0 ? '+' : ''}{item.points.toLocaleString('id-ID')}
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan={4} className="p-6 text-center text-gray-500">Belum ada riwayat tercatat.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="flex justify-end">
+                    <button onClick={onClose} className="neu-button">Tutup</button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
+
+const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, redemptions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
     const [roleFilter, setRoleFilter] = useState<UserRole | ''>('');
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [resettingUser, setResettingUser] = useState<User | null>(null);
+    const [historyUser, setHistoryUser] = useState<User | null>(null); // State for history modal
     const [selectedLevel, setSelectedLevel] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'nama', direction: 'asc' });
 
@@ -290,6 +431,16 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
 
     return (
         <div>
+            {/* History Audit Modal */}
+            {historyUser && (
+                <HistoryAuditModal 
+                    user={historyUser} 
+                    userTransactions={transactions.filter(t => t.userId === historyUser.id)}
+                    userRedemptions={redemptions.filter(r => r.userId === historyUser.id)}
+                    onClose={() => setHistoryUser(null)} 
+                />
+            )}
+
             {editingUser && (
                 <Modal show={true} onClose={handleCloseModal} title={`Ubah Level: ${editingUser.profile.nama}`}>
                     <div className="space-y-4">
@@ -522,6 +673,14 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                                     {!isReadOnly && (
                                         <td className="p-4">
                                             <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => setHistoryUser(user)}
+                                                    className="neu-button-icon text-purple-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                    title="Lihat History & Audit Poin"
+                                                    disabled={user.role !== 'pelanggan'}
+                                                >
+                                                    <Icon path={ICONS.history} className="w-5 h-5"/>
+                                                </button>
                                                 <button 
                                                     onClick={() => handleEditUser(user)} 
                                                     className="neu-button-icon text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed" 
