@@ -236,7 +236,7 @@ router.get('/users/:id/audit', async (req, res) => {
         // Fetch total earned points from all history (not limited)
         const [earnedRows] = await db.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id=?', [id]);
         // Fetch total spent points from redemptions
-        const [spentRows] = await db.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=?', [id]);
+        const [spentRows] = await db.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=? AND status != "Ditolak"', [id]);
         // Fetch current actual points
         const [userRows] = await db.execute('SELECT points FROM users WHERE id=?', [id]);
 
@@ -255,6 +255,98 @@ router.get('/users/:id/audit', async (req, res) => {
             isSync: actual === calculated
         });
     } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ** NEW: ADVANCED BULK AUDIT & FIX **
+router.post('/audit/bulk-fix', async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. Get all customers
+        const [users] = await connection.execute("SELECT id FROM users WHERE role = 'pelanggan'");
+        
+        let updatedUsersCount = 0;
+        let cancelledRedemptionsCount = 0;
+
+        for (const user of users) {
+            const userId = user.id;
+
+            // 2. Calculate Total Earned (All time)
+            const [earnedRows] = await connection.execute(
+                'SELECT SUM(points_earned) as total FROM transactions WHERE user_id=?', 
+                [userId]
+            );
+            const totalEarned = earnedRows[0].total ? parseInt(earnedRows[0].total) : 0;
+
+            // 3. Calculate Points Spent on COMPLETED/APPROVED redemptions only (Fixed Cost)
+            // Note: We exclude 'Ditolak'. We also exclude 'Diajukan'/'Diproses' momentarily to check solvency.
+            const [spentFinishedRows] = await connection.execute(
+                'SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=? AND status = "Selesai"', 
+                [userId]
+            );
+            const spentFinished = spentFinishedRows[0].total ? parseInt(spentFinishedRows[0].total) : 0;
+
+            // 4. Calculate Available "Real" Points before pending requests
+            let availablePoints = totalEarned - spentFinished;
+
+            // 5. Fetch Pending Redemptions (Diajukan/Diproses)
+            const [pendingRedemptions] = await connection.execute(
+                'SELECT id, points_spent, reward_name FROM redemptions WHERE user_id=? AND status IN ("Diajukan", "Diproses") ORDER BY date ASC',
+                [userId]
+            );
+
+            // 6. Validate Pending Redemptions
+            for (const redemption of pendingRedemptions) {
+                if (availablePoints >= redemption.points_spent) {
+                    // Valid: User has enough points. Deduct from available.
+                    availablePoints -= redemption.points_spent;
+                } else {
+                    // INVALID: User doesn't have enough points based on history.
+                    // Action: Cancel this redemption automatically.
+                    await connection.execute(
+                        'UPDATE redemptions SET status="Ditolak", status_note=?, status_updated_at=NOW() WHERE id=?',
+                        ['Audit Sistem: Dibatalkan otomatis karena poin transaksi tidak mencukupi (Kelebihan Poin).', redemption.id]
+                    );
+                    
+                    // Return stock (optional, but good practice if stock was deducted on request)
+                    await connection.execute(
+                        'UPDATE rewards r JOIN redemptions rd ON r.id = rd.reward_id SET r.stock = r.stock + 1 WHERE rd.id = ?',
+                        [redemption.id]
+                    );
+
+                    cancelledRedemptionsCount++;
+                    // Note: We do NOT deduct from availablePoints because this is cancelled.
+                }
+            }
+
+            // 7. Final Balance Sync
+            // Current `availablePoints` variable now holds the correct remaining balance 
+            // after accounting for Finished and Valid Pending redemptions.
+            
+            // Check current DB balance
+            const [currentUser] = await connection.execute('SELECT points FROM users WHERE id=?', [userId]);
+            const currentDbPoints = currentUser[0].points;
+
+            if (currentDbPoints !== availablePoints) {
+                await connection.execute('UPDATE users SET points=? WHERE id=?', [availablePoints, userId]);
+                updatedUsersCount++;
+            }
+        }
+
+        await connection.commit();
+        res.json({ 
+            success: true, 
+            message: `Audit Selesai. ${updatedUsersCount} user disinkronisasi, ${cancelledRedemptionsCount} penukaran dibatalkan otomatis.` 
+        });
+
+    } catch (err) {
+        await connection.rollback();
+        console.error("Bulk Audit Error:", err);
+        res.status(500).json({ message: 'Terjadi kesalahan saat proses audit massal.' });
+    } finally {
+        connection.release();
+    }
 });
 
 router.post('/users', async (req, res) => {

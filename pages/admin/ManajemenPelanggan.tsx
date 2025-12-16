@@ -360,50 +360,24 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
     };
 
     const handleBulkSync = async () => {
-        // Filter users to only customers
-        const targets = filteredUsers.filter(u => u.role === 'pelanggan');
-        if (targets.length === 0) {
-            alert("Tidak ada mitra yang ditampilkan untuk disinkronisasi.");
-            return;
-        }
-
-        if(!window.confirm(`Anda akan menyinkronkan poin untuk ${targets.length} mitra yang ditampilkan saat ini. Proses ini akan menghitung ulang semua transaksi dan penukaran. Lanjutkan?`)) return;
+        if(!window.confirm(`Anda akan menyinkronkan poin untuk SEMUA MITRA. Proses ini akan:\n\n1. Menghitung poin valid berdasarkan riwayat transaksi.\n2. Membatalkan otomatis penukaran pending jika poin tidak cukup.\n3. Mengupdate saldo semua mitra.\n\nLanjutkan?`)) return;
 
         setIsSyncing(true);
-        let correctedCount = 0;
 
         try {
-            // Loop through all filtered users
-            for (const user of targets) {
-                // Use frontend data for bulk sync as an approximation, or ideally call backend for each
-                // Note: Ideally bulk sync should also be server-side, but keeping it client-side for now
-                // with the caveat that it uses loaded transactions.
-                
-                const earned = transactions
-                    .filter(t => t.userId === user.id)
-                    .reduce((sum, t) => sum + t.pointsEarned, 0);
-                
-                const spent = redemptions
-                    .filter(r => r.userId === user.id)
-                    .reduce((sum, r) => sum + r.pointsSpent, 0);
-                
-                const correctBalance = earned - spent;
-                const currentBalance = user.points || 0;
+            // Call the new backend endpoint for bulk fix
+            const response = await fetch('/api/audit/bulk-fix', { method: 'POST' });
+            const result = await response.json();
 
-                if (correctBalance !== currentBalance) {
-                    await adminSetUserPoints(user.id, correctBalance, true);
-                    correctedCount++;
-                }
-            }
-            if (correctedCount > 0) {
-                refreshData();
-                alert(`Sinkronisasi Selesai! ${correctedCount} akun telah dikoreksi.`);
+            if (response.ok) {
+                alert(result.message);
+                refreshData(); // Refresh all data from server
             } else {
-                alert(`Sinkronisasi Selesai! Semua data sudah valid, tidak ada perubahan.`);
+                alert(`Gagal: ${result.message}`);
             }
         } catch (error) {
             console.error(error);
-            alert("Terjadi kesalahan saat sinkronisasi massal.");
+            alert("Terjadi kesalahan koneksi saat sinkronisasi massal.");
         } finally {
             setIsSyncing(false);
         }
@@ -590,7 +564,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                             className="neu-button !w-auto px-4 flex items-center gap-2 bg-yellow-500 text-white hover:bg-yellow-600 shadow-md"
                         >
                             <Icon path={ICONS.history} className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`}/>
-                            {isSyncing ? 'Memproses...' : 'Sinkronisasi Poin Massal'}
+                            {isSyncing ? 'Mengaudit & Koreksi...' : 'Audit Otomatis Massal'}
                         </button>
                     )}
                     {!isReadOnly && <button onClick={() => setCurrentPage('tambahUser')} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5"/>Tambah Pengguna</button>}

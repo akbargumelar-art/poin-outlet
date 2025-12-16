@@ -300,7 +300,8 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             return;
         }
     
-        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Produk', 'Harga Satuan', 'Kuantiti', 'Total Pembelian', 'Poin Didapat'].join(',');
+        // FIX: Removed argument from join() as default is comma, to avoid potential TS error
+        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Produk', 'Harga Satuan', 'Kuantiti', 'Total Pembelian', 'Poin Didapat'].join();
         
         const csvRows = filteredTransactions.map(t => {
             const formattedDate = new Date(t.date).toLocaleString('id-ID', {
@@ -319,7 +320,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                 t.kuantiti,
                 t.totalPembelian,
                 t.pointsEarned
-            ].join(',');
+            ].join(); // FIX: Removed argument from join() as default is comma
         });
     
         const csv = [csvHeader, ...csvRows].join('\n');
