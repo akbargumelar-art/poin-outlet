@@ -287,13 +287,15 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
     
-    const handleResetFilters = () => {
+    // Fix: Allow optional arguments to satisfy strict type checks if passed as event handler
+    const handleResetFilters = (_?: any) => {
         setFilter({ from: '', to: '' });
         setSearchTerm('');
         setProdukFilter('');
     };
 
-    const handleExport = (_?: any) => {
+    // Fix: Simplify handleExport signature
+    const handleExport = () => {
         if (filteredTransactions.length === 0) {
             alert("Tidak ada data untuk diekspor dengan filter yang dipilih.");
             return;
