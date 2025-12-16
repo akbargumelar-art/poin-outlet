@@ -42,7 +42,7 @@ const App: React.FC = () => {
     const [isGlobalLoading, setIsGlobalLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('Memuat...');
     const [modal, setModal] = useState<{ show: boolean, title: string, content: React.ReactNode } | null>(null);
-    const [isInitializing, setIsInitializing] = useState(true); // Prevent flash of login screen
+    const [isInitializing, setIsInitializing] = useState(true);
 
     // Data States
     const [users, setUsers] = useState<User[]>([]);
@@ -57,7 +57,7 @@ const App: React.FC = () => {
     const [specialNumbers, setSpecialNumbers] = useState<SpecialNumber[]>([]);
     const [whatsAppSettings, setWhatsAppSettings] = useState<WhatsAppSettings | null>(null);
     const [specialNumberBannerUrl, setSpecialNumberBannerUrl] = useState<string | null>(null);
-    const [locations, setLocations] = useState<any[]>([]); // For registration dropdowns
+    const [locations, setLocations] = useState<any[]>([]);
 
     // Helper: Determine roles
     const isSupervisor = currentUser?.role === 'supervisor';
@@ -66,32 +66,34 @@ const App: React.FC = () => {
     // --- Session Persistence & Initialization ---
     useEffect(() => {
         const initializeApp = async () => {
-            const storedUser = localStorage.getItem('mitra_user_session');
-            if (storedUser) {
-                try {
+            try {
+                const storedUser = localStorage.getItem('mitra_user_session');
+                if (storedUser) {
                     const parsedUser = JSON.parse(storedUser);
                     setCurrentUser(parsedUser);
-                    // Restore correct dashboard based on role
+                    
+                    // Restore dashboard based on role if logged in
                     if (parsedUser.role === 'pelanggan') setCurrentPage('pelangganDashboard');
                     else if (parsedUser.role === 'operator') setCurrentPage('manajemenNomor');
-                    else setCurrentPage('adminDashboard');
-                } catch (e) {
-                    console.error("Failed to parse stored user", e);
-                    localStorage.removeItem('mitra_user_session');
+                    else if (['admin', 'supervisor'].includes(parsedUser.role)) setCurrentPage('adminDashboard');
                 }
+                
+                // Fetch data regardless of login status to populate landing page
+                await fetchBootstrapData();
+            } catch (e) {
+                console.error("Initialization error", e);
+                localStorage.removeItem('mitra_user_session');
+            } finally {
+                setIsInitializing(false);
             }
-            await fetchBootstrapData(); // Fetch initial data regardless of login status
-            setIsInitializing(false);
         };
 
         initializeApp();
-    }, []); // Run once on mount
+    }, []);
 
     // --- Data Fetching ---
     const fetchBootstrapData = useCallback(async () => {
-        // Only show loading on explicit calls, not initial background fetch if prefered, 
-        // but here we keep it simple or manage based on isInitializing
-        if (!isInitializing) setIsGlobalLoading(true); 
+        if (!isInitializing) setIsGlobalLoading(true);
         
         try {
             const response = await axios.get('/api/bootstrap'); 
@@ -111,15 +113,11 @@ const App: React.FC = () => {
             setSpecialNumberBannerUrl(data.specialNumberBannerUrl || null);
             setLocations(data.locations || []); 
 
-            // Update current user if logged in to get latest points/data
-            // Access currentUser from state (needs to be in dependency or use functional update if inside effect)
-            // Here we use the functional update pattern or just rely on the fact that if we just logged in, we have data.
-            // But for refreshing data while logged in:
+            // Sync Current User Data if Logged In
             setCurrentUser(prevUser => {
                 if (prevUser) {
                     const updatedUser = (data.users || []).find((u: User) => u.id === prevUser.id);
                     if (updatedUser) {
-                        // Update local storage with fresh data
                         localStorage.setItem('mitra_user_session', JSON.stringify(updatedUser));
                         return updatedUser;
                     }
@@ -177,7 +175,7 @@ const App: React.FC = () => {
     const handleLogout = () => {
         setCurrentUser(null);
         setCurrentPage('landing');
-        setUsers([]); // Clear sensitive data from memory
+        setUsers([]); 
         setTransactions([]);
         localStorage.removeItem('mitra_user_session'); // CLEAR SESSION
     };
@@ -510,7 +508,6 @@ const App: React.FC = () => {
     }
 
     if (!currentUser) {
-        // Fallback if trying to access protected route without user
         setCurrentPage('landing');
         return null;
     }
