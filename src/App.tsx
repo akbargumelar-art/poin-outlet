@@ -4,7 +4,7 @@ import axios from 'axios';
 import { 
     User, Page, Transaction, LoyaltyProgram, RunningProgram, 
     Reward, RaffleProgram, RaffleWinner, Redemption, 
-    SpecialNumber, WhatsAppSettings, UserProfile, CouponRedemption, UserRole
+    SpecialNumber, WhatsAppSettings, UserProfile, CouponRedemption
 } from './types';
 import { ICONS } from './constants';
 
@@ -12,9 +12,9 @@ import { ICONS } from './constants';
 import MainLayout from './components/layout/MainLayout';
 import LoadingOverlay from './components/common/LoadingOverlay';
 import Modal from './components/common/Modal';
-import Icon from './components/common/Icon';
+import Toast from './components/common/Toast';
 
-// Pages - PUBLIC & SHARED (From Root Pages)
+// Pages
 import LandingPage from './pages/landing/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
@@ -44,10 +44,7 @@ const App: React.FC = () => {
     const [isGlobalLoading, setIsGlobalLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('Memuat...');
     const [modal, setModal] = useState<{ show: boolean, title: string, content: React.ReactNode } | null>(null);
-    const [isInitializing, setIsInitializing] = useState(true);
-    
-    // Detailed Error State
-    const [connectionError, setConnectionError] = useState<{isError: boolean, message: string, code?: number}>({ isError: false, message: '' });
+    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
     // Data States
     const [users, setUsers] = useState<User[]>([]);
@@ -68,45 +65,18 @@ const App: React.FC = () => {
     const isSupervisor = currentUser?.role === 'supervisor';
     const isOperator = currentUser?.role === 'operator';
 
-    // --- Session Persistence & Initialization ---
-    useEffect(() => {
-        const initializeApp = async () => {
-            try {
-                const storedUser = localStorage.getItem('mitra_user_session');
-                if (storedUser) {
-                    const parsedUser = JSON.parse(storedUser);
-                    setCurrentUser(parsedUser);
-                    
-                    // Restore dashboard based on role if logged in
-                    if (parsedUser.role === 'pelanggan') setCurrentPage('pelangganDashboard');
-                    else if (parsedUser.role === 'operator') setCurrentPage('manajemenNomor');
-                    else if (['admin', 'supervisor'].includes(parsedUser.role)) setCurrentPage('adminDashboard');
-                }
-                
-                await fetchBootstrapData();
-            } catch (e) {
-                console.error("Initialization error", e);
-                localStorage.removeItem('mitra_user_session');
-            } finally {
-                setIsInitializing(false);
-            }
-        };
-
-        initializeApp();
-    }, []);
+    // --- Toast Helper ---
+    const showToast = (message: string, type: 'success' | 'error') => {
+        setToast({ message, type });
+    };
 
     // --- Data Fetching ---
     const fetchBootstrapData = useCallback(async () => {
-        if (!isInitializing) setIsGlobalLoading(true);
-        setConnectionError({ isError: false, message: '' });
-        
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menyiapkan data aplikasi...');
         try {
             const response = await axios.get('/api/bootstrap'); 
             const data = response.data;
-
-            if (!data || typeof data !== 'object') {
-                throw new Error("Invalid response format");
-            }
 
             setUsers(data.users || []);
             setTransactions(data.transactions || []);
@@ -120,38 +90,24 @@ const App: React.FC = () => {
             setSpecialNumbers(data.specialNumbers || []);
             setWhatsAppSettings(data.whatsAppSettings || null);
             setSpecialNumberBannerUrl(data.specialNumberBannerUrl || null);
-            setLocations(data.locations || []); 
+            setLocations(data.locations || []);
 
-            // Sync Current User Data if Logged In
-            setCurrentUser(prevUser => {
-                if (prevUser) {
-                    const updatedUser = (data.users || []).find((u: User) => u.id === prevUser.id);
-                    if (updatedUser) {
-                        localStorage.setItem('mitra_user_session', JSON.stringify(updatedUser));
-                        return updatedUser;
-                    }
-                }
-                return prevUser;
-            });
-
-        } catch (error: any) {
-            console.error("Failed to fetch bootstrap data", error);
-            let errorMessage = "Tidak dapat menghubungi server.";
-            let statusCode = error.response?.status;
-
-            if (statusCode === 404) {
-                errorMessage = "API Tidak Ditemukan (404). Mohon cek konfigurasi Server/Nginx.";
-            } else if (statusCode === 502) {
-                errorMessage = "Bad Gateway (502). Backend Node.js mungkin mati.";
-            } else if (statusCode === 500) {
-                errorMessage = "Server Error (500). Cek koneksi database.";
+            if (currentUser) {
+                const updatedUser = (data.users || []).find((u: User) => u.id === currentUser.id);
+                if (updatedUser) setCurrentUser(updatedUser);
             }
 
-            setConnectionError({ isError: true, message: errorMessage, code: statusCode });
+        } catch (error) {
+            console.error("Failed to fetch bootstrap data", error);
+            showToast("Gagal memuat data dari server.", "error");
         } finally {
-            if (!isInitializing) setIsGlobalLoading(false);
+            setIsGlobalLoading(false);
         }
-    }, [isInitializing]);
+    }, [currentUser]);
+
+    useEffect(() => {
+        fetchBootstrapData();
+    }, []);
 
     // --- Authentication Handlers ---
     const handleLogin = async (id: string, password: string): Promise<boolean> => {
@@ -162,10 +118,6 @@ const App: React.FC = () => {
             const user = response.data;
             setCurrentUser(user);
             
-            // SAVE SESSION
-            localStorage.setItem('mitra_user_session', JSON.stringify(user));
-            
-            // Redirect logic
             if (user.role === 'pelanggan') setCurrentPage('pelangganDashboard');
             else if (user.role === 'admin') setCurrentPage('adminDashboard');
             else if (user.role === 'supervisor') setCurrentPage('adminDashboard');
@@ -198,20 +150,45 @@ const App: React.FC = () => {
         setCurrentPage('landing');
         setUsers([]); 
         setTransactions([]);
-        localStorage.removeItem('mitra_user_session'); // CLEAR SESSION
     };
 
     // --- User Management ---
     const updateUserProfile = async (profile: UserProfile, photoFile: File | null) => {
-        console.log("Updating profile", profile, photoFile);
-        if (currentUser) {
-            const updated = { ...currentUser, profile };
-            setCurrentUser(updated);
-            localStorage.setItem('mitra_user_session', JSON.stringify(updated));
+        setIsGlobalLoading(true);
+        try {
+            const formData = new FormData();
+            // Append all profile keys
+            Object.keys(profile).forEach(key => {
+                const value = profile[key as keyof UserProfile];
+                if (value !== undefined && value !== null) {
+                    formData.append(key, value as string);
+                }
+            });
+            if (photoFile) formData.append('photo', photoFile);
+
+            const response = await axios.put(`/api/users/${currentUser?.id}/profile`, formData);
+            
+            // Update local state immediately for better UX
+            if (currentUser) {
+                const updatedUser = { 
+                    ...currentUser, 
+                    profile: { 
+                        ...currentUser.profile, 
+                        ...profile,
+                        photoUrl: response.data.photoUrl || currentUser.profile.photoUrl 
+                    } 
+                };
+                setCurrentUser(updatedUser);
+            }
+            showToast('Profil berhasil diperbarui', 'success');
+        } catch (e) {
+            console.error(e);
+            showToast('Gagal memperbarui profil', 'error');
+        } finally {
+            setIsGlobalLoading(false);
         }
     };
 
-    // FIXED: Implement Real Password Change Logic
     const handleChangePassword = async (oldPassword: string, newPassword: string) => {
         if (!currentUser) return false;
         setIsGlobalLoading(true);
@@ -221,10 +198,16 @@ const App: React.FC = () => {
                 oldPassword,
                 newPassword
             });
+            
             setModal({ show: true, title: "Sukses", content: <p>Password berhasil diubah.</p> });
             return true;
         } catch (error: any) {
-            setModal({ show: true, title: "Gagal", content: <p>{error.response?.data?.message || 'Gagal mengubah password.'}</p> });
+            console.error("Gagal ubah password:", error);
+            setModal({ 
+                show: true, 
+                title: "Gagal", 
+                content: <p>{error.response?.data?.message || 'Gagal mengubah password. Pastikan password lama Anda benar.'}</p> 
+            });
             return false;
         } finally {
             setIsGlobalLoading(false);
@@ -247,12 +230,30 @@ const App: React.FC = () => {
 
     // --- Program Management ---
     const saveProgram = async (programData: any, photoFile: File | null) => {
-        const formData = new FormData();
-        Object.keys(programData).forEach(key => formData.append(key, programData[key]));
-        if (photoFile) formData.append('image', photoFile);
-        
-        console.log("Saving program", formData);
-        await fetchBootstrapData();
+        setIsGlobalLoading(true);
+        setLoadingMessage('Menyimpan Program...');
+        try {
+            const formData = new FormData();
+            Object.keys(programData).forEach(key => {
+                if (programData[key] !== undefined && programData[key] !== null) {
+                    formData.append(key, programData[key]);
+                }
+            });
+            if (photoFile) formData.append('image', photoFile);
+
+            if (programData.id) {
+                await axios.put(`/api/programs/${programData.id}`, formData);
+            } else {
+                await axios.post('/api/programs', formData);
+            }
+            await fetchBootstrapData();
+            showToast('Program berhasil disimpan', 'success');
+        } catch (e) {
+            console.error(e);
+            showToast('Gagal menyimpan program', 'error');
+        } finally {
+            setIsGlobalLoading(false);
+        }
     };
 
     const adminDeleteProgram = async (id: number) => {
@@ -279,7 +280,6 @@ const App: React.FC = () => {
         await fetchBootstrapData();
     };
 
-    // --- Points & Transactions ---
     const adminUpdateLoyaltyProgram = async (program: LoyaltyProgram) => {
         await axios.put(`/api/loyalty-programs/${program.level}`, program);
         await fetchBootstrapData();
@@ -309,14 +309,27 @@ const App: React.FC = () => {
         await fetchBootstrapData();
     };
 
-    // --- Rewards ---
     const saveReward = async (rewardData: any, photoFile: File | null) => {
-        const formData = new FormData();
-        Object.keys(rewardData).forEach(key => formData.append(key, rewardData[key]));
-        if (photoFile) formData.append('image', photoFile);
-        
-        await axios.post('/api/rewards', formData);
-        await fetchBootstrapData();
+        setIsGlobalLoading(true);
+        try {
+            const formData = new FormData();
+            Object.keys(rewardData).forEach(key => {
+                if (rewardData[key] !== undefined) formData.append(key, rewardData[key])
+            });
+            if (photoFile) formData.append('image', photoFile);
+            
+            if (rewardData.id) {
+                await axios.put(`/api/rewards/${rewardData.id}`, formData);
+            } else {
+                await axios.post('/api/rewards', formData);
+            }
+            await fetchBootstrapData();
+            showToast('Hadiah berhasil disimpan', 'success');
+        } catch (e) {
+            showToast('Gagal menyimpan hadiah', 'error');
+        } finally {
+            setIsGlobalLoading(false);
+        }
     };
 
     const adminDeleteReward = async (id: number) => {
@@ -344,10 +357,21 @@ const App: React.FC = () => {
         }
     };
 
-    // --- Raffles ---
     const saveRaffleProgram = async (program: any) => {
-        await axios.post('/api/raffles', program);
-        await fetchBootstrapData();
+        setIsGlobalLoading(true);
+        try {
+            if (program.id) {
+                await axios.put(`/api/raffles/${program.id}`, program);
+            } else {
+                await axios.post('/api/raffles', program);
+            }
+            await fetchBootstrapData();
+            showToast('Program undian disimpan', 'success');
+        } catch(e) {
+            showToast('Gagal menyimpan program undian', 'error');
+        } finally {
+            setIsGlobalLoading(false);
+        }
     };
 
     const deleteRaffleProgram = async (id: number) => {
@@ -355,13 +379,11 @@ const App: React.FC = () => {
         await fetchBootstrapData();
     };
 
-    // --- Redemptions ---
     const adminUpdateRedemptionStatus = async (id: number, status: string, note: string, photoFile?: File | null) => {
         const formData = new FormData();
         formData.append('status', status);
         formData.append('note', note);
         if (photoFile) formData.append('photo', photoFile);
-        
         await axios.put(`/api/redemptions/${id}/status`, formData);
         await fetchBootstrapData();
     };
@@ -375,10 +397,8 @@ const App: React.FC = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ids, status, statusNote }),
             });
-            
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);
-
             await fetchBootstrapData();
             setModal({ show: true, title: "Sukses", content: <p>{result.message}</p> });
         } catch (error: any) {
@@ -388,53 +408,21 @@ const App: React.FC = () => {
         }
     }, [fetchBootstrapData]);
 
-    // --- Audit ---
     const adminBulkAudit = async () => {
-        if(!window.confirm(`Anda akan menyinkronkan poin untuk SEMUA MITRA. Proses ini akan:\n\n1. Menghitung ulang semua poin berdasarkan riwayat transaksi.\n2. Mengurangi poin untuk penukaran 'Selesai'.\n3. Membatalkan otomatis penukaran 'Pending' (Diajukan/Diproses) jika poin hasil hitung ulang tidak mencukupi.\n\nLanjutkan?`)) return;
-
+        if(!window.confirm(`Anda akan menyinkronkan poin untuk SEMUA MITRA... Lanjutkan?`)) return;
         setIsGlobalLoading(true);
-        setLoadingMessage('Menjalankan Audit Sistem...');
+        setLoadingMessage('Mengaudit & Memperbaiki Poin...');
         try {
             const response = await fetch('/api/audit/bulk-fix', { method: 'POST' });
             const result = await response.json();
-
-            if (response.ok && result.report) {
+            if (response.ok) {
                 await fetchBootstrapData();
-                setModal({ 
-                    show: true, 
-                    title: "Laporan Audit Massal", 
-                    content: (
-                        <div className="space-y-4">
-                            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                                <h4 className="font-bold text-green-800 text-lg mb-2">Audit Selesai</h4>
-                                <ul className="space-y-2 text-sm text-green-700">
-                                    <li className="flex justify-between border-b border-green-200 pb-1">
-                                        <span>Total Mitra Diperiksa:</span>
-                                        <span className="font-bold">{result.report.processed}</span>
-                                    </li>
-                                    <li className="flex justify-between border-b border-green-200 pb-1">
-                                        <span>Poin Diperbaiki (Sync):</span>
-                                        <span className="font-bold">{result.report.fixed}</span>
-                                    </li>
-                                    <li className="flex justify-between">
-                                        <span>Penukaran Dibatalkan (Poin Kurang):</span>
-                                        <span className="font-bold text-red-600">{result.report.cancelled}</span>
-                                    </li>
-                                </ul>
-                            </div>
-                            <p className="text-xs text-gray-500 text-center">Data poin sekarang telah sinkron dengan riwayat transaksi.</p>
-                            <div className="flex justify-end">
-                                <button onClick={() => setModal(null)} className="neu-button !w-auto px-6">Tutup</button>
-                            </div>
-                        </div>
-                    ) 
-                });
+                setModal({ show: true, title: "Audit Selesai", content: <p>{result.message}</p> });
             } else {
-                setModal({ show: true, title: "Error", content: <p>{result.message || 'Gagal melakukan audit.'}</p> });
+                setModal({ show: true, title: "Error", content: <p>{result.message}</p> });
             }
         } catch (error) {
-            console.error(error);
-            setModal({ show: true, title: "Error", content: <p>Terjadi kesalahan koneksi saat sinkronisasi massal.</p> });
+            setModal({ show: true, title: "Error", content: <p>Terjadi kesalahan koneksi.</p> });
         } finally {
             setIsGlobalLoading(false);
         }
@@ -446,7 +434,6 @@ const App: React.FC = () => {
         try {
             const response = await fetch(`/api/audit/fix/${userId}`, { method: 'POST' });
             const result = await response.json();
-
             if (response.ok) {
                 await fetchBootstrapData();
                 setModal({ show: true, title: "Audit Sukses", content: <p>{result.message}</p> });
@@ -480,10 +467,21 @@ const App: React.FC = () => {
         return true;
     };
 
-    // --- Special Numbers ---
     const adminManageSpecialNumber = async (number: any) => {
-        await axios.post('/api/special-numbers', number);
-        await fetchBootstrapData();
+        setIsGlobalLoading(true);
+        try {
+            if (number.id) {
+                await axios.put(`/api/special-numbers/${number.id}`, number);
+            } else {
+                await axios.post('/api/special-numbers', number);
+            }
+            await fetchBootstrapData();
+            showToast('Nomor spesial disimpan', 'success');
+        } catch(e) {
+            showToast('Gagal menyimpan nomor', 'error');
+        } finally {
+            setIsGlobalLoading(false);
+        }
     };
 
     const adminDeleteSpecialNumber = async (id: number) => {
@@ -510,7 +508,6 @@ const App: React.FC = () => {
         await fetchBootstrapData();
     };
 
-    // --- Settings ---
     const adminSaveWhatsAppSettings = async (settings: WhatsAppSettings): Promise<boolean> => {
         try {
             await axios.put('/api/settings/whatsapp', settings);
@@ -523,7 +520,6 @@ const App: React.FC = () => {
 
     const handlePageChange = (page: Page) => setCurrentPage(page);
 
-    // --- Routing/Rendering Logic ---
     const pageMap: {[key in Page]?: React.ReactNode} = {
         pelangganDashboard: <PelangganDashboard currentUser={currentUser!} transactions={transactions} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} setCurrentPage={handlePageChange} raffleWinners={raffleWinners} redemptionHistory={redemptionHistory} />,
         historyPembelian: <HistoryPembelian currentUser={currentUser!} transactions={transactions} redemptionHistory={redemptionHistory} />,
@@ -539,13 +535,12 @@ const App: React.FC = () => {
         manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isSupervisor} />,
         manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} users={users} isReadOnly={isSupervisor} adminUpdateRedemptionStatus={adminUpdateRedemptionStatus} adminBulkUpdateRedemptionStatus={adminBulkUpdateRedemptionStatus} />,
         manajemenTransaksi: <ManajemenTransaksi transactions={transactions} users={users} />,
-        manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isSupervisor} />,
+        manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isSupervisor} showToast={showToast} />,
         nomorSpesial: <NomorSpesialPage currentUser={currentUser!} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} specialNumberBannerUrl={specialNumberBannerUrl} />,
         manajemenNomor: <ManajemenNomor currentUser={currentUser!} numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} adminUploadSpecialNumberBanner={adminUploadSpecialNumberBanner} settings={whatsAppSettings} onSaveSettings={adminSaveWhatsAppSettings} />,
         manajemenAktivitas: <ManajemenAktivitas transactions={transactions} redemptions={redemptionHistory} users={users} />,
     };
 
-    // --- Main Render ---
     const isPublicPage = ['landing', 'login', 'register'].includes(currentPage);
 
     if (isPublicPage) {
@@ -564,6 +559,7 @@ const App: React.FC = () => {
         <MainLayout currentUser={currentUser} currentPage={currentPage} setCurrentPage={handlePageChange} handleLogout={handleLogout}>
             <LoadingOverlay isVisible={isGlobalLoading} message={loadingMessage} />
             {modal && <Modal show={modal.show} onClose={() => setModal(null)} title={modal.title}>{modal.content}</Modal>}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             {pageMap[currentPage]}
         </MainLayout>
     );

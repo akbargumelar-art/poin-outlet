@@ -6,11 +6,12 @@ import { ICONS } from '../../constants';
 
 interface ManajemenNotifikasiProps {
     settings: WhatsAppSettings | null;
-    onSave: (settings: WhatsAppSettings) => Promise<boolean>; // Diubah untuk mengembalikan promise
+    onSave: (settings: WhatsAppSettings) => Promise<boolean>;
     isReadOnly?: boolean;
+    showToast: (message: string, type: 'success' | 'error') => void; // New prop
 }
 
-const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onSave, isReadOnly }) => {
+const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onSave, isReadOnly, showToast }) => {
     const [formData, setFormData] = useState<WhatsAppSettings>({
         webhookUrl: '',
         senderNumber: '',
@@ -49,7 +50,14 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
         setIsSaving(true);
         // Trim trailing slash if user adds one, to ensure consistency
         const cleanedUrl = formData.webhookUrl.endsWith('/') ? formData.webhookUrl.slice(0, -1) : formData.webhookUrl;
-        await onSave({ ...formData, webhookUrl: cleanedUrl });
+        const success = await onSave({ ...formData, webhookUrl: cleanedUrl });
+        
+        if (success) {
+            showToast('Pengaturan notifikasi berhasil disimpan', 'success');
+        } else {
+            showToast('Gagal menyimpan pengaturan. Cek koneksi.', 'error');
+        }
+        
         setIsSaving(false);
     };
     

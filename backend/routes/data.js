@@ -39,6 +39,38 @@ const formatPhoneForWA = (phone) => {
 // UPLOAD ROUTER (Multipart/Form-Data)
 // ==========================================
 
+// 0. Update User Profile & Photo
+uploadRouter.put('/users/:id/profile', upload.single('photo'), async (req, res) => {
+    const { id } = req.params;
+    const { nama, email, phone, owner, kabupaten, kecamatan, salesforce, noRs, alamat, tap, jabatan } = req.body;
+    const photoUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
+
+    try {
+        let query = `
+            UPDATE users SET 
+            nama=?, email=?, phone=?, owner=?, kabupaten=?, kecamatan=?, 
+            salesforce=?, no_rs=?, alamat=?, tap=?, jabatan=?
+        `;
+        const params = [nama, email, phone, owner, kabupaten, kecamatan, salesforce, noRs, alamat, tap, jabatan];
+
+        if (photoUrl) {
+            query += `, photo_url=?`;
+            params.push(photoUrl);
+        }
+
+        query += ` WHERE id=?`;
+        params.push(id);
+
+        await db.execute(query, params);
+        
+        // Return new photo URL if updated
+        res.json({ message: 'Profil berhasil diperbarui', photoUrl: photoUrl });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // 1. Upload & Process Program Progress (Excel)
 uploadRouter.post('/programs/:id/progress', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -86,7 +118,46 @@ uploadRouter.post('/programs/:id/progress', upload.single('file'), async (req, r
     }
 });
 
-// 2. Upload Reward Image
+// 2a. Add Program (with Image)
+uploadRouter.post('/programs', upload.single('image'), async (req, res) => {
+    const { name, mechanism, prizeCategory, prizeDescription, startDate, endDate } = req.body;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
+
+    try {
+        await db.execute(
+            'INSERT INTO running_programs (name, mechanism, prize_category, prize_description, start_date, end_date, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [name, mechanism, prizeCategory, prizeDescription, startDate, endDate, imageUrl]
+        );
+        res.json({ message: 'Program created' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// 2b. Update Program (with optional Image)
+uploadRouter.put('/programs/:id', upload.single('image'), async (req, res) => {
+    const { name, mechanism, prizeCategory, prizeDescription, startDate, endDate } = req.body;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
+
+    try {
+        let query = 'UPDATE running_programs SET name=?, mechanism=?, prize_category=?, prize_description=?, start_date=?, end_date=?';
+        const params = [name, mechanism, prizeCategory, prizeDescription, startDate, endDate];
+
+        if (imageUrl) {
+            query += ', image_url=?';
+            params.push(imageUrl);
+        }
+        query += ' WHERE id=?';
+        params.push(req.params.id);
+
+        await db.execute(query, params);
+        res.json({ message: 'Program updated' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// 3a. Add Reward (Image)
 uploadRouter.post('/rewards', upload.single('image'), async (req, res) => {
     const { name, points, stock } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
@@ -102,7 +173,30 @@ uploadRouter.post('/rewards', upload.single('image'), async (req, res) => {
     }
 });
 
-// 3. Update Redemption Status (with optional Photo)
+// 3b. Update Reward
+uploadRouter.put('/rewards/:id', upload.single('image'), async (req, res) => {
+    const { name, points, stock } = req.body;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
+    
+    try {
+        let query = 'UPDATE rewards SET name=?, points=?, stock=?';
+        const params = [name, points, stock];
+
+        if (imageUrl) {
+            query += ', image_url=?';
+            params.push(imageUrl);
+        }
+        query += ' WHERE id=?';
+        params.push(req.params.id);
+
+        await db.execute(query, params);
+        res.json({ message: 'Reward updated' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// 4. Update Redemption Status (with optional Photo)
 uploadRouter.put('/redemptions/:id/status', upload.single('photo'), async (req, res) => {
     const { status, note } = req.body;
     const photoUrl = req.file ? `${getBaseUrl(req)}/uploads/${req.file.filename}` : null;
@@ -135,7 +229,7 @@ uploadRouter.put('/redemptions/:id/status', upload.single('photo'), async (req, 
     }
 });
 
-// 4. Bulk Import Transactions
+// 5. Bulk Import Transactions
 uploadRouter.post('/transactions/bulk', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     
@@ -189,7 +283,7 @@ uploadRouter.post('/transactions/bulk', upload.single('file'), async (req, res) 
     }
 });
 
-// 5. Bulk Update Levels
+// 6. Bulk Update Levels
 uploadRouter.post('/users/levels/bulk', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     
@@ -217,7 +311,7 @@ uploadRouter.post('/users/levels/bulk', upload.single('file'), async (req, res) 
     }
 });
 
-// 6. Bulk Import Special Numbers
+// 7. Bulk Import Special Numbers
 uploadRouter.post('/special-numbers/bulk', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     
@@ -253,7 +347,7 @@ uploadRouter.post('/special-numbers/bulk', upload.single('file'), async (req, re
     }
 });
 
-// 7. Upload Special Number Banner
+// 8. Upload Special Number Banner
 uploadRouter.post('/special-numbers/banner', upload.single('banner'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     const bannerUrl = `${getBaseUrl(req)}/uploads/${req.file.filename}`;
@@ -269,7 +363,7 @@ uploadRouter.post('/special-numbers/banner', upload.single('banner'), async (req
     res.json({ url: bannerUrl });
 });
 
-// 8. Bulk Add Program Participants
+// 9. Bulk Add Program Participants
 uploadRouter.post('/programs/:id/participants/bulk', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     
@@ -635,9 +729,6 @@ router.post('/redemptions', async (req, res) => {
         await connection.commit();
         res.json({ message: 'Redemption successful' });
         
-        // Send WA Notification (Async)
-        // ... (Implement WA logic here if settings available) ...
-
     } catch (error) {
         await connection.rollback();
         res.status(400).json({ message: error.message });
@@ -652,18 +743,12 @@ router.post('/redemptions/bulk/status', async (req, res) => {
     try {
         await connection.beginTransaction();
         
-        // Handle "Ditolak" logic (Refund points/stock) if needed for bulk?
-        // For simplicity, let's assume bulk update handles status change. 
-        // If status is 'Ditolak', we should technically iterate and refund.
-        
         if (status === 'Ditolak') {
             for (const id of ids) {
                 // Get redemption info to refund
                 const [rows] = await connection.execute('SELECT reward_id, status FROM redemptions WHERE id = ?', [id]);
                 if (rows.length > 0 && rows[0].status !== 'Ditolak') {
                      await connection.execute('UPDATE rewards SET stock = stock + 1 WHERE id = ?', [rows[0].reward_id]);
-                     // Refund points? (Optional, based on business logic. Usually yes)
-                     // Implementation skipped for brevity, assuming admin handles points manually or logic similar to single update
                 }
             }
         }
@@ -693,6 +778,17 @@ router.post('/special-numbers', async (req, res) => {
             [phoneNumber, price, sn, lokasi]
         );
         res.json({ message: 'Number added' });
+    } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+router.put('/special-numbers/:id', async (req, res) => {
+    const { phoneNumber, price, sn, lokasi } = req.body;
+    try {
+        await db.execute(
+            'UPDATE special_numbers SET phone_number=?, price=?, sn=?, lokasi=? WHERE id=?',
+            [phoneNumber, price, sn, lokasi, req.params.id]
+        );
+        res.json({ message: 'Number updated' });
     } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
@@ -738,6 +834,28 @@ router.post('/raffles', async (req, res) => {
         );
         await connection.commit();
         res.json({ message: 'Raffle program added' });
+    } catch (e) {
+        await connection.rollback();
+        res.status(500).json({ message: e.message });
+    } finally {
+        connection.release();
+    }
+});
+
+router.put('/raffles/:id', async (req, res) => {
+    const { name, prize, period, isActive } = req.body;
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        if (isActive) {
+            await connection.execute('UPDATE raffle_programs SET is_active = 0');
+        }
+        await connection.execute(
+            'UPDATE raffle_programs SET name=?, prize=?, period=?, is_active=? WHERE id=?',
+            [name, prize, period, isActive, req.params.id]
+        );
+        await connection.commit();
+        res.json({ message: 'Raffle program updated' });
     } catch (e) {
         await connection.rollback();
         res.status(500).json({ message: e.message });
@@ -845,7 +963,6 @@ router.post('/audit/fix/:id', async (req, res) => {
                 await connection.execute('UPDATE redemptions SET status="Ditolak", status_note=?, status_updated_at=NOW() WHERE id=?', ['Audit Sistem: Dibatalkan otomatis karena poin kurang.', redemption.id]);
                 await connection.execute('UPDATE rewards r JOIN redemptions rd ON r.id = rd.reward_id SET r.stock = r.stock + 1 WHERE rd.id = ?', [redemption.id]);
                 cancelledCount++;
-                // Notify WA logic...
             }
         }
 
