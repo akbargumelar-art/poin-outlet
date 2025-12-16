@@ -15,7 +15,6 @@ interface ManajemenPelangganProps {
     adminUpdateUserLevel: (userId: string, level: string) => void;
     adminResetPassword: (userId: string) => void;
     adminSetUserPoints: (userId: string, newPointValue: number, skipRefresh?: boolean) => Promise<boolean>; // New Prop signature
-    refreshData: () => void; // New Prop for bulk optimization
 }
 
 type SortableKeys = 'nama' | 'id' | 'tap' | 'salesforce' | 'totalPembelian' | 'points' | 'level' | 'role';
@@ -199,7 +198,7 @@ const HistoryAuditModal: React.FC<{
 };
 
 
-const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, redemptions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword, adminSetUserPoints, refreshData }) => {
+const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, redemptions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword, adminSetUserPoints }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
@@ -209,7 +208,6 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
     const [historyUser, setHistoryUser] = useState<User | null>(null); // State for history modal
     const [selectedLevel, setSelectedLevel] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'nama', direction: 'asc' });
-    const [isSyncing, setIsSyncing] = useState(false);
 
     const pelangganUsers = useMemo(() => users.filter(u => u.role === 'pelanggan'), [users]);
     const allTaps = useMemo(() => [...new Set(pelangganUsers.map(u => u.profile.tap).filter((tap): tap is string => !!tap))].sort(), [pelangganUsers]);
@@ -356,30 +354,6 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             adminSetUserPoints(userId, calculatedPoints).then(() => {
                 setHistoryUser(null); // Close modal on success
             });
-        }
-    };
-
-    const handleBulkSync = async () => {
-        if(!window.confirm(`Anda akan menyinkronkan poin untuk SEMUA MITRA. Proses ini akan:\n\n1. Menghitung poin valid berdasarkan riwayat transaksi.\n2. Membatalkan otomatis penukaran pending jika poin tidak cukup.\n3. Mengupdate saldo semua mitra.\n\nLanjutkan?`)) return;
-
-        setIsSyncing(true);
-
-        try {
-            // Call the new backend endpoint for bulk fix
-            const response = await fetch('/api/audit/bulk-fix', { method: 'POST' });
-            const result = await response.json();
-
-            if (response.ok) {
-                alert(result.message);
-                refreshData(); // Refresh all data from server
-            } else {
-                alert(`Gagal: ${result.message}`);
-            }
-        } catch (error) {
-            console.error(error);
-            alert("Terjadi kesalahan koneksi saat sinkronisasi massal.");
-        } finally {
-            setIsSyncing(false);
         }
     };
     
@@ -557,16 +531,6 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Pengguna</h1>
                 <div className="flex gap-2">
-                    {!isReadOnly && (
-                        <button 
-                            onClick={handleBulkSync} 
-                            disabled={isSyncing}
-                            className="neu-button !w-auto px-4 flex items-center gap-2 bg-yellow-500 text-white hover:bg-yellow-600 shadow-md"
-                        >
-                            <Icon path={ICONS.history} className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`}/>
-                            {isSyncing ? 'Mengaudit & Koreksi...' : 'Audit Otomatis Massal'}
-                        </button>
-                    )}
                     {!isReadOnly && <button onClick={() => setCurrentPage('tambahUser')} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5"/>Tambah Pengguna</button>}
                     <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel</button>
                 </div>

@@ -15,10 +15,11 @@ interface ManajemenPoinProps {
     adminBulkAddTransactions: (file: File) => void;
     adminUpdatePointsManual: (userId: string, points: number, action: 'tambah' | 'kurang') => void;
     adminBulkUpdateLevels: (file: File) => void;
+    adminBulkAudit: () => void; // New Prop
     isReadOnly?: boolean;
 }
 
-const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ currentUser, users, loyaltyPrograms, updateLoyaltyProgram, adminAddTransaction, adminBulkAddTransactions, adminUpdatePointsManual, adminBulkUpdateLevels, isReadOnly }) => {
+const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ currentUser, users, loyaltyPrograms, updateLoyaltyProgram, adminAddTransaction, adminBulkAddTransactions, adminUpdatePointsManual, adminBulkUpdateLevels, adminBulkAudit, isReadOnly }) => {
     const [manualUserId, setManualUserId] = useState('');
     const [manualPoints, setManualPoints] = useState(0);
     const [manualAction, setManualAction] = useState<'tambah' | 'kurang'>('tambah');
@@ -207,11 +208,24 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ currentUser, users, loyal
                     )}
 
                     <div className="neu-card p-6">
-                         <h2 className="text-xl font-bold text-gray-700 mb-4">Upload Massal</h2>
-                         <p className="text-sm text-gray-600 mb-4">Gunakan fitur ini untuk meng-upload banyak data sekaligus dari file Excel.</p>
-                         <div className="flex flex-col md:flex-row gap-4">
-                            <button onClick={() => setShowTxUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Transaksi</button>
-                            {!isOperator && <button onClick={() => setShowLevelUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Level Mitra</button>}
+                         <h2 className="text-xl font-bold text-gray-700 mb-4">Alat Bantu & Audit</h2>
+                         <p className="text-sm text-gray-600 mb-4">Gunakan fitur ini untuk upload data massal atau melakukan audit poin otomatis.</p>
+                         <div className="flex flex-col gap-3">
+                            <div className="flex flex-col md:flex-row gap-3">
+                                <button onClick={() => setShowTxUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Transaksi (Excel)</button>
+                                {!isOperator && <button onClick={() => setShowLevelUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Level (Excel)</button>}
+                            </div>
+                            
+                            {!isOperator && (
+                                <button 
+                                    onClick={adminBulkAudit}
+                                    className="neu-button w-full bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-600 flex justify-center items-center gap-2"
+                                    disabled={isReadOnly}
+                                >
+                                    <Icon path={ICONS.history} className="w-5 h-5"/>
+                                    Audit & Perbaikan Poin Otomatis
+                                </button>
+                            )}
                          </div>
                     </div>
                 </div>

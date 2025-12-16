@@ -299,8 +299,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             return;
         }
     
-        // FIX: Removed argument from join() as default is comma, to avoid potential TS error
-        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Produk', 'Harga Satuan', 'Kuantiti', 'Total Pembelian', 'Poin Didapat'].join();
+        const csvHeader = (['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Produk', 'Harga Satuan', 'Kuantiti', 'Total Pembelian', 'Poin Didapat'] as any[]).join(',');
         
         const csvRows = filteredTransactions.map(t => {
             const formattedDate = new Date(t.date).toLocaleString('id-ID', {
@@ -308,7 +307,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             }).replace(/\./g, ':');
 
-            return [
+            return ([
                 formattedDate,
                 t.userId,
                 `"${t.userName.replace(/"/g, '""')}"`,
@@ -319,10 +318,9 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                 t.kuantiti,
                 t.totalPembelian,
                 t.pointsEarned
-            ].join(); // FIX: Removed argument from join() as default is comma
+            ] as any[]).join(',');
         });
     
-        // Explicitly cast to any[] to avoid "Expected 0 arguments, but got 1" TS error on join('\n')
         const csv = ([csvHeader, ...csvRows] as any[]).join('\n');
         
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
