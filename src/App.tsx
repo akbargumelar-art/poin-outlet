@@ -4,7 +4,7 @@ import axios from 'axios';
 import { 
     User, Page, Transaction, LoyaltyProgram, RunningProgram, 
     Reward, RaffleProgram, RaffleWinner, Redemption, 
-    SpecialNumber, WhatsAppSettings, UserProfile, CouponRedemption
+    SpecialNumber, WhatsAppSettings, UserProfile, CouponRedemption, UserRole
 } from './types';
 import { ICONS } from './constants';
 
@@ -94,7 +94,10 @@ const App: React.FC = () => {
 
             if (currentUser) {
                 const updatedUser = (data.users || []).find((u: User) => u.id === currentUser.id);
-                if (updatedUser) setCurrentUser(updatedUser);
+                if (updatedUser) {
+                    setCurrentUser(updatedUser);
+                    localStorage.setItem('mitra_user_session', JSON.stringify(updatedUser));
+                }
             }
 
         } catch (error) {
@@ -106,6 +109,19 @@ const App: React.FC = () => {
     }, [currentUser]);
 
     useEffect(() => {
+        const storedUser = localStorage.getItem('mitra_user_session');
+        if (storedUser) {
+            try {
+                const parsedUser = JSON.parse(storedUser);
+                setCurrentUser(parsedUser);
+                if (parsedUser.role === 'pelanggan') setCurrentPage('pelangganDashboard');
+                else if (parsedUser.role === 'admin') setCurrentPage('adminDashboard');
+                else if (parsedUser.role === 'supervisor') setCurrentPage('adminDashboard');
+                else if (parsedUser.role === 'operator') setCurrentPage('manajemenNomor');
+            } catch (e) {
+                localStorage.removeItem('mitra_user_session');
+            }
+        }
         fetchBootstrapData();
     }, []);
 
@@ -117,6 +133,7 @@ const App: React.FC = () => {
             const response = await axios.post('/api/auth/login', { id, password });
             const user = response.data;
             setCurrentUser(user);
+            localStorage.setItem('mitra_user_session', JSON.stringify(user));
             
             if (user.role === 'pelanggan') setCurrentPage('pelangganDashboard');
             else if (user.role === 'admin') setCurrentPage('adminDashboard');
@@ -147,6 +164,7 @@ const App: React.FC = () => {
 
     const handleLogout = () => {
         setCurrentUser(null);
+        localStorage.removeItem('mitra_user_session');
         setCurrentPage('landing');
         setUsers([]); 
         setTransactions([]);
@@ -157,18 +175,13 @@ const App: React.FC = () => {
         setIsGlobalLoading(true);
         try {
             const formData = new FormData();
-            // Append all profile keys
-            Object.keys(profile).forEach(key => {
-                const value = profile[key as keyof UserProfile];
-                if (value !== undefined && value !== null) {
-                    formData.append(key, value as string);
-                }
+            Object.entries(profile).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) formData.append(key, String(value));
             });
             if (photoFile) formData.append('photo', photoFile);
 
             const response = await axios.put(`/api/users/${currentUser?.id}/profile`, formData);
             
-            // Update local state immediately for better UX
             if (currentUser) {
                 const updatedUser = { 
                     ...currentUser, 
@@ -179,6 +192,7 @@ const App: React.FC = () => {
                     } 
                 };
                 setCurrentUser(updatedUser);
+                localStorage.setItem('mitra_user_session', JSON.stringify(updatedUser));
             }
             showToast('Profil berhasil diperbarui', 'success');
         } catch (e) {
@@ -259,6 +273,7 @@ const App: React.FC = () => {
     const adminDeleteProgram = async (id: number) => {
         await axios.delete(`/api/programs/${id}`);
         await fetchBootstrapData();
+        showToast('Program dihapus', 'success');
     };
 
     const adminBulkUpdateProgramProgress = async (programId: number, file: File) => {
@@ -266,11 +281,13 @@ const App: React.FC = () => {
         formData.append('file', file);
         await axios.post(`/api/programs/${programId}/progress`, formData);
         await fetchBootstrapData();
+        showToast('Progres program berhasil diupdate', 'success');
     };
 
     const adminUpdateProgramParticipants = async (programId: number, participantIds: string[]) => {
         await axios.put(`/api/programs/${programId}/participants`, { participantIds });
         await fetchBootstrapData();
+        showToast('Peserta program berhasil diupdate', 'success');
     };
 
     const adminBulkAddProgramParticipants = async (programId: number, file: File) => {
@@ -278,16 +295,20 @@ const App: React.FC = () => {
         formData.append('file', file);
         await axios.post(`/api/programs/${programId}/participants/bulk`, formData);
         await fetchBootstrapData();
+        showToast('Peserta program berhasil diupload', 'success');
     };
 
+    // --- Points & Transactions ---
     const adminUpdateLoyaltyProgram = async (program: LoyaltyProgram) => {
         await axios.put(`/api/loyalty-programs/${program.level}`, program);
         await fetchBootstrapData();
+        showToast('Level program berhasil diupdate', 'success');
     };
 
     const adminAddTransaction = async (data: any) => {
         await axios.post('/api/transactions', data);
         await fetchBootstrapData();
+        showToast('Transaksi berhasil ditambahkan', 'success');
     };
 
     const adminBulkAddTransactions = async (file: File) => {
@@ -295,11 +316,13 @@ const App: React.FC = () => {
         formData.append('file', file);
         await axios.post('/api/transactions/bulk', formData);
         await fetchBootstrapData();
+        showToast('Transaksi massal berhasil diupload', 'success');
     };
 
     const adminUpdatePointsManual = async (userId: string, points: number, action: 'tambah' | 'kurang') => {
         await axios.post(`/api/users/${userId}/points`, { points, action });
         await fetchBootstrapData();
+        showToast('Poin berhasil diupdate manual', 'success');
     };
 
     const adminBulkUpdateLevels = async (file: File) => {
@@ -307,8 +330,10 @@ const App: React.FC = () => {
         formData.append('file', file);
         await axios.post('/api/users/levels/bulk', formData);
         await fetchBootstrapData();
+        showToast('Level user berhasil diupdate massal', 'success');
     };
 
+    // --- Rewards ---
     const saveReward = async (rewardData: any, photoFile: File | null) => {
         setIsGlobalLoading(true);
         try {
@@ -335,11 +360,13 @@ const App: React.FC = () => {
     const adminDeleteReward = async (id: number) => {
         await axios.delete(`/api/rewards/${id}`);
         await fetchBootstrapData();
+        showToast('Hadiah berhasil dihapus', 'success');
     };
 
     const adminReorderRewards = async (orderData: any[]) => {
         await axios.put('/api/rewards/reorder', { orderData });
         await fetchBootstrapData();
+        showToast('Urutan hadiah berhasil disimpan', 'success');
         return true;
     };
 
@@ -357,6 +384,7 @@ const App: React.FC = () => {
         }
     };
 
+    // --- Raffles ---
     const saveRaffleProgram = async (program: any) => {
         setIsGlobalLoading(true);
         try {
@@ -377,8 +405,10 @@ const App: React.FC = () => {
     const deleteRaffleProgram = async (id: number) => {
         await axios.delete(`/api/raffles/${id}`);
         await fetchBootstrapData();
+        showToast('Program undian dihapus', 'success');
     };
 
+    // --- Redemptions ---
     const adminUpdateRedemptionStatus = async (id: number, status: string, note: string, photoFile?: File | null) => {
         const formData = new FormData();
         formData.append('status', status);
@@ -386,6 +416,7 @@ const App: React.FC = () => {
         if (photoFile) formData.append('photo', photoFile);
         await axios.put(`/api/redemptions/${id}/status`, formData);
         await fetchBootstrapData();
+        showToast('Status penukaran berhasil diupdate', 'success');
     };
 
     const adminBulkUpdateRedemptionStatus = useCallback(async (ids: number[], status: string, statusNote: string) => {
@@ -408,6 +439,7 @@ const App: React.FC = () => {
         }
     }, [fetchBootstrapData]);
 
+    // --- Audit ---
     const adminBulkAudit = async () => {
         if(!window.confirm(`Anda akan menyinkronkan poin untuk SEMUA MITRA... Lanjutkan?`)) return;
         setIsGlobalLoading(true);
@@ -453,6 +485,7 @@ const App: React.FC = () => {
     const adminUpdateUserLevel = async (userId: string, level: string) => {
         await axios.put(`/api/users/${userId}/level`, { level });
         await fetchBootstrapData();
+        showToast('Level user berhasil diupdate', 'success');
     };
 
     const adminResetPassword = async (userId: string) => {
@@ -464,9 +497,11 @@ const App: React.FC = () => {
     const adminSetUserPoints = async (userId: string, points: number) => {
         await axios.put(`/api/users/${userId}/points-set`, { points });
         await fetchBootstrapData();
+        showToast('Poin user berhasil diupdate', 'success');
         return true;
     };
 
+    // --- Special Numbers ---
     const adminManageSpecialNumber = async (number: any) => {
         setIsGlobalLoading(true);
         try {
@@ -476,7 +511,7 @@ const App: React.FC = () => {
                 await axios.post('/api/special-numbers', number);
             }
             await fetchBootstrapData();
-            showToast('Nomor spesial disimpan', 'success');
+            showToast('Nomor spesial berhasil disimpan', 'success');
         } catch(e) {
             showToast('Gagal menyimpan nomor', 'error');
         } finally {
@@ -487,11 +522,13 @@ const App: React.FC = () => {
     const adminDeleteSpecialNumber = async (id: number) => {
         await axios.delete(`/api/special-numbers/${id}`);
         await fetchBootstrapData();
+        showToast('Nomor spesial dihapus', 'success');
     };
 
     const adminUpdateSpecialNumberStatus = async (id: number, isSold: boolean) => {
         await axios.put(`/api/special-numbers/${id}/status`, { isSold });
         await fetchBootstrapData();
+        showToast('Status nomor berhasil diupdate', 'success');
     };
 
     const adminBulkUploadNumbers = async (file: File) => {
@@ -499,6 +536,7 @@ const App: React.FC = () => {
         formData.append('file', file);
         await axios.post('/api/special-numbers/bulk', formData);
         await fetchBootstrapData();
+        showToast('Upload nomor massal berhasil', 'success');
     };
 
     const adminUploadSpecialNumberBanner = async (file: File) => {
@@ -506,8 +544,10 @@ const App: React.FC = () => {
         formData.append('banner', file);
         await axios.post('/api/special-numbers/banner', formData);
         await fetchBootstrapData();
+        showToast('Banner berhasil diupload', 'success');
     };
 
+    // --- Settings ---
     const adminSaveWhatsAppSettings = async (settings: WhatsAppSettings): Promise<boolean> => {
         try {
             await axios.put('/api/settings/whatsapp', settings);
@@ -520,6 +560,7 @@ const App: React.FC = () => {
 
     const handlePageChange = (page: Page) => setCurrentPage(page);
 
+    // --- Routing/Rendering Logic ---
     const pageMap: {[key in Page]?: React.ReactNode} = {
         pelangganDashboard: <PelangganDashboard currentUser={currentUser!} transactions={transactions} loyaltyPrograms={loyaltyPrograms} runningPrograms={runningPrograms} setCurrentPage={handlePageChange} raffleWinners={raffleWinners} redemptionHistory={redemptionHistory} />,
         historyPembelian: <HistoryPembelian currentUser={currentUser!} transactions={transactions} redemptionHistory={redemptionHistory} />,
@@ -541,6 +582,7 @@ const App: React.FC = () => {
         manajemenAktivitas: <ManajemenAktivitas transactions={transactions} redemptions={redemptionHistory} users={users} />,
     };
 
+    // --- Main Render ---
     const isPublicPage = ['landing', 'login', 'register'].includes(currentPage);
 
     if (isPublicPage) {
