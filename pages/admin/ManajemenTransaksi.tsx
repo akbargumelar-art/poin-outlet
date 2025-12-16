@@ -124,7 +124,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         filteredTransactions.forEach(t => {
             const revenue = typeof t.totalPembelian === 'string' ? parseFloat(t.totalPembelian) : t.totalPembelian;
             const points = typeof t.pointsEarned === 'string' ? parseFloat(t.pointsEarned) : t.pointsEarned;
-            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti) : t.kuantiti;
+            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
 
             totalRevenue += (isNaN(revenue) ? 0 : revenue);
             totalPoints += (isNaN(points) ? 0 : points);
@@ -162,7 +162,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         const productQty: Record<string, number> = {};
         
         filteredTransactions.forEach(t => {
-            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti) : t.kuantiti;
+            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
             const safeQty = isNaN(qty) ? 0 : qty;
             
             productQty[t.produk] = (productQty[t.produk] || 0) + safeQty;
@@ -195,7 +195,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             }
             
             // Use Quantity for Chart
-            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti) : t.kuantiti;
+            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
             const safeQty = isNaN(qty) ? 0 : qty;
 
             dailyGroups[dateKey].total += safeQty;
@@ -239,7 +239,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         transactionsWithUserData.forEach(t => {
             const tDate = new Date(t.date);
             // USE QUANTITY for MoM Comparison
-            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti) : t.kuantiti;
+            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
             const safeQty = isNaN(qty) ? 0 : qty;
 
             if (tDate >= currentMonthStart && tDate <= currentMonthEnd) {
@@ -355,7 +355,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             <div>
                 <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Riwayat Transaksi Pembelian</h1>
-                    <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
+                    <button onClick={() => handleExport()} className="neu-button !w-auto px-4 flex items-center gap-2">
                         <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel
                     </button>
                 </div>
@@ -371,14 +371,14 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                     />
                     <SummaryCard 
                         title="Total Transaksi" 
-                        value={summaryStats.totalTransactions.toLocaleString('id-ID')} 
+                        value={Number(summaryStats.totalTransactions).toLocaleString('id-ID')} 
                         subtext="Frekuensi"
                         colorClass="text-blue-600" 
                         icon={ICONS.dashboard} 
                     />
                     <SummaryCard 
                         title="Mitra Berbelanja" 
-                        value={summaryStats.uniquePartners.toLocaleString('id-ID')} 
+                        value={Number(summaryStats.uniquePartners).toLocaleString('id-ID')} 
                         subtext="Mitra unik"
                         colorClass="text-purple-600" 
                         icon={ICONS.users} 
@@ -437,7 +437,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                                         <p className="font-bold mb-1 border-b border-gray-600 pb-1">{day.displayDate}</p>
                                                         <p className="font-bold">Total: {day.total.toLocaleString('id-ID')} Unit</p>
                                                         <div className="mt-1 space-y-0.5">
-                                                            {Object.entries(day.breakdown).sort((a,b)=>b[1]-a[1]).map(([prod, val]) => (
+                                                            {Object.entries(day.breakdown).sort((a,b)=>Number(b[1])-Number(a[1])).map(([prod, val]) => (
                                                                 <div key={prod} className="flex justify-between gap-4">
                                                                     <span className="opacity-80">{prod}:</span>
                                                                     <span>{val.toLocaleString('id-ID')}</span>
@@ -451,7 +451,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                                         {chartData.topProducts.map(prod => {
                                                             const val = day.breakdown[prod] || 0;
                                                             if (val === 0) return null;
-                                                            const height = (val / chartData.maxTotal) * 100;
+                                                            const height = (val / Number(chartData.maxTotal)) * 100;
                                                             return (
                                                                 <div 
                                                                     key={prod} 
@@ -462,7 +462,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                                         })}
                                                         {day.breakdown['Lainnya'] > 0 && (
                                                             <div 
-                                                                style={{ height: `${(day.breakdown['Lainnya'] / chartData.maxTotal) * 100}%`, backgroundColor: chartData.otherColor }}
+                                                                style={{ height: `${(day.breakdown['Lainnya'] / Number(chartData.maxTotal)) * 100}%`, backgroundColor: chartData.otherColor }}
                                                                 className="w-full transition-all duration-300 hover:opacity-80"
                                                             ></div>
                                                         )}
@@ -478,7 +478,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                     </div>
                                     {/* Y-Axis Grid Lines - Show Quantity */}
                                     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between text-[9px] text-gray-300 font-mono select-none">
-                                        <div className="border-t border-gray-200 w-full relative"><span className="absolute -top-2 left-0 bg-white/80 px-1 text-gray-400">{chartData.maxTotal.toLocaleString('id-ID')}</span></div>
+                                        <div className="border-t border-gray-200 w-full relative"><span className="absolute -top-2 left-0 bg-white/80 px-1 text-gray-400">{Number(chartData.maxTotal).toLocaleString('id-ID')}</span></div>
                                         <div className="border-t border-gray-100 w-full"></div>
                                         <div className="border-t border-gray-100 w-full"></div>
                                         <div className="border-t border-gray-100 w-full"></div>
@@ -513,9 +513,14 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
                             <div className="h-64 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                                 {momChartData.data.map(item => {
-                                    const currentPercent = (Number(item.current) / Number(momChartData.maxValue)) * 100;
-                                    const lastPercent = (Number(item.last) / Number(momChartData.maxValue)) * 100;
-                                    const growth = Number(item.last) > 0 ? ((Number(item.current) - Number(item.last)) / Number(item.last)) * 100 : 100;
+                                    const currentVal = Number(item.current);
+                                    const lastVal = Number(item.last);
+                                    const maxVal = Number(momChartData.maxValue);
+
+                                    const currentPercent = (currentVal / maxVal) * 100;
+                                    const lastPercent = (lastVal / maxVal) * 100;
+                                    // Explicitly cast to number for arithmetic safety
+                                    const growth = lastVal > 0 ? ((currentVal - lastVal) / lastVal) * 100 : 100;
                                     const isPositive = growth >= 0;
 
                                     return (
@@ -523,9 +528,9 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                             <div className="flex justify-between text-xs mb-1">
                                                 <span className="font-bold text-gray-700 truncate w-40" title={item.name}>{item.name}</span>
                                                 <div className="flex gap-2">
-                                                    <span className="text-gray-500 font-mono">{Number(item.current).toLocaleString('id-ID')} unit</span>
+                                                    <span className="text-gray-500 font-mono">{currentVal.toLocaleString('id-ID')} unit</span>
                                                     <span className={`font-mono font-bold w-12 text-right ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
-                                                        {isPositive ? '+' : ''}{growth.toFixed(0)}%
+                                                        {isPositive ? '+' : ''}{Math.round(growth)}%
                                                     </span>
                                                 </div>
                                             </div>
@@ -544,8 +549,8 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                             {/* Tooltip */}
                                             <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 hidden group-hover:block z-30 bg-gray-800 text-white text-xs rounded p-2 shadow-lg w-max pointer-events-none">
                                                 <p className="font-bold border-b border-gray-600 pb-1 mb-1">{item.name}</p>
-                                                <p>{momChartData.monthNames.current}: {Number(item.current).toLocaleString('id-ID')} Unit</p>
-                                                <p className="text-gray-400">{momChartData.monthNames.last}: {Number(item.last).toLocaleString('id-ID')} Unit</p>
+                                                <p>{momChartData.monthNames.current}: {currentVal.toLocaleString('id-ID')} Unit</p>
+                                                <p className="text-gray-400">{momChartData.monthNames.last}: {lastVal.toLocaleString('id-ID')} Unit</p>
                                             </div>
                                         </div>
                                     )
@@ -580,7 +585,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                         <input type="date" name="from" value={filter.from} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
                         <span className="text-gray-500">-</span>
                         <input type="date" name="to" value={filter.to} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
-                        <button onClick={handleResetFilters} className="neu-button-icon !p-2" title="Clear Filter">
+                        <button onClick={() => handleResetFilters()} className="neu-button-icon !p-2" title="Clear Filter">
                             <Icon path={ICONS.close} className="w-5 h-5" />
                         </button>
                     </div>

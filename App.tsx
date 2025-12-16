@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Page, Transaction, Reward, Redemption, LoyaltyProgram, RunningProgram, RaffleProgram, CouponRedemption, RaffleWinner, SpecialNumber, WhatsAppSettings, UserProfile, Location, UserRole } from './types';
 import MainLayout from './components/layout/MainLayout';
@@ -53,7 +52,6 @@ const App: React.FC = () => {
 
     const fetchBootstrapData = useCallback(async () => {
         try {
-            // Placeholder for data fetching - ensure these endpoints exist or replace with actual logic
             const responses = await Promise.all([
                 fetch('/api/users').then(res => res.ok ? res.json() : []),
                 fetch('/api/transactions').then(res => res.ok ? res.json() : []),
@@ -373,6 +371,39 @@ const App: React.FC = () => {
         } catch(e) { console.error(e); } finally { setIsGlobalLoading(false); }
     };
 
+    const adminSetUserPoints = async (userId: string, newPointValue: number) => {
+        setIsGlobalLoading(true);
+        try {
+             const user = users.find(u => u.id === userId);
+             if (!user) return false;
+
+             const currentPoints = user.points || 0;
+             const diff = newPointValue - currentPoints;
+
+             if (diff === 0) return true; 
+
+             const action = diff > 0 ? 'tambah' : 'kurang';
+             const absDiff = Math.abs(diff);
+
+             const res = await fetch(`/api/users/${userId}/points`, { 
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ points: absDiff, action })
+            });
+            
+            if(res.ok) {
+                fetchBootstrapData();
+                return true;
+            }
+            return false;
+        } catch(e) { 
+            console.error(e); 
+            return false;
+        } finally { 
+            setIsGlobalLoading(false); 
+        }
+    };
+
     const adminBulkUpdateLevels = async (file: File) => {
          setIsGlobalLoading(true);
         try {
@@ -586,7 +617,7 @@ const App: React.FC = () => {
         tukarPoin: <TukarPoin currentUser={currentUser!} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} loyaltyPrograms={loyaltyPrograms} />,
         editProfile: <EditProfilePage currentUser={currentUser!} updateUserProfile={updateUserProfile} handleLogout={handleLogout} handleChangePassword={handleChangePassword} />,
         adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms} specialNumbers={specialNumbers} redemptions={redemptionHistory} />,
-        manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} redemptions={redemptionHistory} setCurrentPage={handlePageChange} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} adminResetPassword={adminResetPassword} />,
+        manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} redemptions={redemptionHistory} setCurrentPage={handlePageChange} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} adminResetPassword={adminResetPassword} adminSetUserPoints={adminSetUserPoints} />,
         tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
         manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} adminBulkAddProgramParticipants={adminBulkAddProgramParticipants} isReadOnly={isSupervisor} />,
         manajemenPoin: <ManajemenPoin currentUser={currentUser!} users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} adminBulkUpdateLevels={adminBulkUpdateLevels} isReadOnly={isSupervisor} />,

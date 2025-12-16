@@ -658,7 +658,7 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                     <input type="date" name="from" value={filter.from} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
                     <span className="text-gray-500">-</span>
                     <input type="date" name="to" value={filter.to} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
-                    <button onClick={handleResetFilters} className="neu-button !w-auto px-6 text-sm ml-auto">
+                    <button onClick={() => handleResetFilters()} className="neu-button !w-auto px-6 text-sm ml-auto">
                         Reset Filter
                     </button>
                 </div>

@@ -14,6 +14,7 @@ interface ManajemenPelangganProps {
     loyaltyPrograms: LoyaltyProgram[];
     adminUpdateUserLevel: (userId: string, level: string) => void;
     adminResetPassword: (userId: string) => void;
+    adminSetUserPoints: (userId: string, newPointValue: number) => Promise<boolean>; // New Prop
 }
 
 type SortableKeys = 'nama' | 'id' | 'tap' | 'salesforce' | 'totalPembelian' | 'points' | 'level' | 'role';
@@ -24,7 +25,8 @@ const HistoryAuditModal: React.FC<{
     userTransactions: Transaction[];
     userRedemptions: Redemption[];
     onClose: () => void;
-}> = ({ user, userTransactions, userRedemptions, onClose }) => {
+    onSync: (userId: string, calculatedPoints: number) => void;
+}> = ({ user, userTransactions, userRedemptions, onClose, onSync }) => {
     
     // Combine and Sort Data
     const historyData = useMemo(() => {
@@ -99,8 +101,17 @@ const HistoryAuditModal: React.FC<{
                 </div>
 
                 {discrepancy !== 0 && (
-                    <div className="text-xs text-yellow-800 bg-yellow-100 p-2 rounded border border-yellow-200">
-                        <span className="font-bold">Catatan Admin:</span> Terdapat selisih poin sebesar <b>{discrepancy}</b>. Ini biasanya disebabkan oleh penambahan/pengurangan poin manual (inject) atau data transaksi lama yang tidak tercatat di sistem ini.
+                    <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-yellow-100 p-3 rounded border border-yellow-200">
+                        <p className="text-xs text-yellow-800">
+                            <span className="font-bold">Perhatian:</span> Poin tidak sesuai history.
+                            Hitungan sistem seharusnya: <b>{calculatedBalance.toLocaleString('id-ID')}</b>.
+                        </p>
+                        <button 
+                            onClick={() => onSync(user.id, calculatedBalance)}
+                            className="neu-button !w-auto px-3 py-1 text-xs bg-white text-yellow-700 border-yellow-300 hover:bg-yellow-50"
+                        >
+                            Perbaiki Poin Sekarang
+                        </button>
                     </div>
                 )}
 
@@ -157,7 +168,7 @@ const HistoryAuditModal: React.FC<{
 };
 
 
-const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, redemptions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword }) => {
+const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, redemptions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword, adminSetUserPoints }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
@@ -167,6 +178,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
     const [historyUser, setHistoryUser] = useState<User | null>(null); // State for history modal
     const [selectedLevel, setSelectedLevel] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'nama', direction: 'asc' });
+    const [isSyncing, setIsSyncing] = useState(false);
 
     const pelangganUsers = useMemo(() => users.filter(u => u.role === 'pelanggan'), [users]);
     const allTaps = useMemo(() => [...new Set(pelangganUsers.map(u => u.profile.tap).filter((tap): tap is string => !!tap))].sort(), [pelangganUsers]);
@@ -307,6 +319,60 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
         }
     };
     
+    // --- Logic Sync Poin ---
+    const handleSyncSingleUser = (userId: string, calculatedPoints: number) => {
+        if(window.confirm("Apakah Anda yakin ingin memperbaiki poin user ini sesuai history transaksi?")) {
+            adminSetUserPoints(userId, calculatedPoints).then(() => {
+                setHistoryUser(null); // Close modal on success
+            });
+        }
+    };
+
+    const handleBulkSync = async () => {
+        // Filter users to only customers
+        const targets = filteredUsers.filter(u => u.role === 'pelanggan');
+        if (targets.length === 0) {
+            alert("Tidak ada mitra yang ditampilkan untuk disinkronisasi.");
+            return;
+        }
+
+        if(!window.confirm(`Anda akan menyinkronkan poin untuk ${targets.length} mitra yang ditampilkan saat ini. Proses ini akan menghitung ulang semua transaksi dan penukaran. Lanjutkan?`)) return;
+
+        setIsSyncing(true);
+        let correctedCount = 0;
+
+        try {
+            // Loop through all filtered users
+            for (const user of targets) {
+                // 1. Calculate Earned Points
+                const earned = transactions
+                    .filter(t => t.userId === user.id)
+                    .reduce((sum, t) => sum + t.pointsEarned, 0);
+                
+                // 2. Calculate Spent Points
+                const spent = redemptions
+                    .filter(r => r.userId === user.id)
+                    .reduce((sum, r) => sum + r.pointsSpent, 0);
+                
+                // 3. Determine Correct Balance
+                const correctBalance = earned - spent;
+                const currentBalance = user.points || 0;
+
+                // 4. Update if different
+                if (correctBalance !== currentBalance) {
+                    await adminSetUserPoints(user.id, correctBalance);
+                    correctedCount++;
+                }
+            }
+            alert(`Sinkronisasi Selesai! ${correctedCount} akun telah dikoreksi.`);
+        } catch (error) {
+            console.error(error);
+            alert("Terjadi kesalahan saat sinkronisasi massal.");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+    
     const handleExport = () => {
         if (filteredUsers.length === 0) {
             alert("Tidak ada data untuk diekspor dengan filter yang dipilih.");
@@ -437,7 +503,8 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                     user={historyUser} 
                     userTransactions={transactions.filter(t => t.userId === historyUser.id)}
                     userRedemptions={redemptions.filter(r => r.userId === historyUser.id)}
-                    onClose={() => setHistoryUser(null)} 
+                    onClose={() => setHistoryUser(null)}
+                    onSync={handleSyncSingleUser}
                 />
             )}
 
@@ -480,6 +547,16 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Pengguna</h1>
                 <div className="flex gap-2">
+                    {!isReadOnly && (
+                        <button 
+                            onClick={handleBulkSync} 
+                            disabled={isSyncing}
+                            className="neu-button !w-auto px-4 flex items-center gap-2 bg-yellow-500 text-white hover:bg-yellow-600 shadow-md"
+                        >
+                            <Icon path={ICONS.history} className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`}/>
+                            {isSyncing ? 'Memproses...' : 'Sinkronisasi Poin Massal'}
+                        </button>
+                    )}
                     {!isReadOnly && <button onClick={() => setCurrentPage('tambahUser')} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5"/>Tambah Pengguna</button>}
                     <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel</button>
                 </div>
