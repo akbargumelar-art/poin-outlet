@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Transaction, User } from '../../types';
 import Icon from '../../components/common/Icon';
@@ -323,7 +322,8 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             ].join(); // FIX: Removed argument from join() as default is comma
         });
     
-        const csv = [csvHeader, ...csvRows].join('\n');
+        // Explicitly cast to any[] to avoid "Expected 0 arguments, but got 1" TS error on join('\n')
+        const csv = ([csvHeader, ...csvRows] as any[]).join('\n');
         
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');

@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const xlsx = require('xlsx');
 const bcrypt = require('bcryptjs');
+const axios = require('axios'); // Required for WhatsApp notifications
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '../uploads');
@@ -51,6 +52,19 @@ const mapUser = (u) => ({
         photoUrl: u.photo_url
     }
 });
+
+// Helper: Format Phone Number for WAHA (e.g. 0812 -> 62812)
+const formatPhoneForWA = (phone) => {
+    if (!phone) return null;
+    let formatted = phone.replace(/\D/g, '');
+    if (formatted.startsWith('0')) {
+        formatted = '62' + formatted.slice(1);
+    }
+    if (!formatted.endsWith('@c.us')) {
+        formatted += '@c.us';
+    }
+    return formatted;
+};
 
 // ==========================================
 // UPLOAD ROUTER (Multipart/Form-Data)
@@ -257,11 +271,15 @@ router.get('/users/:id/audit', async (req, res) => {
     } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ** NEW: ADVANCED BULK AUDIT & FIX **
+// ** NEW: ADVANCED BULK AUDIT & FIX WITH WHATSAPP NOTIFICATION **
 router.post('/audit/bulk-fix', async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
+
+        // 0. Get WhatsApp Settings
+        const [settingsRows] = await connection.execute('SELECT * FROM whatsapp_settings LIMIT 1');
+        const waSettings = settingsRows[0];
 
         // 1. Get all customers
         const [users] = await connection.execute("SELECT id FROM users WHERE role = 'pelanggan'");
@@ -280,7 +298,6 @@ router.post('/audit/bulk-fix', async (req, res) => {
             const totalEarned = earnedRows[0].total ? parseInt(earnedRows[0].total) : 0;
 
             // 3. Calculate Points Spent on COMPLETED/APPROVED redemptions only (Fixed Cost)
-            // Note: We exclude 'Ditolak'. We also exclude 'Diajukan'/'Diproses' momentarily to check solvency.
             const [spentFinishedRows] = await connection.execute(
                 'SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=? AND status = "Selesai"', 
                 [userId]
@@ -290,9 +307,13 @@ router.post('/audit/bulk-fix', async (req, res) => {
             // 4. Calculate Available "Real" Points before pending requests
             let availablePoints = totalEarned - spentFinished;
 
-            // 5. Fetch Pending Redemptions (Diajukan/Diproses)
+            // 5. Fetch Pending Redemptions (Diajukan/Diproses) WITH user contact info
             const [pendingRedemptions] = await connection.execute(
-                'SELECT id, points_spent, reward_name FROM redemptions WHERE user_id=? AND status IN ("Diajukan", "Diproses") ORDER BY date ASC',
+                `SELECT r.id, r.points_spent, r.reward_name, u.phone, u.nama 
+                 FROM redemptions r 
+                 JOIN users u ON r.user_id = u.id 
+                 WHERE r.user_id=? AND r.status IN ("Diajukan", "Diproses") 
+                 ORDER BY r.date ASC`,
                 [userId]
             );
 
@@ -309,22 +330,32 @@ router.post('/audit/bulk-fix', async (req, res) => {
                         ['Audit Sistem: Dibatalkan otomatis karena poin transaksi tidak mencukupi (Kelebihan Poin).', redemption.id]
                     );
                     
-                    // Return stock (optional, but good practice if stock was deducted on request)
+                    // Return stock
                     await connection.execute(
                         'UPDATE rewards r JOIN redemptions rd ON r.id = rd.reward_id SET r.stock = r.stock + 1 WHERE rd.id = ?',
                         [redemption.id]
                     );
 
                     cancelledRedemptionsCount++;
-                    // Note: We do NOT deduct from availablePoints because this is cancelled.
+
+                    // --- SEND WHATSAPP NOTIFICATION ---
+                    if (waSettings && waSettings.webhook_url && waSettings.api_key && redemption.phone) {
+                        const chatId = formatPhoneForWA(redemption.phone);
+                        const message = `Halo ${redemption.nama},\n\nMohon maaf, penukaran poin Anda untuk hadiah *${redemption.reward_name}* telah kami batalkan otomatis oleh sistem.\n\n*Alasan:* Hasil audit sistem menunjukkan saldo poin dari riwayat transaksi Anda tidak mencukupi untuk penukaran ini.\n\nSaldo poin Anda telah disesuaikan dengan riwayat transaksi yang valid.\n\nTerima kasih.`;
+                        
+                        // Send async, don't await to avoid blocking DB transaction on network
+                        axios.post(`${waSettings.webhook_url}/api/sendText`, {
+                            chatId: chatId,
+                            text: message,
+                            session: waSettings.session_name || 'default'
+                        }, {
+                            headers: { 'X-Api-Key': waSettings.api_key }
+                        }).catch(err => console.error(`Failed to send WA to ${redemption.phone}:`, err.message));
+                    }
                 }
             }
 
             // 7. Final Balance Sync
-            // Current `availablePoints` variable now holds the correct remaining balance 
-            // after accounting for Finished and Valid Pending redemptions.
-            
-            // Check current DB balance
             const [currentUser] = await connection.execute('SELECT points FROM users WHERE id=?', [userId]);
             const currentDbPoints = currentUser[0].points;
 
@@ -337,7 +368,7 @@ router.post('/audit/bulk-fix', async (req, res) => {
         await connection.commit();
         res.json({ 
             success: true, 
-            message: `Audit Selesai. ${updatedUsersCount} user disinkronisasi, ${cancelledRedemptionsCount} penukaran dibatalkan otomatis.` 
+            message: `Audit Selesai. ${updatedUsersCount} user disinkronisasi, ${cancelledRedemptionsCount} penukaran dibatalkan & dinotifikasi.` 
         });
 
     } catch (err) {
