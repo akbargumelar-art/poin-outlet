@@ -35,7 +35,7 @@ import ManajemenNotifikasi from '../pages/admin/ManajemenNotifikasi';
 import NomorSpesialPage from '../pages/shared/NomorSpesialPage';
 import ManajemenNomor from '../pages/admin/ManajemenNomorSpesial';
 
-// Pages - FIXED IMPORT PATH (Use the one in root pages/admin which has correct relative imports)
+// Pages - FIXED IMPORT PATH
 import ManajemenTransaksi from '../pages/admin/ManajemenTransaksi';
 
 const App: React.FC = () => {
@@ -46,7 +46,9 @@ const App: React.FC = () => {
     const [loadingMessage, setLoadingMessage] = useState('Memuat...');
     const [modal, setModal] = useState<{ show: boolean, title: string, content: React.ReactNode } | null>(null);
     const [isInitializing, setIsInitializing] = useState(true);
-    const [connectionError, setConnectionError] = useState(false);
+    
+    // Detailed Error State
+    const [connectionError, setConnectionError] = useState<{isError: boolean, message: string, code?: number}>({ isError: false, message: '' });
 
     // Data States
     const [users, setUsers] = useState<User[]>([]);
@@ -97,7 +99,7 @@ const App: React.FC = () => {
     // --- Data Fetching ---
     const fetchBootstrapData = useCallback(async () => {
         if (!isInitializing) setIsGlobalLoading(true);
-        setConnectionError(false);
+        setConnectionError({ isError: false, message: '' });
         
         try {
             const response = await axios.get('/api/bootstrap'); 
@@ -133,9 +135,20 @@ const App: React.FC = () => {
                 return prevUser;
             });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch bootstrap data", error);
-            setConnectionError(true);
+            let errorMessage = "Tidak dapat menghubungi server.";
+            let statusCode = error.response?.status;
+
+            if (statusCode === 404) {
+                errorMessage = "API Tidak Ditemukan (404). Mohon cek konfigurasi Server/Nginx.";
+            } else if (statusCode === 502) {
+                errorMessage = "Bad Gateway (502). Backend Node.js mungkin mati.";
+            } else if (statusCode === 500) {
+                errorMessage = "Server Error (500). Cek koneksi database.";
+            }
+
+            setConnectionError({ isError: true, message: errorMessage, code: statusCode });
         } finally {
             if (!isInitializing) setIsGlobalLoading(false);
         }
@@ -501,7 +514,7 @@ const App: React.FC = () => {
         );
     }
 
-    if (connectionError) {
+    if (connectionError.isError) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-gray-50 p-6">
                 <div className="neu-card p-8 max-w-md text-center">
@@ -509,7 +522,10 @@ const App: React.FC = () => {
                         <Icon path={ICONS.close} className="w-10 h-10" />
                     </div>
                     <h2 className="text-xl font-bold text-gray-800 mb-2">Gagal Terhubung</h2>
-                    <p className="text-gray-600 mb-6">Tidak dapat menghubungi server database. Pastikan koneksi internet Anda lancar atau hubungi administrator sistem.</p>
+                    <p className="text-gray-600 mb-2 font-medium">{connectionError.message}</p>
+                    <p className="text-gray-500 text-xs mb-6 font-mono bg-gray-100 p-2 rounded">
+                        Error Code: {connectionError.code || 'Network Error'}
+                    </p>
                     <button onClick={fetchBootstrapData} className="neu-button text-red-600 flex items-center justify-center gap-2">
                         <Icon path={ICONS.history} className="w-5 h-5" />
                         Coba Lagi
