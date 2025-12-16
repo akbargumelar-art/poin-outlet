@@ -14,7 +14,8 @@ interface ManajemenPelangganProps {
     loyaltyPrograms: LoyaltyProgram[];
     adminUpdateUserLevel: (userId: string, level: string) => void;
     adminResetPassword: (userId: string) => void;
-    adminSetUserPoints: (userId: string, newPointValue: number) => Promise<boolean>; // New Prop
+    adminSetUserPoints: (userId: string, newPointValue: number, skipRefresh?: boolean) => Promise<boolean>; // New Prop signature
+    refreshData: () => void; // New Prop for bulk optimization
 }
 
 type SortableKeys = 'nama' | 'id' | 'tap' | 'salesforce' | 'totalPembelian' | 'points' | 'level' | 'role';
@@ -168,7 +169,7 @@ const HistoryAuditModal: React.FC<{
 };
 
 
-const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, redemptions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword, adminSetUserPoints }) => {
+const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, redemptions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword, adminSetUserPoints, refreshData }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
@@ -360,11 +361,18 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
 
                 // 4. Update if different
                 if (correctBalance !== currentBalance) {
-                    await adminSetUserPoints(user.id, correctBalance);
+                    // Optimized: Pass 'true' to skip automatic refresh per user
+                    await adminSetUserPoints(user.id, correctBalance, true);
                     correctedCount++;
                 }
             }
-            alert(`Sinkronisasi Selesai! ${correctedCount} akun telah dikoreksi.`);
+            // Once all updates are done, refresh data globally
+            if (correctedCount > 0) {
+                refreshData();
+                alert(`Sinkronisasi Selesai! ${correctedCount} akun telah dikoreksi.`);
+            } else {
+                alert(`Sinkronisasi Selesai! Semua data sudah valid, tidak ada perubahan.`);
+            }
         } catch (error) {
             console.error(error);
             alert("Terjadi kesalahan saat sinkronisasi massal.");
@@ -586,7 +594,7 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
                         <option value="supervisor">Supervisor</option>
                         <option value="operator">Operator</option>
                     </select>
-                     <button onClick={handleResetFilters} className="neu-button">
+                     <button onClick={() => handleResetFilters()} className="neu-button">
                         Clear Filter
                     </button>
                 </div>

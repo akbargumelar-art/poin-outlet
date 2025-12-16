@@ -199,7 +199,7 @@ const HistoryPembelian: React.FC<HistoryPembelianProps> = ({ currentUser, transa
                     <input type="date" name="from" value={filter.from} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
                     <span className="text-gray-500">-</span>
                     <input type="date" name="to" value={filter.to} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
-                    <button onClick={handleResetFilters} className="neu-button-icon !p-2" title="Clear Filter">
+                    <button onClick={() => handleResetFilters()} className="neu-button-icon !p-2" title="Clear Filter">
                         <Icon path={ICONS.close} className="w-5 h-5" />
                     </button>
                 </div>

@@ -371,8 +371,8 @@ const App: React.FC = () => {
         } catch(e) { console.error(e); } finally { setIsGlobalLoading(false); }
     };
 
-    const adminSetUserPoints = async (userId: string, newPointValue: number) => {
-        setIsGlobalLoading(true);
+    const adminSetUserPoints = async (userId: string, newPointValue: number, skipRefresh = false) => {
+        if (!skipRefresh) setIsGlobalLoading(true);
         try {
              const user = users.find(u => u.id === userId);
              if (!user) return false;
@@ -392,7 +392,7 @@ const App: React.FC = () => {
             });
             
             if(res.ok) {
-                fetchBootstrapData();
+                if (!skipRefresh) fetchBootstrapData();
                 return true;
             }
             return false;
@@ -400,7 +400,7 @@ const App: React.FC = () => {
             console.error(e); 
             return false;
         } finally { 
-            setIsGlobalLoading(false); 
+            if (!skipRefresh) setIsGlobalLoading(false); 
         }
     };
 
@@ -617,7 +617,7 @@ const App: React.FC = () => {
         tukarPoin: <TukarPoin currentUser={currentUser!} rewards={rewards} handleTukarClick={handleTukarClick} rafflePrograms={rafflePrograms} loyaltyPrograms={loyaltyPrograms} />,
         editProfile: <EditProfilePage currentUser={currentUser!} updateUserProfile={updateUserProfile} handleLogout={handleLogout} handleChangePassword={handleChangePassword} />,
         adminDashboard: <AdminDashboard users={users} transactions={transactions} runningPrograms={runningPrograms} loyaltyPrograms={loyaltyPrograms} specialNumbers={specialNumbers} redemptions={redemptionHistory} />,
-        manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} redemptions={redemptionHistory} setCurrentPage={handlePageChange} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} adminResetPassword={adminResetPassword} adminSetUserPoints={adminSetUserPoints} />,
+        manajemenPelanggan: <ManajemenPelanggan users={users} transactions={transactions} redemptions={redemptionHistory} setCurrentPage={handlePageChange} isReadOnly={isSupervisor} loyaltyPrograms={loyaltyPrograms} adminUpdateUserLevel={adminUpdateUserLevel} adminResetPassword={adminResetPassword} adminSetUserPoints={adminSetUserPoints} refreshData={fetchBootstrapData} />,
         tambahUser: <TambahUserPage adminAddUser={adminAddUser} />,
         manajemenProgram: <ManajemenProgram programs={runningPrograms} allUsers={users.filter(u => u.role === 'pelanggan')} onSave={saveProgram} onDelete={adminDeleteProgram} adminBulkUpdateProgramProgress={adminBulkUpdateProgramProgress} adminUpdateProgramParticipants={adminUpdateProgramParticipants} adminBulkAddProgramParticipants={adminBulkAddProgramParticipants} isReadOnly={isSupervisor} />,
         manajemenPoin: <ManajemenPoin currentUser={currentUser!} users={users.filter(u=>u.role==='pelanggan')} loyaltyPrograms={loyaltyPrograms} updateLoyaltyProgram={adminUpdateLoyaltyProgram} adminAddTransaction={adminAddTransaction} adminBulkAddTransactions={adminBulkAddTransactions} adminUpdatePointsManual={adminUpdatePointsManual} adminBulkUpdateLevels={adminBulkUpdateLevels} isReadOnly={isSupervisor} />,
