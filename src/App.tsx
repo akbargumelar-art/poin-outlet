@@ -114,10 +114,7 @@ const App: React.FC = () => {
             try {
                 const parsedUser = JSON.parse(storedUser);
                 setCurrentUser(parsedUser);
-                if (parsedUser.role === 'pelanggan') setCurrentPage('pelangganDashboard');
-                else if (parsedUser.role === 'admin') setCurrentPage('adminDashboard');
-                else if (parsedUser.role === 'supervisor') setCurrentPage('adminDashboard');
-                else if (parsedUser.role === 'operator') setCurrentPage('manajemenNomor');
+                // Set page logic if not set
             } catch (e) {
                 localStorage.removeItem('mitra_user_session');
             }
@@ -203,7 +200,7 @@ const App: React.FC = () => {
         }
     };
 
-    const handleChangePassword = async (oldPassword: string, newPassword: string) => {
+    const handleChangePassword = async (oldPassword: string, newPassword: string): Promise<boolean> => {
         if (!currentUser) return false;
         setIsGlobalLoading(true);
         try {
@@ -213,7 +210,7 @@ const App: React.FC = () => {
                 newPassword
             });
             
-            setModal({ show: true, title: "Sukses", content: <p>Password berhasil diubah.</p> });
+            setModal({ show: true, title: "Sukses", content: <p>Password berhasil diubah. Silakan gunakan password baru Anda.</p> });
             return true;
         } catch (error: any) {
             console.error("Gagal ubah password:", error);

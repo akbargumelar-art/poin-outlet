@@ -51,24 +51,11 @@ router.post('/login', async (req, res) => {
         const isPasswordMatch = await bcrypt.compare(password, user.password);
         
         if (isPasswordMatch) {
-            // Normal successful login
+            // Successful login
             res.json(structureUserObject(user));
         } else {
-            // Self-healing check for any user with the default password 'password'.
-            // This is useful for initial setup or password resets to a default.
-            if (password === 'password') {
-                console.log(`Login failed for user '${id}' with stored hash. Attempting to self-heal default password...`);
-                const newHashedPassword = await bcrypt.hash('password', 10);
-                await db.execute('UPDATE users SET password = ? WHERE id = ?', [newHashedPassword, id]);
-                console.log(`Password hash for user '${id}' has been updated. Allowing login.`);
-                
-                // Fetch the updated user data to send back
-                const [updatedRows] = await db.execute('SELECT * FROM users WHERE id = ?', [id]);
-                res.json(structureUserObject(updatedRows[0]));
-                return; // Important to return here
-            }
-
-            // If the password is not 'password', it's a genuine failed login
+            // STRICT SECURITY: Removed self-healing logic.
+            // If password doesn't match, simply fail.
             return res.status(401).json({ message: 'ID atau password salah.' });
         }
 
@@ -102,13 +89,13 @@ router.put('/change-password', async (req, res) => {
         // 3. Hash New Password
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
         
-        // 4. Update and Verify Affected Rows
+        // 4. Update
         const [result] = await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashedNewPassword, id]);
 
         if (result.affectedRows > 0) {
             res.json({ message: 'Password berhasil diubah.' });
         } else {
-            res.status(500).json({ message: 'Gagal mengupdate database. Silakan coba lagi.' });
+            res.status(500).json({ message: 'Gagal mengupdate database.' });
         }
     } catch (error) {
         console.error('Change password error:', error);
@@ -136,24 +123,23 @@ router.post('/register', async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        // 1. **NEW VALIDATION**: Check if the ID Digipos exists in the master data table first.
+        // 1. Check master data
         const [digiposRows] = await connection.execute('SELECT tap FROM digipos_data WHERE id_digipos = ?', [idDigipos]);
         if (digiposRows.length === 0) {
-            // Specific error message as requested by the user.
             throw new Error('ID Digipos belum terdaftar sebagai Mitra Telkomsel');
         }
-        const tap = digiposRows[0].tap || 'UNKNOWN'; // Get TAP from master data
+        const tap = digiposRows[0].tap || 'UNKNOWN';
 
-        // 2. Check if user already exists in `users` table
+        // 2. Check if user already exists
         const [existingUser] = await connection.execute('SELECT id FROM users WHERE id = ?', [idDigipos]);
         if (existingUser.length > 0) {
             throw new Error('ID Digipos sudah terdaftar di sistem.');
         }
 
-        // 3. Hash the user-provided password
+        // 3. Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 4. Insert new user into `users` table
+        // 4. Insert
         const sql = `
             INSERT INTO users 
             (id, password, role, nama, owner, phone, kabupaten, kecamatan, salesforce, no_rs, tap, level, points, kupon_undian)
@@ -164,19 +150,17 @@ router.post('/register', async (req, res) => {
 
         await connection.commit();
         
-        // Fetch and return the newly created user for immediate login
+        // Return new user
         const [rows] = await connection.execute('SELECT * FROM users WHERE id = ?', [idDigipos]);
         res.status(201).json(structureUserObject(rows[0]));
 
     } catch (error) {
         await connection.rollback();
         console.error('Registration error:', error);
-        // Send a more specific error message back to the client
         res.status(400).json({ message: error.message || 'Registrasi gagal, terjadi kesalahan pada server.' });
     } finally {
         connection.release();
     }
 });
-
 
 module.exports = router;
