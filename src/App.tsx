@@ -12,8 +12,9 @@ import { ICONS } from '../constants';
 import MainLayout from '../components/layout/MainLayout';
 import LoadingOverlay from '../components/common/LoadingOverlay';
 import Modal from '../components/common/Modal';
+import Icon from '../components/common/Icon';
 
-// Pages
+// Pages - PUBLIC & SHARED (From Root Pages)
 import LandingPage from '../pages/landing/LandingPage';
 import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
@@ -30,10 +31,12 @@ import ManajemenPoin from '../pages/admin/ManajemenPoin';
 import ManajemenHadiah from '../pages/admin/ManajemenHadiah';
 import ManajemenUndian from '../pages/admin/ManajemenUndian';
 import ManajemenPenukaran from '../pages/admin/ManajemenPenukaran';
-import ManajemenTransaksi from '../pages/admin/ManajemenTransaksi';
 import ManajemenNotifikasi from '../pages/admin/ManajemenNotifikasi';
 import NomorSpesialPage from '../pages/shared/NomorSpesialPage';
 import ManajemenNomor from '../pages/admin/ManajemenNomorSpesial';
+
+// Pages - FIXED IMPORT PATH (Use the one in root pages/admin which has correct relative imports)
+import ManajemenTransaksi from '../pages/admin/ManajemenTransaksi';
 
 const App: React.FC = () => {
     // --- State Management ---
@@ -43,6 +46,7 @@ const App: React.FC = () => {
     const [loadingMessage, setLoadingMessage] = useState('Memuat...');
     const [modal, setModal] = useState<{ show: boolean, title: string, content: React.ReactNode } | null>(null);
     const [isInitializing, setIsInitializing] = useState(true);
+    const [connectionError, setConnectionError] = useState(false);
 
     // Data States
     const [users, setUsers] = useState<User[]>([]);
@@ -78,7 +82,6 @@ const App: React.FC = () => {
                     else if (['admin', 'supervisor'].includes(parsedUser.role)) setCurrentPage('adminDashboard');
                 }
                 
-                // Fetch data regardless of login status to populate landing page
                 await fetchBootstrapData();
             } catch (e) {
                 console.error("Initialization error", e);
@@ -94,10 +97,15 @@ const App: React.FC = () => {
     // --- Data Fetching ---
     const fetchBootstrapData = useCallback(async () => {
         if (!isInitializing) setIsGlobalLoading(true);
+        setConnectionError(false);
         
         try {
             const response = await axios.get('/api/bootstrap'); 
             const data = response.data;
+
+            if (!data || typeof data !== 'object') {
+                throw new Error("Invalid response format");
+            }
 
             setUsers(data.users || []);
             setTransactions(data.transactions || []);
@@ -127,6 +135,7 @@ const App: React.FC = () => {
 
         } catch (error) {
             console.error("Failed to fetch bootstrap data", error);
+            setConnectionError(true);
         } finally {
             if (!isInitializing) setIsGlobalLoading(false);
         }
@@ -182,9 +191,7 @@ const App: React.FC = () => {
 
     // --- User Management ---
     const updateUserProfile = async (profile: UserProfile, photoFile: File | null) => {
-        // Stub: Implement API call
         console.log("Updating profile", profile, photoFile);
-        // Optimistic update
         if (currentUser) {
             const updated = { ...currentUser, profile };
             setCurrentUser(updated);
@@ -193,7 +200,6 @@ const App: React.FC = () => {
     };
 
     const handleChangePassword = async (o: string, n: string) => {
-        // Stub
         console.log("Changing password");
         return true;
     };
@@ -214,12 +220,10 @@ const App: React.FC = () => {
 
     // --- Program Management ---
     const saveProgram = async (programData: any, photoFile: File | null) => {
-        // Stub using FormData
         const formData = new FormData();
         Object.keys(programData).forEach(key => formData.append(key, programData[key]));
         if (photoFile) formData.append('image', photoFile);
         
-        // await axios.post('/api/programs', formData);
         console.log("Saving program", formData);
         await fetchBootstrapData();
     };
@@ -492,6 +496,24 @@ const App: React.FC = () => {
                 <div className="flex flex-col items-center">
                     <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="mt-4 text-gray-600 font-semibold animate-pulse">Memuat Aplikasi...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (connectionError) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-gray-50 p-6">
+                <div className="neu-card p-8 max-w-md text-center">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                        <Icon path={ICONS.close} className="w-10 h-10" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">Gagal Terhubung</h2>
+                    <p className="text-gray-600 mb-6">Tidak dapat menghubungi server database. Pastikan koneksi internet Anda lancar atau hubungi administrator sistem.</p>
+                    <button onClick={fetchBootstrapData} className="neu-button text-red-600 flex items-center justify-center gap-2">
+                        <Icon path={ICONS.history} className="w-5 h-5" />
+                        Coba Lagi
+                    </button>
                 </div>
             </div>
         );
