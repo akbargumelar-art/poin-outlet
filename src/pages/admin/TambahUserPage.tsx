@@ -1,12 +1,33 @@
-
 import React, { useState } from 'react';
 import { User, UserRole, UserProfile } from '../../types';
 
-// FIX: Refactored to correctly create a discriminated union.
-// The `role` property is now defined within the conditional blocks
-// to ensure it receives a narrowed literal type, which is necessary
-// for TypeScript's type guards to work correctly.
-const getInitialFormData = (role: UserRole) => {
+type BaseFormData = {
+    id: string;
+    password: string;
+    nama: string;
+    email: string;
+    phone: string;
+    tap: string;
+};
+
+type PelangganFormData = BaseFormData & {
+    role: 'pelanggan';
+    noRs: string;
+    salesforce: string;
+    kabupaten: string;
+    kecamatan: string;
+    owner: string;
+    alamat: string;
+};
+
+type StaffFormData = BaseFormData & {
+    role: 'admin' | 'supervisor' | 'operator';
+    jabatan: string;
+};
+
+type FormData = PelangganFormData | StaffFormData;
+
+const getInitialFormData = (role: UserRole): FormData => {
     const common = {
         id: '', // Username or ID Digipos
         password: '',
@@ -18,7 +39,7 @@ const getInitialFormData = (role: UserRole) => {
     if (role === 'pelanggan') {
         return {
             ...common,
-            role: 'pelanggan' as const, // `role` is narrowed to 'pelanggan' here
+            role: 'pelanggan',
             noRs: '',
             salesforce: '',
             kabupaten: '',
@@ -29,21 +50,16 @@ const getInitialFormData = (role: UserRole) => {
     }
     return {
         ...common,
-        role: role as Exclude<UserRole, 'pelanggan'>, // `role` is narrowed to 'admin' | 'supervisor' | 'operator' here
+        role: role as 'admin' | 'supervisor' | 'operator',
         jabatan: '',
     };
 };
-
-
-// FIX: Define a type for the form data state based on the function's return type.
-type FormData = ReturnType<typeof getInitialFormData>;
 
 interface TambahUserPageProps {
     adminAddUser: (user: User) => void;
 }
 
 const TambahUserPage: React.FC<TambahUserPageProps> = ({ adminAddUser }) => {
-    // FIX: Explicitly type the formData state with the union type `FormData`.
     const [formData, setFormData] = useState<FormData>(getInitialFormData('pelanggan'));
 
     const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -51,19 +67,15 @@ const TambahUserPage: React.FC<TambahUserPageProps> = ({ adminAddUser }) => {
         setFormData(getInitialFormData(newRole));
     };
     
-    // FIX: Refactored handleChange to properly update state with a discriminated union.
-    // The previous implementation could break the discriminated union type, causing type guards in the JSX to fail.
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => {
-            const newState = { ...prev };
-            // Using `any` here is a pragmatic way to handle dynamic keys while preserving the object's shape.
-            (newState as any)[name] = value;
-            return newState;
+            // Cast to any to allow dynamic property update on union type, then cast back to FormData
+            const newState = { ...prev, [name]: value };
+            return newState as FormData;
         });
     }
 
-    // FIX: Refactored handleSubmit to be type-safe when dealing with the `formData` union type.
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -143,7 +155,7 @@ const TambahUserPage: React.FC<TambahUserPageProps> = ({ adminAddUser }) => {
                             </>
                          )}
 
-                         {(formData.role === 'admin' || formData.role === 'supervisor' || formData.role === 'operator') && (
+                         {formData.role !== 'pelanggan' && (
                              <input type="text" name="jabatan" value={formData.jabatan} onChange={handleChange} placeholder="Jabatan" className="input-field" />
                          )}
                     </div>
