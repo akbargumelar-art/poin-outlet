@@ -258,15 +258,6 @@ uploadRouter.post('/special-numbers/banner', upload.single('banner'), async (req
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     const bannerUrl = `${getBaseUrl(req)}/uploads/${req.file.filename}`;
     
-    // Save to a simple settings table or file. For now, let's use a JSON file or similar, 
-    // BUT since we have a settings table structure implied, let's create/update a generic setting
-    // Or simpler: just return the URL and frontend saves it?
-    // Let's save it to a file `metadata.json` on server for persistence if DB table for generic settings doesn't exist
-    // Or better: Use the `whatsapp_settings` table but add a column? No.
-    // Let's assume there is a file based storage for this single config or we just return it 
-    // and frontend state handles it (but it won't persist on refresh).
-    // FIX: Let's create a simple JSON file for global UI configs.
-    
     const configPath = path.join(__dirname, '../config_store.json');
     let config = {};
     if (fs.existsSync(configPath)) {
@@ -290,9 +281,6 @@ uploadRouter.post('/programs/:id/participants/bulk', upload.single('file'), asyn
         const connection = await db.getConnection();
         await connection.beginTransaction();
 
-        // Optional: Clear existing? Or just add? Let's just add/ignore.
-        // If user wants to replace, they should clear first via UI (not implemented yet) or we replace all.
-        // Let's replace all for "bulk upload" usually means setting the state.
         await connection.execute('DELETE FROM running_program_targets WHERE program_id = ?', [programId]);
 
         for (const row of data) {
@@ -322,21 +310,32 @@ uploadRouter.post('/programs/:id/participants/bulk', upload.single('file'), asyn
 // --- BOOTSTRAP: Get All Initial Data ---
 router.get('/bootstrap', async (req, res) => {
     try {
-        const [users] = await db.execute('SELECT * FROM users');
-        const [transactions] = await db.execute('SELECT * FROM transactions ORDER BY date DESC');
-        const [loyaltyPrograms] = await db.execute('SELECT * FROM loyalty_programs');
-        const [rewards] = await db.execute('SELECT * FROM rewards ORDER BY display_order ASC, id DESC');
-        const [runningPrograms] = await db.execute('SELECT * FROM running_programs');
-        const [runningProgramTargets] = await db.execute('SELECT * FROM running_program_targets');
-        const [rafflePrograms] = await db.execute('SELECT * FROM raffle_programs');
-        const [raffleWinners] = await db.execute('SELECT * FROM raffle_winners');
-        const [redemptions] = await db.execute('SELECT * FROM redemptions ORDER BY date DESC');
-        const [couponRedemptions] = await db.execute('SELECT * FROM coupon_redemptions');
-        const [specialNumbers] = await db.execute('SELECT * FROM special_numbers');
-        const [waSettings] = await db.execute('SELECT * FROM whatsapp_settings LIMIT 1');
+        // Safe query helper
+        const safeQuery = async (query, params = []) => {
+            try {
+                const [rows] = await db.execute(query, params);
+                return rows;
+            } catch (err) {
+                console.warn(`SafeQuery Error for "${query.substring(0, 30)}...":`, err.message);
+                return []; // Return empty array on failure
+            }
+        };
+
+        const users = await safeQuery('SELECT * FROM users');
+        const transactions = await safeQuery('SELECT * FROM transactions ORDER BY date DESC');
+        const loyaltyPrograms = await safeQuery('SELECT * FROM loyalty_programs');
+        const rewards = await safeQuery('SELECT * FROM rewards ORDER BY display_order ASC, id DESC');
+        const runningPrograms = await safeQuery('SELECT * FROM running_programs');
+        const runningProgramTargets = await safeQuery('SELECT * FROM running_program_targets');
+        const rafflePrograms = await safeQuery('SELECT * FROM raffle_programs');
+        const raffleWinners = await safeQuery('SELECT * FROM raffle_winners');
+        const redemptions = await safeQuery('SELECT * FROM redemptions ORDER BY date DESC');
+        const couponRedemptions = await safeQuery('SELECT * FROM coupon_redemptions');
+        const specialNumbers = await safeQuery('SELECT * FROM special_numbers');
+        const waSettings = await safeQuery('SELECT * FROM whatsapp_settings LIMIT 1');
         
-        // Locations for Register Dropdown (from users table distinct values)
-        const [locations] = await db.execute('SELECT DISTINCT kabupaten, kecamatan FROM digipos_data'); // Use master data
+        // Locations for Register Dropdown
+        const locations = await safeQuery('SELECT DISTINCT kabupaten, kecamatan FROM digipos_data'); 
 
         // Load config file for banner
         const configPath = path.join(__dirname, '../config_store.json');
@@ -397,16 +396,15 @@ router.get('/bootstrap', async (req, res) => {
         const structuredRedemptions = redemptions.map(r => ({
             id: r.id,
             userId: r.user_id,
-            userName: r.user_name, // Include cached name
+            userName: r.user_name,
             rewardId: r.reward_id,
-            rewardName: r.reward_name, // Include cached name
+            rewardName: r.reward_name,
             pointsSpent: r.points_spent,
             date: r.date,
             status: r.status,
             statusNote: r.status_note,
             statusUpdatedAt: r.status_updated_at,
             documentationPhotoUrl: r.documentation_photo_url,
-            // AppSheet fields
             receiverName: r.receiver_name,
             receiverRole: r.receiver_role,
             surveyorName: r.surveyor_name,
@@ -451,7 +449,7 @@ router.get('/bootstrap', async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Bootstrap Error:", error);
+        console.error("Bootstrap Fatal Error:", error);
         res.status(500).json({ message: 'Failed to fetch bootstrap data' });
     }
 });

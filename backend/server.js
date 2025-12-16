@@ -59,15 +59,26 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 4001;
 
+// Helper to run SQL safely without stopping the whole process
+const runSafe = async (connection, label, sql) => {
+    try {
+        await connection.execute(sql);
+        console.log(`[DB Setup] Checked/Created: ${label}`);
+    } catch (err) {
+        console.error(`[DB Setup] Failed ${label}: ${err.message}`);
+        // We continue despite errors to ensure all tables get a chance to be created
+    }
+};
+
 // Function to check and set up the database schema
 const setupDatabase = async () => {
     let connection; 
     try {
         connection = await db.getConnection();
-        console.log('--- Initializing Database Schema ---');
+        console.log('--- Initializing Database Schema (Robust Mode) ---');
 
         // 1. Users Table
-        await connection.execute(`
+        await runSafe(connection, 'users', `
             CREATE TABLE IF NOT EXISTS users (
                 id VARCHAR(255) PRIMARY KEY,
                 password VARCHAR(255) NOT NULL,
@@ -91,7 +102,7 @@ const setupDatabase = async () => {
         `);
 
         // 2. Loyalty Programs (Levels)
-        await connection.execute(`
+        await runSafe(connection, 'loyalty_programs', `
             CREATE TABLE IF NOT EXISTS loyalty_programs (
                 level VARCHAR(50) PRIMARY KEY,
                 pointsNeeded INT DEFAULT 0,
@@ -101,20 +112,22 @@ const setupDatabase = async () => {
         `);
         
         // Seed Levels if empty
-        const [levels] = await connection.execute('SELECT count(*) as count FROM loyalty_programs');
-        if (levels[0].count === 0) {
-            console.log("Seeding Loyalty Programs...");
-            await connection.execute(`
-                INSERT INTO loyalty_programs (level, pointsNeeded, benefit, multiplier) VALUES 
-                ('Bronze', 0, 'Level awal', 1.0),
-                ('Silver', 10000, 'Multiplier 1.1x', 1.1),
-                ('Gold', 50000, 'Multiplier 1.2x', 1.2),
-                ('Platinum', 100000, 'Multiplier 1.5x', 1.5);
-            `);
-        }
+        try {
+            const [levels] = await connection.execute('SELECT count(*) as count FROM loyalty_programs');
+            if (levels[0].count === 0) {
+                console.log("Seeding Loyalty Programs...");
+                await connection.execute(`
+                    INSERT INTO loyalty_programs (level, pointsNeeded, benefit, multiplier) VALUES 
+                    ('Bronze', 0, 'Level awal', 1.0),
+                    ('Silver', 10000, 'Multiplier 1.1x', 1.1),
+                    ('Gold', 50000, 'Multiplier 1.2x', 1.2),
+                    ('Platinum', 100000, 'Multiplier 1.5x', 1.5);
+                `);
+            }
+        } catch (e) { console.error("Seeding Levels Error:", e.message); }
 
         // 3. Rewards
-        await connection.execute(`
+        await runSafe(connection, 'rewards', `
             CREATE TABLE IF NOT EXISTS rewards (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
@@ -126,7 +139,7 @@ const setupDatabase = async () => {
         `);
 
         // 4. Transactions
-        await connection.execute(`
+        await runSafe(connection, 'transactions', `
             CREATE TABLE IF NOT EXISTS transactions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id VARCHAR(255),
@@ -136,13 +149,12 @@ const setupDatabase = async () => {
                 kuantiti INT,
                 total_pembelian DECIMAL(15,2),
                 points_earned INT,
-                INDEX (user_id),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                INDEX (user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
         // 5. Redemptions
-        await connection.execute(`
+        await runSafe(connection, 'redemptions', `
             CREATE TABLE IF NOT EXISTS redemptions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id VARCHAR(255),
@@ -159,14 +171,12 @@ const setupDatabase = async () => {
                 receiver_role VARCHAR(100),
                 surveyor_name VARCHAR(255),
                 location_coordinates VARCHAR(100),
-                INDEX (user_id),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (reward_id) REFERENCES rewards(id) ON DELETE SET NULL
+                INDEX (user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
         // 6. Running Programs
-        await connection.execute(`
+        await runSafe(connection, 'running_programs', `
             CREATE TABLE IF NOT EXISTS running_programs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
@@ -180,20 +190,18 @@ const setupDatabase = async () => {
         `);
 
         // 7. Running Program Targets
-        await connection.execute(`
+        await runSafe(connection, 'running_program_targets', `
             CREATE TABLE IF NOT EXISTS running_program_targets (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 program_id INT,
                 user_id VARCHAR(255),
                 progress INT DEFAULT 0,
-                UNIQUE KEY unique_target (program_id, user_id),
-                FOREIGN KEY (program_id) REFERENCES running_programs(id) ON DELETE CASCADE,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                UNIQUE KEY unique_target (program_id, user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
         // 8. Special Numbers
-        await connection.execute(`
+        await runSafe(connection, 'special_numbers', `
             CREATE TABLE IF NOT EXISTS special_numbers (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 phone_number VARCHAR(20) NOT NULL UNIQUE,
@@ -205,7 +213,7 @@ const setupDatabase = async () => {
         `);
 
         // 9. Raffle Programs
-        await connection.execute(`
+        await runSafe(connection, 'raffle_programs', `
             CREATE TABLE IF NOT EXISTS raffle_programs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255),
@@ -216,7 +224,7 @@ const setupDatabase = async () => {
         `);
 
         // 10. Raffle Winners
-        await connection.execute(`
+        await runSafe(connection, 'raffle_winners', `
             CREATE TABLE IF NOT EXISTS raffle_winners (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255),
@@ -227,19 +235,17 @@ const setupDatabase = async () => {
         `);
 
         // 11. Coupon Redemptions
-        await connection.execute(`
+        await runSafe(connection, 'coupon_redemptions', `
             CREATE TABLE IF NOT EXISTS coupon_redemptions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id VARCHAR(255),
                 raffle_program_id INT,
-                redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (raffle_program_id) REFERENCES raffle_programs(id) ON DELETE CASCADE
+                redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
         // 12. WhatsApp Settings
-        await connection.execute(`
+        await runSafe(connection, 'whatsapp_settings', `
             CREATE TABLE IF NOT EXISTS whatsapp_settings (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 webhook_url VARCHAR(255),
@@ -253,7 +259,7 @@ const setupDatabase = async () => {
         `);
 
         // 13. DigiPos Data (Master Data)
-        await connection.execute(`
+        await runSafe(connection, 'digipos_data', `
             CREATE TABLE IF NOT EXISTS digipos_data (
                 id_digipos VARCHAR(50) PRIMARY KEY,
                 no_rs VARCHAR(50),
@@ -266,7 +272,7 @@ const setupDatabase = async () => {
         console.log('--- Database Schema Initialized Successfully ---');
 
     } catch (err) {
-        console.error('Database setup ERROR:', err);
+        console.error('Database setup FATAL ERROR:', err);
     } finally {
         if (connection) connection.release();
     }
@@ -278,8 +284,15 @@ const backfillRedemptionNames = async () => {
     let connection;
     try {
         connection = await db.getConnection();
-        const [columns] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'user_name'");
-        if (columns.length === 0) return;
+        
+        // Safety check for table existence before checking columns
+        try {
+            const [columns] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'user_name'");
+            if (columns.length === 0) return;
+        } catch (e) {
+            console.log("Skipping backfill, redemptions table likely missing or inaccessible");
+            return;
+        }
 
         const [recordsToUpdate] = await connection.execute(
             "SELECT id, user_id, reward_id FROM redemptions WHERE user_name IS NULL OR reward_name IS NULL"
