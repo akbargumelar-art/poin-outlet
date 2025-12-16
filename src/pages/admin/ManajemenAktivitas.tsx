@@ -228,49 +228,46 @@ const ManajemenAktivitas: React.FC<ManajemenAktivitasProps> = ({ transactions, r
                                 <tr key={item.id} className="border-t border-slate-200/80 hover:bg-slate-50">
                                     <td className="p-4 whitespace-nowrap text-gray-600">
                                         <div className="font-bold">{new Date(item.date).toLocaleDateString('id-ID')}</div>
-                                        <div className="text-xs">{new Date(item.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div className="text-xs">{new Date(item.date).toLocaleTimeString('id-ID')}</div>
                                     </td>
                                     <td className="p-4">
-                                        <div className="font-bold text-gray-800">{item.userName}</div>
-                                        <div className="text-xs text-gray-500 font-mono">{item.userId} | {item.userTap}</div>
+                                        <div className="font-semibold text-gray-800">{item.userName}</div>
+                                        <div className="text-xs text-gray-500">{item.userId}</div>
                                     </td>
                                     <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${item.type === 'Transaksi' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-purple-50 text-purple-600 border border-purple-200'}`}>
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${item.type === 'Transaksi' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>
                                             {item.type}
                                         </span>
                                     </td>
-                                    <td className="p-4">
-                                        <div className="font-semibold text-gray-700">{item.description}</div>
-                                        {item.note && <div className="text-xs text-gray-500 italic mt-1">{item.note}</div>}
-                                    </td>
-                                    <td className="p-4 text-right whitespace-nowrap">
-                                        {item.type === 'Transaksi' && (
-                                            <div className="text-xs text-gray-500 mb-1">Rp {item.amountOrCost.toLocaleString('id-ID')}</div>
+                                    <td className="p-4 font-semibold text-gray-700">{item.description}</td>
+                                    <td className={`p-4 text-right whitespace-nowrap font-bold ${item.pointsChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {item.pointsChange > 0 ? '+' : ''}{item.pointsChange.toLocaleString('id-ID')} Poin
+                                        {item.amountOrCost > 0 && (
+                                            <div className="text-xs text-gray-500 font-normal">Rp {item.amountOrCost.toLocaleString('id-ID')}</div>
                                         )}
-                                        <div className={`font-bold text-lg ${item.pointsChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            {item.pointsChange > 0 ? '+' : ''}{item.pointsChange.toLocaleString('id-ID')}
-                                        </div>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${getStatusColor(item.status, item.type)}`}>
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${getStatusColor(item.status, item.type)}`}>
                                             {item.status}
                                         </span>
+                                        {item.note && <div className="text-xs text-gray-500 mt-1 italic max-w-[150px] mx-auto truncate">"{item.note}"</div>}
                                     </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-gray-500">Tidak ada riwayat aktivitas yang ditemukan.</td>
+                                    <td colSpan={6} className="p-8 text-center text-gray-500">Tidak ada aktivitas ditemukan.</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
             </div>
-
+            
+            {/* Pagination Component */}
             <Pagination 
                 itemsPerPage={itemsPerPage} 
                 totalItems={filteredData.length} 
-                paginate={pageNumber => setCurrentPage(pageNumber)} 
+                paginate={setCurrentPage} 
                 currentPage={currentPage} 
             />
         </div>
