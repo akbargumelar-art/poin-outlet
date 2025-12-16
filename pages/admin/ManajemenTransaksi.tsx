@@ -288,7 +288,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
     
-    const handleResetFilters = (_?: any) => {
+    const handleResetFilters = () => {
         setFilter({ from: '', to: '' });
         setSearchTerm('');
         setProdukFilter('');

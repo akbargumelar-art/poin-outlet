@@ -229,6 +229,34 @@ router.get('/users', async (req, res) => {
     } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// ** NEW: SERVER-SIDE AUDIT ENDPOINT **
+router.get('/users/:id/audit', async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Fetch total earned points from all history (not limited)
+        const [earnedRows] = await db.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id=?', [id]);
+        // Fetch total spent points from redemptions
+        const [spentRows] = await db.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=?', [id]);
+        // Fetch current actual points
+        const [userRows] = await db.execute('SELECT points FROM users WHERE id=?', [id]);
+
+        const earned = earnedRows[0].total ? parseInt(earnedRows[0].total) : 0;
+        const spent = spentRows[0].total ? parseInt(spentRows[0].total) : 0;
+        const actual = userRows[0] ? userRows[0].points : 0;
+        const calculated = earned - spent;
+
+        res.json({
+            userId: id,
+            earned,
+            spent,
+            calculated,
+            actual,
+            discrepancy: actual - calculated,
+            isSync: actual === calculated
+        });
+    } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.post('/users', async (req, res) => {
     const { id, password, role, profile } = req.body;
     try {

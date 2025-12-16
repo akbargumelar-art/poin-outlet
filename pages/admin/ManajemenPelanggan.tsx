@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { User, Page, Transaction, LoyaltyProgram, UserRole, Redemption } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
@@ -29,7 +29,35 @@ const HistoryAuditModal: React.FC<{
     onSync: (userId: string, calculatedPoints: number) => void;
 }> = ({ user, userTransactions, userRedemptions, onClose, onSync }) => {
     
-    // Combine and Sort Data
+    // State for Server Audit Data
+    const [auditData, setAuditData] = useState<{
+        earned: number;
+        spent: number;
+        calculated: number;
+        actual: number;
+        discrepancy: number;
+    } | null>(null);
+    const [loadingAudit, setLoadingAudit] = useState(true);
+
+    // Fetch accurate audit data from server
+    useEffect(() => {
+        const fetchAudit = async () => {
+            try {
+                const res = await fetch(`/api/users/${user.id}/audit`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setAuditData(data);
+                }
+            } catch (e) {
+                console.error("Failed to fetch audit data", e);
+            } finally {
+                setLoadingAudit(false);
+            }
+        };
+        fetchAudit();
+    }, [user.id]);
+
+    // Combine and Sort Data for List View (Visual Only)
     const historyData = useMemo(() => {
         const txItems = userTransactions.map(t => ({
             id: `TX-${t.id}`,
@@ -54,13 +82,6 @@ const HistoryAuditModal: React.FC<{
         return [...txItems, ...rdItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [userTransactions, userRedemptions]);
 
-    // Audit Calculations
-    const totalPointsIn = userTransactions.reduce((sum, t) => sum + t.pointsEarned, 0);
-    const totalPointsOut = userRedemptions.reduce((sum, r) => sum + r.pointsSpent, 0);
-    const calculatedBalance = totalPointsIn - totalPointsOut;
-    const actualBalance = user.points || 0;
-    const discrepancy = actualBalance - calculatedBalance;
-
     return (
         <Modal show={true} onClose={onClose} title={`Audit Poin: ${user.profile.nama}`}>
             <div className="space-y-6">
@@ -74,41 +95,47 @@ const HistoryAuditModal: React.FC<{
                     </div>
                     <div className="text-right">
                         <p className="text-xs text-gray-500 uppercase font-bold">Poin Saat Ini (Database)</p>
-                        <p className="font-bold text-3xl text-blue-600">{actualBalance.toLocaleString('id-ID')}</p>
+                        <p className="font-bold text-3xl text-blue-600">{(user.points || 0).toLocaleString('id-ID')}</p>
                     </div>
                 </div>
 
                 {/* Audit Summary Card */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="neu-card-flat p-3 bg-green-50 border-green-200 border">
-                        <p className="text-xs text-green-700 font-bold uppercase">Total Poin Masuk</p>
-                        <p className="text-xl font-bold text-green-700">+{totalPointsIn.toLocaleString('id-ID')}</p>
-                        <p className="text-[10px] text-green-600">Dari {userTransactions.length} Transaksi</p>
+                {loadingAudit ? (
+                    <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg animate-pulse">
+                        Mengambil data audit akurat dari server...
                     </div>
-                    <div className="neu-card-flat p-3 bg-red-50 border-red-200 border">
-                        <p className="text-xs text-red-700 font-bold uppercase">Total Poin Keluar</p>
-                        <p className="text-xl font-bold text-red-700">-{totalPointsOut.toLocaleString('id-ID')}</p>
-                        <p className="text-[10px] text-red-600">Dari {userRedemptions.length} Penukaran</p>
+                ) : auditData ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="neu-card-flat p-3 bg-green-50 border-green-200 border">
+                            <p className="text-xs text-green-700 font-bold uppercase">Total Poin Masuk</p>
+                            <p className="text-xl font-bold text-green-700">+{auditData.earned.toLocaleString('id-ID')}</p>
+                            <p className="text-[10px] text-green-600">Total Akumulasi Sejak Awal</p>
+                        </div>
+                        <div className="neu-card-flat p-3 bg-red-50 border-red-200 border">
+                            <p className="text-xs text-red-700 font-bold uppercase">Total Poin Keluar</p>
+                            <p className="text-xl font-bold text-red-700">-{auditData.spent.toLocaleString('id-ID')}</p>
+                            <p className="text-[10px] text-red-600">Total Penukaran</p>
+                        </div>
+                        <div className={`neu-card-flat p-3 border ${auditData.discrepancy !== 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}>
+                            <p className={`text-xs font-bold uppercase ${auditData.discrepancy !== 0 ? 'text-yellow-700' : 'text-gray-600'}`}>
+                                Selisih (Manual/Inject)
+                            </p>
+                            <p className={`text-xl font-bold ${auditData.discrepancy > 0 ? 'text-green-600' : auditData.discrepancy < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                {auditData.discrepancy > 0 ? '+' : ''}{auditData.discrepancy.toLocaleString('id-ID')}
+                            </p>
+                            <p className="text-[10px] text-gray-500">Actual vs Kalkulasi History</p>
+                        </div>
                     </div>
-                    <div className={`neu-card-flat p-3 border ${discrepancy !== 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}>
-                        <p className={`text-xs font-bold uppercase ${discrepancy !== 0 ? 'text-yellow-700' : 'text-gray-600'}`}>
-                            Selisih (Manual/Inject)
-                        </p>
-                        <p className={`text-xl font-bold ${discrepancy > 0 ? 'text-green-600' : discrepancy < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                            {discrepancy > 0 ? '+' : ''}{discrepancy.toLocaleString('id-ID')}
-                        </p>
-                        <p className="text-[10px] text-gray-500">Actual vs Kalkulasi History</p>
-                    </div>
-                </div>
+                ) : <p className="text-red-500 text-center">Gagal memuat data audit.</p>}
 
-                {discrepancy !== 0 && (
+                {auditData && auditData.discrepancy !== 0 && (
                     <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-yellow-100 p-3 rounded border border-yellow-200">
                         <p className="text-xs text-yellow-800">
                             <span className="font-bold">Perhatian:</span> Poin tidak sesuai history.
-                            Hitungan sistem seharusnya: <b>{calculatedBalance.toLocaleString('id-ID')}</b>.
+                            Hitungan sistem seharusnya: <b>{auditData.calculated.toLocaleString('id-ID')}</b>.
                         </p>
                         <button 
-                            onClick={() => onSync(user.id, calculatedBalance)}
+                            onClick={() => onSync(user.id, auditData.calculated)}
                             className="neu-button !w-auto px-3 py-1 text-xs bg-white text-yellow-700 border-yellow-300 hover:bg-yellow-50"
                         >
                             Perbaiki Poin Sekarang
@@ -118,7 +145,10 @@ const HistoryAuditModal: React.FC<{
 
                 {/* History Table */}
                 <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-slate-100 px-4 py-2 border-b font-bold text-gray-700 text-sm">Riwayat Kronologis</div>
+                    <div className="bg-slate-100 px-4 py-2 border-b font-bold text-gray-700 text-sm flex justify-between items-center">
+                        <span>Riwayat Kronologis (1000 Terakhir)</span>
+                        <span className="text-[10px] font-normal text-gray-500">Hanya menampilkan data yang dimuat di browser</span>
+                    </div>
                     <div className="max-h-[300px] overflow-y-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 sticky top-0">
@@ -345,28 +375,26 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
         try {
             // Loop through all filtered users
             for (const user of targets) {
-                // 1. Calculate Earned Points
+                // Use frontend data for bulk sync as an approximation, or ideally call backend for each
+                // Note: Ideally bulk sync should also be server-side, but keeping it client-side for now
+                // with the caveat that it uses loaded transactions.
+                
                 const earned = transactions
                     .filter(t => t.userId === user.id)
                     .reduce((sum, t) => sum + t.pointsEarned, 0);
                 
-                // 2. Calculate Spent Points
                 const spent = redemptions
                     .filter(r => r.userId === user.id)
                     .reduce((sum, r) => sum + r.pointsSpent, 0);
                 
-                // 3. Determine Correct Balance
                 const correctBalance = earned - spent;
                 const currentBalance = user.points || 0;
 
-                // 4. Update if different
                 if (correctBalance !== currentBalance) {
-                    // Optimized: Pass 'true' to skip automatic refresh per user
                     await adminSetUserPoints(user.id, correctBalance, true);
                     correctedCount++;
                 }
             }
-            // Once all updates are done, refresh data globally
             if (correctedCount > 0) {
                 refreshData();
                 alert(`Sinkronisasi Selesai! ${correctedCount} akun telah dikoreksi.`);
