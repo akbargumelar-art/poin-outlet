@@ -35,7 +35,7 @@ import ManajemenTransaksi from './pages/admin/ManajemenTransaksi';
 import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
 import NomorSpesialPage from './pages/shared/NomorSpesialPage';
 import ManajemenNomor from './pages/admin/ManajemenNomorSpesial';
-import ManajemenAktivitas from './pages/admin/ManajemenAktivitas'; // NEW IMPORT
+import ManajemenAktivitas from './pages/admin/ManajemenAktivitas';
 
 const App: React.FC = () => {
     // --- State Management ---
@@ -542,7 +542,7 @@ const App: React.FC = () => {
         manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isSupervisor} />,
         nomorSpesial: <NomorSpesialPage currentUser={currentUser!} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} specialNumberBannerUrl={specialNumberBannerUrl} />,
         manajemenNomor: <ManajemenNomor currentUser={currentUser!} numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} adminUploadSpecialNumberBanner={adminUploadSpecialNumberBanner} settings={whatsAppSettings} onSaveSettings={adminSaveWhatsAppSettings} />,
-        manajemenAktivitas: <ManajemenAktivitas transactions={transactions} redemptions={redemptionHistory} users={users} />, // NEW PAGE
+        manajemenAktivitas: <ManajemenAktivitas transactions={transactions} redemptions={redemptionHistory} users={users} />,
     };
 
     // --- Main Render ---

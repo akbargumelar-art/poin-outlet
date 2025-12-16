@@ -4,7 +4,6 @@ import { User, SpecialNumber } from '../../types';
 import Icon from '../../components/common/Icon';
 import { ICONS } from '../../constants';
 
-// FIX: Simplified the type to remove redundant keys. `keyof SpecialNumber` already includes these.
 type SortableKeys = keyof SpecialNumber;
 
 interface NomorSpesialPageProps {
@@ -24,7 +23,6 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
     const isSupervisor = currentUser.role === 'supervisor';
 
     const priceFilters = useMemo(() => {
-        // FIX: Explicitly convert sort parameters to numbers to satisfy TypeScript's strict arithmetic operation rules.
         return [...new Set(numbers.map(n => n.price))].sort((a, b) => Number(a) - Number(b));
     }, [numbers]);
     
@@ -75,12 +73,12 @@ const NomorSpesialPage: React.FC<NomorSpesialPageProps> = ({ currentUser, number
 
     const getSortIcon = (key: SortableKeys) => {
         if (!sortConfig || sortConfig.key !== key) {
-            return <Icon path="M12 5.83l2.59 2.59L16 7l-4-4-4 4 1.41 1.41L10 5.83v12.34h2V5.83z" className="w-4 h-4 text-gray-400" />;
+            return <Icon path={ICONS.sortNeutral} className="w-4 h-4 text-gray-400" />;
         }
         if (sortConfig.direction === 'asc') {
-            return <Icon path="M12 4l-1.41 1.41L12 2.83l1.41 1.41L12 4zm0 16l-1.41-1.41L12 21.17l1.41-1.41L12 20z" className="w-4 h-4" />;
+            return <Icon path={ICONS.sortUp} className="w-4 h-4 text-gray-800" />;
         }
-        return <Icon path="M12 20l1.41-1.41L12 21.17l-1.41-1.41L12 20zM12 4l1.41 1.41L12 2.83 10.59 4.24 12 4z" className="w-4 h-4" />;
+        return <Icon path={ICONS.sortDown} className="w-4 h-4 text-gray-800" />;
     };
 
 
