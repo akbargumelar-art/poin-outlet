@@ -61,129 +61,212 @@ const PORT = process.env.PORT || 4001;
 
 // Function to check and set up the database schema
 const setupDatabase = async () => {
-    // We get a connection from the pool. If pool is invalid, this throws.
-    // We catch it inside to prevent server crash.
     let connection; 
     try {
         connection = await db.getConnection();
-        console.log('Checking database schema...');
+        console.log('--- Initializing Database Schema ---');
+
+        // 1. Users Table
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS users (
+                id VARCHAR(255) PRIMARY KEY,
+                password VARCHAR(255) NOT NULL,
+                role ENUM('admin', 'pelanggan', 'supervisor', 'operator') NOT NULL DEFAULT 'pelanggan',
+                nama VARCHAR(255),
+                email VARCHAR(255),
+                phone VARCHAR(50),
+                tap VARCHAR(100),
+                salesforce VARCHAR(100),
+                no_rs VARCHAR(100),
+                owner VARCHAR(255),
+                kabupaten VARCHAR(100),
+                kecamatan VARCHAR(100),
+                alamat TEXT,
+                jabatan VARCHAR(100),
+                photo_url VARCHAR(2048),
+                points INT DEFAULT 0,
+                level VARCHAR(50) DEFAULT 'Bronze',
+                kupon_undian INT DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // 2. Loyalty Programs (Levels)
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS loyalty_programs (
+                level VARCHAR(50) PRIMARY KEY,
+                pointsNeeded INT DEFAULT 0,
+                benefit TEXT,
+                multiplier DECIMAL(3,1) DEFAULT 1.0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
         
-        // --- Check for special_numbers table ---
-        const [tables] = await connection.execute("SHOW TABLES LIKE 'special_numbers'");
-        if (tables.length === 0) {
-            console.log("Table 'special_numbers' not found. Creating it...");
-            const createTableQuery = `
-                CREATE TABLE \`special_numbers\` (
-                  \`id\` int(11) NOT NULL AUTO_INCREMENT,
-                  \`phone_number\` varchar(20) NOT NULL,
-                  \`price\` decimal(10,0) NOT NULL,
-                  \`is_sold\` tinyint(1) NOT NULL DEFAULT 0,
-                  \`sn\` varchar(255) DEFAULT NULL,
-                  \`lokasi\` varchar(100) DEFAULT NULL,
-                  PRIMARY KEY (\`id\`),
-                  UNIQUE KEY \`phone_number_unique\` (\`phone_number\`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-            `;
-            await connection.execute(createTableQuery);
-            console.log("Table 'special_numbers' created successfully.");
-        } else {
-             console.log("Table 'special_numbers' already exists.");
+        // Seed Levels if empty
+        const [levels] = await connection.execute('SELECT count(*) as count FROM loyalty_programs');
+        if (levels[0].count === 0) {
+            console.log("Seeding Loyalty Programs...");
+            await connection.execute(`
+                INSERT INTO loyalty_programs (level, pointsNeeded, benefit, multiplier) VALUES 
+                ('Bronze', 0, 'Level awal', 1.0),
+                ('Silver', 10000, 'Multiplier 1.1x', 1.1),
+                ('Gold', 50000, 'Multiplier 1.2x', 1.2),
+                ('Platinum', 100000, 'Multiplier 1.5x', 1.5);
+            `);
         }
 
-        // --- Check for 'operator' role in users table ---
-        const [userColumns] = await connection.execute("SHOW COLUMNS FROM users LIKE 'role'");
-        if (userColumns.length > 0) {
-            const roleColumn = userColumns[0];
-            // Type will be like "enum('admin','pelanggan','supervisor')"
-            const currentEnumValues = roleColumn.Type.match(/'(.*?)'/g)?.map(v => v.replace(/'/g, '')) || [];
-            
-            if (!currentEnumValues.includes('operator')) {
-                console.log("Column 'users.role' is missing 'operator' value. Altering table...");
-                // Note: Ensure all existing and new roles are included in the ENUM list.
-                const alterQuery = "ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'pelanggan', 'supervisor', 'operator') NOT NULL";
-                await connection.execute(alterQuery);
-                console.log("Table 'users' altered successfully to include 'operator' role.");
-            } else {
-                console.log("Column 'users.role' already includes 'operator' role.");
-            }
-        }
-        
-        // --- Check for display_order in rewards table ---
-        const [rewardColumns] = await connection.execute("SHOW COLUMNS FROM rewards LIKE 'display_order'");
-        if (rewardColumns.length === 0) {
-            console.log("Column 'rewards.display_order' not found. Creating it...");
-            const alterQuery = "ALTER TABLE rewards ADD COLUMN display_order INT NOT NULL DEFAULT 999";
-            await connection.execute(alterQuery);
-            console.log("Table 'rewards' altered successfully to include 'display_order'.");
-        } else {
-            console.log("Column 'rewards.display_order' already exists.");
-        }
+        // 3. Rewards
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS rewards (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                points INT NOT NULL,
+                image_url VARCHAR(2048),
+                stock INT DEFAULT 0,
+                display_order INT DEFAULT 999
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
 
-        // --- Check for status columns in redemptions table ---
-        const [redemptionColumnsStatus] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'status'");
-        if (redemptionColumnsStatus.length === 0) {
-            console.log("Columns 'status', 'status_note', 'status_updated_at' not found in 'redemptions'. Altering table...");
-            const alterQuery = `
-                ALTER TABLE redemptions
-                ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Diajukan',
-                ADD COLUMN status_note TEXT DEFAULT NULL,
-                ADD COLUMN status_updated_at DATETIME DEFAULT NULL;
-            `;
-            await connection.execute(alterQuery);
-            console.log("Table 'redemptions' altered successfully for status.");
-        } else {
-            console.log("Status columns already exist in 'redemptions'.");
-        }
+        // 4. Transactions
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS transactions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(255),
+                date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                produk VARCHAR(255),
+                harga DECIMAL(15,2),
+                kuantiti INT,
+                total_pembelian DECIMAL(15,2),
+                points_earned INT,
+                INDEX (user_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
 
-        // --- Check for user_name and reward_name in redemptions table ---
-        const [redemptionColumnsNames] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'user_name'");
-        if (redemptionColumnsNames.length === 0) {
-            console.log("Columns 'user_name' and 'reward_name' not found in 'redemptions'. Altering table...");
-            const alterQuery = `
-                ALTER TABLE redemptions
-                ADD COLUMN user_name VARCHAR(255) NULL,
-                ADD COLUMN reward_name VARCHAR(255) NULL;
-            `;
-            await connection.execute(alterQuery);
-            console.log("Table 'redemptions' altered successfully for names.");
-        } else {
-            console.log("Name columns already exist in 'redemptions'.");
-        }
+        // 5. Redemptions
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS redemptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(255),
+                reward_id INT,
+                points_spent INT,
+                date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status VARCHAR(50) DEFAULT 'Diajukan',
+                status_note TEXT,
+                status_updated_at DATETIME,
+                documentation_photo_url VARCHAR(2048),
+                user_name VARCHAR(255),
+                reward_name VARCHAR(255),
+                receiver_name VARCHAR(255),
+                receiver_role VARCHAR(100),
+                surveyor_name VARCHAR(255),
+                location_coordinates VARCHAR(100),
+                INDEX (user_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (reward_id) REFERENCES rewards(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
 
-        // --- Check for documentation photo url in redemptions table ---
-        const [redemptionColumnsDocs] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'documentation_photo_url'");
-        if (redemptionColumnsDocs.length === 0) {
-            console.log("Column 'documentation_photo_url' not found in 'redemptions'. Altering table...");
-            const alterQuery = `
-                ALTER TABLE redemptions
-                ADD COLUMN documentation_photo_url VARCHAR(2048) DEFAULT NULL;
-            `;
-            await connection.execute(alterQuery);
-            console.log("Table 'redemptions' altered successfully for documentation photo.");
-        } else {
-            console.log("Documentation photo column already exists in 'redemptions'.");
-        }
+        // 6. Running Programs
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS running_programs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                mechanism TEXT,
+                prize_category VARCHAR(100),
+                prize_description VARCHAR(255),
+                start_date DATE,
+                end_date DATE,
+                image_url VARCHAR(2048)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
 
-        // --- NEW: Check for AppSheet delivery details in redemptions table ---
-        const [redemptionColumnsDelivery] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'receiver_name'");
-        if (redemptionColumnsDelivery.length === 0) {
-            console.log("Columns for AppSheet delivery details (receiver_name, surveyor_name, etc.) not found. Altering table...");
-            const alterQuery = `
-                ALTER TABLE redemptions
-                ADD COLUMN receiver_name VARCHAR(255) DEFAULT NULL,
-                ADD COLUMN receiver_role VARCHAR(100) DEFAULT NULL,
-                ADD COLUMN surveyor_name VARCHAR(255) DEFAULT NULL,
-                ADD COLUMN location_coordinates VARCHAR(100) DEFAULT NULL;
-            `;
-            await connection.execute(alterQuery);
-            console.log("Table 'redemptions' altered successfully for delivery details.");
-        } else {
-            console.log("Delivery detail columns already exist in 'redemptions'.");
-        }
+        // 7. Running Program Targets
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS running_program_targets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                program_id INT,
+                user_id VARCHAR(255),
+                progress INT DEFAULT 0,
+                UNIQUE KEY unique_target (program_id, user_id),
+                FOREIGN KEY (program_id) REFERENCES running_programs(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // 8. Special Numbers
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS special_numbers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                phone_number VARCHAR(20) NOT NULL UNIQUE,
+                price DECIMAL(10,0) NOT NULL,
+                is_sold TINYINT(1) DEFAULT 0,
+                sn VARCHAR(255),
+                lokasi VARCHAR(100)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // 9. Raffle Programs
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS raffle_programs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255),
+                prize VARCHAR(255),
+                period VARCHAR(100),
+                is_active TINYINT(1) DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // 10. Raffle Winners
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS raffle_winners (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255),
+                prize VARCHAR(255),
+                photo_url VARCHAR(2048),
+                period VARCHAR(100)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // 11. Coupon Redemptions
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS coupon_redemptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(255),
+                raffle_program_id INT,
+                redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (raffle_program_id) REFERENCES raffle_programs(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // 12. WhatsApp Settings
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS whatsapp_settings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                webhook_url VARCHAR(255),
+                sender_number VARCHAR(50),
+                recipient_type VARCHAR(20),
+                recipient_id VARCHAR(50),
+                api_key VARCHAR(255),
+                session_name VARCHAR(50),
+                special_number_recipient VARCHAR(50)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // 13. DigiPos Data (Master Data)
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS digipos_data (
+                id_digipos VARCHAR(50) PRIMARY KEY,
+                no_rs VARCHAR(50),
+                nama_outlet VARCHAR(255),
+                salesforce VARCHAR(100),
+                tap VARCHAR(100)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        console.log('--- Database Schema Initialized Successfully ---');
 
     } catch (err) {
         console.error('Database setup ERROR:', err);
-        // Do NOT exit process here. Let server run so it can respond with 500s instead of 502s.
     } finally {
         if (connection) connection.release();
     }
@@ -195,54 +278,36 @@ const backfillRedemptionNames = async () => {
     let connection;
     try {
         connection = await db.getConnection();
-        console.log('Checking for historical redemption records that need name backfilling...');
-        
         const [columns] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'user_name'");
-        if (columns.length === 0) {
-             console.log('Skipping backfill: Columns do not exist yet.');
-             return;
-        }
+        if (columns.length === 0) return;
 
         const [recordsToUpdate] = await connection.execute(
             "SELECT id, user_id, reward_id FROM redemptions WHERE user_name IS NULL OR reward_name IS NULL"
         );
 
-        if (recordsToUpdate.length === 0) {
-            console.log('No records need backfilling. All names are populated.');
-            return;
-        }
+        if (recordsToUpdate.length > 0) {
+            console.log(`Backfilling ${recordsToUpdate.length} redemption records...`);
+            for (const record of recordsToUpdate) {
+                const [userRows] = await connection.execute("SELECT nama FROM users WHERE id = ?", [record.user_id]);
+                const [rewardRows] = await connection.execute("SELECT name FROM rewards WHERE id = ?", [record.reward_id]);
 
-        console.log(`Found ${recordsToUpdate.length} records to backfill. Starting process...`);
-        let updatedCount = 0;
-        for (const record of recordsToUpdate) {
-            const [userRows] = await connection.execute("SELECT nama FROM users WHERE id = ?", [record.user_id]);
-            const [rewardRows] = await connection.execute("SELECT name FROM rewards WHERE id = ?", [record.reward_id]);
-
-            const userName = userRows[0]?.nama || null;
-            const rewardName = rewardRows[0]?.name || null;
-
-            // Only update if we found at least one name
-            if (userName || rewardName) {
-                 await connection.execute(
-                    "UPDATE redemptions SET user_name = ?, reward_name = ? WHERE id = ?",
-                    [userName, rewardName, record.id]
-                );
-                updatedCount++;
+                if (userRows[0] || rewardRows[0]) {
+                     await connection.execute(
+                        "UPDATE redemptions SET user_name = ?, reward_name = ? WHERE id = ?",
+                        [userRows[0]?.nama, rewardRows[0]?.name, record.id]
+                    );
+                }
             }
         }
-         console.log(`Backfill complete. ${updatedCount} of ${recordsToUpdate.length} records updated.`);
-
     } catch (err) {
-        console.error('Failed during redemption name backfill:', err);
+        console.error('Backfill Error:', err);
     } finally {
         if (connection) connection.release();
     }
 };
 
 
-// START THE SERVER IMMEDIATELY
-// We do not wait for DB setup to finish before listening.
-// This prevents 502 Bad Gateway errors from Nginx if DB connection is slow or fails.
+// START THE SERVER
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
     
