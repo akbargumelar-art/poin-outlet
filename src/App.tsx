@@ -5,38 +5,37 @@ import {
     User, Page, Transaction, LoyaltyProgram, RunningProgram, 
     Reward, RaffleProgram, RaffleWinner, Redemption, 
     SpecialNumber, WhatsAppSettings, UserProfile, CouponRedemption, UserRole
-} from '../types';
-import { ICONS } from '../constants';
+} from './types';
+import { ICONS } from './constants';
 
 // Components
-import MainLayout from '../components/layout/MainLayout';
-import LoadingOverlay from '../components/common/LoadingOverlay';
-import Modal from '../components/common/Modal';
-import Icon from '../components/common/Icon';
+import MainLayout from './components/layout/MainLayout';
+import LoadingOverlay from './components/common/LoadingOverlay';
+import Modal from './components/common/Modal';
+import Icon from './components/common/Icon';
 
 // Pages - PUBLIC & SHARED (From Root Pages)
-import LandingPage from '../pages/landing/LandingPage';
-import LoginPage from '../pages/auth/LoginPage';
-import RegisterPage from '../pages/auth/RegisterPage';
-import PelangganDashboard from '../pages/pelanggan/PelangganDashboard';
-import HistoryPembelian from '../pages/pelanggan/HistoryPembelian';
-import PencapaianProgram from '../pages/pelanggan/PencapaianProgram';
-import TukarPoin from '../pages/pelanggan/TukarPoin';
-import EditProfilePage from '../pages/shared/EditProfilePage';
-import AdminDashboard from '../pages/admin/AdminDashboard';
-import ManajemenPelanggan from '../pages/admin/ManajemenPelanggan';
-import TambahUserPage from '../pages/admin/TambahUserPage';
-import ManajemenProgram from '../pages/admin/ManajemenProgram';
-import ManajemenPoin from '../pages/admin/ManajemenPoin';
-import ManajemenHadiah from '../pages/admin/ManajemenHadiah';
-import ManajemenUndian from '../pages/admin/ManajemenUndian';
-import ManajemenPenukaran from '../pages/admin/ManajemenPenukaran';
-import ManajemenNotifikasi from '../pages/admin/ManajemenNotifikasi';
-import NomorSpesialPage from '../pages/shared/NomorSpesialPage';
-import ManajemenNomor from '../pages/admin/ManajemenNomorSpesial';
-
-// Pages - FIXED IMPORT PATH
-import ManajemenTransaksi from '../pages/admin/ManajemenTransaksi';
+import LandingPage from './pages/landing/LandingPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import PelangganDashboard from './pages/pelanggan/PelangganDashboard';
+import HistoryPembelian from './pages/pelanggan/HistoryPembelian';
+import PencapaianProgram from './pages/pelanggan/PencapaianProgram';
+import TukarPoin from './pages/pelanggan/TukarPoin';
+import EditProfilePage from './pages/shared/EditProfilePage';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ManajemenPelanggan from './pages/admin/ManajemenPelanggan';
+import TambahUserPage from './pages/admin/TambahUserPage';
+import ManajemenProgram from './pages/admin/ManajemenProgram';
+import ManajemenPoin from './pages/admin/ManajemenPoin';
+import ManajemenHadiah from './pages/admin/ManajemenHadiah';
+import ManajemenUndian from './pages/admin/ManajemenUndian';
+import ManajemenPenukaran from './pages/admin/ManajemenPenukaran';
+import ManajemenTransaksi from './pages/admin/ManajemenTransaksi';
+import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
+import NomorSpesialPage from './pages/shared/NomorSpesialPage';
+import ManajemenNomor from './pages/admin/ManajemenNomorSpesial';
+import ManajemenAktivitas from './pages/admin/ManajemenAktivitas'; // NEW IMPORT
 
 const App: React.FC = () => {
     // --- State Management ---
@@ -212,9 +211,24 @@ const App: React.FC = () => {
         }
     };
 
-    const handleChangePassword = async (o: string, n: string) => {
-        console.log("Changing password");
-        return true;
+    // FIXED: Implement Real Password Change Logic
+    const handleChangePassword = async (oldPassword: string, newPassword: string) => {
+        if (!currentUser) return false;
+        setIsGlobalLoading(true);
+        try {
+            await axios.put('/api/auth/change-password', {
+                id: currentUser.id,
+                oldPassword,
+                newPassword
+            });
+            setModal({ show: true, title: "Sukses", content: <p>Password berhasil diubah.</p> });
+            return true;
+        } catch (error: any) {
+            setModal({ show: true, title: "Gagal", content: <p>{error.response?.data?.message || 'Gagal mengubah password.'}</p> });
+            return false;
+        } finally {
+            setIsGlobalLoading(false);
+        }
     };
 
     const adminAddUser = async (user: User) => {
@@ -528,40 +542,8 @@ const App: React.FC = () => {
         manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isSupervisor} />,
         nomorSpesial: <NomorSpesialPage currentUser={currentUser!} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} specialNumberBannerUrl={specialNumberBannerUrl} />,
         manajemenNomor: <ManajemenNomor currentUser={currentUser!} numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} adminUploadSpecialNumberBanner={adminUploadSpecialNumberBanner} settings={whatsAppSettings} onSaveSettings={adminSaveWhatsAppSettings} />,
+        manajemenAktivitas: <ManajemenAktivitas transactions={transactions} redemptions={redemptionHistory} users={users} />, // NEW PAGE
     };
-
-    // --- Loading State ---
-    if (isInitializing) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center bg-gray-50">
-                <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="mt-4 text-gray-600 font-semibold animate-pulse">Memuat Aplikasi...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (connectionError.isError) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center bg-gray-50 p-6">
-                <div className="neu-card p-8 max-w-md text-center">
-                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-                        <Icon path={ICONS.close} className="w-10 h-10" />
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">Gagal Terhubung</h2>
-                    <p className="text-gray-600 mb-2 font-medium">{connectionError.message}</p>
-                    <p className="text-gray-500 text-xs mb-6 font-mono bg-gray-100 p-2 rounded">
-                        Error Code: {connectionError.code || 'Network Error'}
-                    </p>
-                    <button onClick={fetchBootstrapData} className="neu-button text-red-600 flex items-center justify-center gap-2">
-                        <Icon path={ICONS.history} className="w-5 h-5" />
-                        Coba Lagi
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     // --- Main Render ---
     const isPublicPage = ['landing', 'login', 'register'].includes(currentPage);

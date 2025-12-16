@@ -1,3 +1,4 @@
+
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
@@ -74,6 +75,35 @@ router.post('/login', async (req, res) => {
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    }
+});
+
+// PUT /api/auth/change-password
+router.put('/change-password', async (req, res) => {
+    const { id, oldPassword, newPassword } = req.body;
+
+    if (!id || !oldPassword || !newPassword) {
+        return res.status(400).json({ message: 'Data tidak lengkap.' });
+    }
+
+    try {
+        const [rows] = await db.execute('SELECT password FROM users WHERE id = ?', [id]);
+        if (rows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan.' });
+
+        const user = rows[0];
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Password lama salah.' });
+        }
+
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashedNewPassword, id]);
+
+        res.json({ message: 'Password berhasil diubah.' });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ message: 'Gagal mengubah password.' });
     }
 });
 
