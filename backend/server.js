@@ -66,7 +66,6 @@ const runSafe = async (connection, label, sql) => {
         console.log(`[DB Setup] Checked/Created: ${label}`);
     } catch (err) {
         console.error(`[DB Setup] Failed ${label}: ${err.message}`);
-        // We continue despite errors to ensure all tables get a chance to be created
     }
 };
 
@@ -152,6 +151,21 @@ const setupDatabase = async () => {
                 INDEX (user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
+        
+        // --- Schema Update for Transactions (Ensure Columns Exist) ---
+        try {
+            await connection.execute("SELECT total_pembelian FROM transactions LIMIT 1");
+        } catch (e) {
+            console.log("Migrating: Adding total_pembelian column to transactions");
+            await runSafe(connection, 'alter_transactions_total', "ALTER TABLE transactions ADD COLUMN total_pembelian DECIMAL(15,2) DEFAULT 0");
+        }
+        try {
+            await connection.execute("SELECT points_earned FROM transactions LIMIT 1");
+        } catch (e) {
+            console.log("Migrating: Adding points_earned column to transactions");
+            await runSafe(connection, 'alter_transactions_points', "ALTER TABLE transactions ADD COLUMN points_earned INT DEFAULT 0");
+        }
+
 
         // 5. Redemptions
         await runSafe(connection, 'redemptions', `
@@ -285,33 +299,42 @@ const backfillRedemptionNames = async () => {
     try {
         connection = await db.getConnection();
         
-        // Safety check for table existence before checking columns
+        // 1. Backfill Redemption Names
         try {
             const [columns] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'user_name'");
-            if (columns.length === 0) return;
-        } catch (e) {
-            console.log("Skipping backfill, redemptions table likely missing or inaccessible");
-            return;
-        }
+            if (columns.length > 0) {
+                const [recordsToUpdate] = await connection.execute(
+                    "SELECT id, user_id, reward_id FROM redemptions WHERE user_name IS NULL OR reward_name IS NULL"
+                );
 
-        const [recordsToUpdate] = await connection.execute(
-            "SELECT id, user_id, reward_id FROM redemptions WHERE user_name IS NULL OR reward_name IS NULL"
-        );
+                if (recordsToUpdate.length > 0) {
+                    console.log(`Backfilling ${recordsToUpdate.length} redemption records...`);
+                    for (const record of recordsToUpdate) {
+                        const [userRows] = await connection.execute("SELECT nama FROM users WHERE id = ?", [record.user_id]);
+                        const [rewardRows] = await connection.execute("SELECT name FROM rewards WHERE id = ?", [record.reward_id]);
 
-        if (recordsToUpdate.length > 0) {
-            console.log(`Backfilling ${recordsToUpdate.length} redemption records...`);
-            for (const record of recordsToUpdate) {
-                const [userRows] = await connection.execute("SELECT nama FROM users WHERE id = ?", [record.user_id]);
-                const [rewardRows] = await connection.execute("SELECT name FROM rewards WHERE id = ?", [record.reward_id]);
-
-                if (userRows[0] || rewardRows[0]) {
-                     await connection.execute(
-                        "UPDATE redemptions SET user_name = ?, reward_name = ? WHERE id = ?",
-                        [userRows[0]?.nama, rewardRows[0]?.name, record.id]
-                    );
+                        if (userRows[0] || rewardRows[0]) {
+                             await connection.execute(
+                                "UPDATE redemptions SET user_name = ?, reward_name = ? WHERE id = ?",
+                                [userRows[0]?.nama, rewardRows[0]?.name, record.id]
+                            );
+                        }
+                    }
                 }
             }
-        }
+        } catch (e) { console.log("Skipping redemption backfill (table/col missing)"); }
+
+        // 2. Backfill Transaction Totals (Fixes the "0" issue)
+        try {
+             // Update total_pembelian = harga * kuantiti where total is 0 or NULL
+             const [result] = await connection.execute(
+                "UPDATE transactions SET total_pembelian = harga * kuantiti WHERE (total_pembelian IS NULL OR total_pembelian = 0) AND harga > 0"
+             );
+             if (result.affectedRows > 0) {
+                 console.log(`Fixed ${result.affectedRows} transactions with missing total_pembelian.`);
+             }
+        } catch (e) { console.error("Transaction backfill error:", e.message); }
+
     } catch (err) {
         console.error('Backfill Error:', err);
     } finally {
