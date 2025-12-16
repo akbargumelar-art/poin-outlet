@@ -368,6 +368,18 @@ router.get('/bootstrap', async (req, res) => {
             }
         }));
 
+        // --- FIX: Map Snake Case DB Columns to CamelCase for Frontend ---
+        const structuredTransactions = transactions.map(t => ({
+            id: t.id,
+            userId: t.user_id,
+            date: t.date,
+            produk: t.produk,
+            harga: Number(t.harga),
+            kuantiti: Number(t.kuantiti),
+            totalPembelian: Number(t.total_pembelian), // Fixed mapping
+            pointsEarned: Number(t.points_earned)      // Fixed mapping
+        }));
+
         // Attach targets to running programs
         const structuredRunningPrograms = runningPrograms.map(p => ({
             id: p.id,
@@ -434,7 +446,7 @@ router.get('/bootstrap', async (req, res) => {
 
         res.json({
             users: structuredUsers,
-            transactions,
+            transactions: structuredTransactions, // Use mapped transactions
             loyaltyPrograms,
             runningPrograms: structuredRunningPrograms,
             rewards: structuredRewards,
@@ -848,19 +860,70 @@ router.post('/audit/fix/:id', async (req, res) => {
     }
 });
 
+// --- BULK AUDIT LOGIC (UPDATED WITH REPORT) ---
 router.post('/audit/bulk-fix', async (req, res) => {
-    // Basic bulk fix implementation reusing logic logic structure
-    // For brevity, similar logic to single fix but iterating all users
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
         const [users] = await connection.execute("SELECT id FROM users WHERE role = 'pelanggan'");
+        
+        let processedCount = 0;
+        let fixedCount = 0;
+        let cancelledRedemptions = 0;
+
         for (const user of users) {
-             // Logic identical to single audit fix
-             // ...
+            const userId = user.id;
+            
+            // 1. Calculate Earned
+            const [earnedRows] = await connection.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id=?', [userId]);
+            const totalEarned = earnedRows[0].total ? parseInt(earnedRows[0].total) : 0;
+
+            // 2. Calculate Spent (Only Finished/Successful)
+            const [spentFinishedRows] = await connection.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=? AND status = "Selesai"', [userId]);
+            const spentFinished = spentFinishedRows[0].total ? parseInt(spentFinishedRows[0].total) : 0;
+
+            // 3. Determine actual available points
+            let availablePoints = totalEarned - spentFinished;
+
+            // 4. Check Pending Redemptions
+            const [pendingRedemptions] = await connection.execute(
+                `SELECT id, points_spent FROM redemptions WHERE user_id=? AND status IN ("Diajukan", "Diproses") ORDER BY date ASC`,
+                [userId]
+            );
+
+            for (const redemption of pendingRedemptions) {
+                if (availablePoints >= redemption.points_spent) {
+                    availablePoints -= redemption.points_spent;
+                } else {
+                    // Not enough points, cancel this request
+                    await connection.execute('UPDATE redemptions SET status="Ditolak", status_note=?, status_updated_at=NOW() WHERE id=?', ['Audit Sistem: Dibatalkan otomatis karena poin kurang.', redemption.id]);
+                    // Return stock
+                    await connection.execute('UPDATE rewards r JOIN redemptions rd ON r.id = rd.reward_id SET r.stock = r.stock + 1 WHERE rd.id = ?', [redemption.id]);
+                    cancelledRedemptions++;
+                }
+            }
+
+            // 5. Update User Points if different
+            const [currentUserRows] = await connection.execute('SELECT points FROM users WHERE id=?', [userId]);
+            const currentPoints = currentUserRows[0].points;
+
+            if (currentPoints !== availablePoints) {
+                await connection.execute('UPDATE users SET points=? WHERE id=?', [availablePoints, userId]);
+                fixedCount++;
+            }
+            
+            processedCount++;
         }
+
         await connection.commit();
-        res.json({ message: 'Bulk audit complete' });
+        res.json({ 
+            message: 'Bulk audit complete',
+            report: {
+                processed: processedCount,
+                fixed: fixedCount,
+                cancelled: cancelledRedemptions
+            }
+        });
     } catch (e) {
         await connection.rollback();
         res.status(500).json({ message: e.message });

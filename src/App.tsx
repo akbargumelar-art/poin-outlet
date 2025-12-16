@@ -376,19 +376,47 @@ const App: React.FC = () => {
 
     // --- Audit ---
     const adminBulkAudit = async () => {
-        if(!window.confirm(`Anda akan menyinkronkan poin untuk SEMUA MITRA. Proses ini akan:\n\n1. Menghitung poin valid berdasarkan riwayat transaksi.\n2. Membatalkan otomatis penukaran pending jika poin tidak cukup.\n3. Mengirim Notifikasi WA ke mitra yang penukarannya dibatalkan.\n4. Mengupdate saldo semua mitra.\n\nLanjutkan?`)) return;
+        if(!window.confirm(`Anda akan menyinkronkan poin untuk SEMUA MITRA. Proses ini akan:\n\n1. Menghitung ulang semua poin berdasarkan riwayat transaksi.\n2. Mengurangi poin untuk penukaran 'Selesai'.\n3. Membatalkan otomatis penukaran 'Pending' (Diajukan/Diproses) jika poin hasil hitung ulang tidak mencukupi.\n\nLanjutkan?`)) return;
 
         setIsGlobalLoading(true);
-        setLoadingMessage('Mengaudit & Memperbaiki Poin...');
+        setLoadingMessage('Menjalankan Audit Sistem...');
         try {
             const response = await fetch('/api/audit/bulk-fix', { method: 'POST' });
             const result = await response.json();
 
-            if (response.ok) {
+            if (response.ok && result.report) {
                 await fetchBootstrapData();
-                setModal({ show: true, title: "Audit Selesai", content: <p>{result.message}</p> });
+                setModal({ 
+                    show: true, 
+                    title: "Laporan Audit Massal", 
+                    content: (
+                        <div className="space-y-4">
+                            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                                <h4 className="font-bold text-green-800 text-lg mb-2">Audit Selesai</h4>
+                                <ul className="space-y-2 text-sm text-green-700">
+                                    <li className="flex justify-between border-b border-green-200 pb-1">
+                                        <span>Total Mitra Diperiksa:</span>
+                                        <span className="font-bold">{result.report.processed}</span>
+                                    </li>
+                                    <li className="flex justify-between border-b border-green-200 pb-1">
+                                        <span>Poin Diperbaiki (Sync):</span>
+                                        <span className="font-bold">{result.report.fixed}</span>
+                                    </li>
+                                    <li className="flex justify-between">
+                                        <span>Penukaran Dibatalkan (Poin Kurang):</span>
+                                        <span className="font-bold text-red-600">{result.report.cancelled}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <p className="text-xs text-gray-500 text-center">Data poin sekarang telah sinkron dengan riwayat transaksi.</p>
+                            <div className="flex justify-end">
+                                <button onClick={() => setModal(null)} className="neu-button !w-auto px-6">Tutup</button>
+                            </div>
+                        </div>
+                    ) 
+                });
             } else {
-                setModal({ show: true, title: "Error", content: <p>{result.message}</p> });
+                setModal({ show: true, title: "Error", content: <p>{result.message || 'Gagal melakukan audit.'}</p> });
             }
         } catch (error) {
             console.error(error);
