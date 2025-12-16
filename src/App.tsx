@@ -449,7 +449,26 @@ const App: React.FC = () => {
             const result = await response.json();
             if (response.ok) {
                 await fetchBootstrapData();
-                setModal({ show: true, title: "Audit Selesai", content: <p>{result.message}</p> });
+                setModal({ 
+                    show: true, 
+                    title: "Audit Selesai", 
+                    content: (
+                        <div>
+                            <p className="mb-2">{result.message}</p>
+                            <ul className="list-disc pl-5 text-sm space-y-1">
+                                {result.report ? (
+                                    <>
+                                        <li>Diproses: <b>{result.report.processed}</b> akun</li>
+                                        <li>Diperbaiki: <b>{result.report.fixed}</b> akun (Poin tidak sinkron)</li>
+                                        <li>Dibatalkan: <b>{result.report.cancelled}</b> penukaran (Stok dikembalikan)</li>
+                                    </>
+                                ) : (
+                                    <li>Laporan detail tidak tersedia.</li>
+                                )}
+                            </ul>
+                        </div>
+                    ) 
+                });
             } else {
                 setModal({ show: true, title: "Error", content: <p>{result.message}</p> });
             }

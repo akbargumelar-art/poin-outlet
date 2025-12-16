@@ -87,20 +87,29 @@ router.put('/change-password', async (req, res) => {
     }
 
     try {
+        // 1. Get current password hash
         const [rows] = await db.execute('SELECT password FROM users WHERE id = ?', [id]);
         if (rows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan.' });
 
         const user = rows[0];
+        
+        // 2. Verify Old Password
         const isMatch = await bcrypt.compare(oldPassword, user.password);
-
         if (!isMatch) {
             return res.status(401).json({ message: 'Password lama salah.' });
         }
 
+        // 3. Hash New Password
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-        await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashedNewPassword, id]);
+        
+        // 4. Update and Verify Affected Rows
+        const [result] = await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashedNewPassword, id]);
 
-        res.json({ message: 'Password berhasil diubah.' });
+        if (result.affectedRows > 0) {
+            res.json({ message: 'Password berhasil diubah.' });
+        } else {
+            res.status(500).json({ message: 'Gagal mengupdate database. Silakan coba lagi.' });
+        }
     } catch (error) {
         console.error('Change password error:', error);
         res.status(500).json({ message: 'Gagal mengubah password.' });

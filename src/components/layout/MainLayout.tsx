@@ -16,13 +16,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // New Menu order for Admin
+    // New Menu order for Admin (Mitra - Hadiah - Home - Program)
     const adminMenu = [
         { name: 'Mitra', icon: ICONS.users, page: 'manajemenPelanggan' as Page },
-        { name: 'Aktivitas', icon: ICONS.history, page: 'manajemenAktivitas' as Page }, // New Item
+        { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
         { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
         { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
-        { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
+        { name: 'Aktivitas', icon: ICONS.history, page: 'manajemenAktivitas' as Page }, 
         { name: 'Nomor', icon: ICONS.simCard, page: 'manajemenNomor' as Page },
         { name: 'Riwayat Penukaran', icon: ICONS.trophy, page: 'manajemenPenukaran' as Page },
         { name: 'Riwayat Transaksi', icon: ICONS.calculator, page: 'manajemenTransaksi' as Page },
@@ -31,15 +31,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         { name: 'Notifikasi', icon: ICONS.whatsapp, page: 'manajemenNotifikasi' as Page },
     ];
 
-    // New Menu order for Supervisor
+    // New Menu order for Supervisor (Mitra - Hadiah - Home - Program) + Aktivitas added
     const supervisorMenu = [
         { name: 'Mitra', icon: ICONS.users, page: 'manajemenPelanggan' as Page },
-        { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
+        { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
         { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
-        { name: 'Riwayat Penukaran', icon: ICONS.history, page: 'manajemenPenukaran' as Page },
+        { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
+        { name: 'Aktivitas', icon: ICONS.history, page: 'manajemenAktivitas' as Page },
+        { name: 'Riwayat Penukaran', icon: ICONS.trophy, page: 'manajemenPenukaran' as Page },
         { name: 'Riwayat Transaksi', icon: ICONS.calculator, page: 'manajemenTransaksi' as Page },
         { name: 'Nomor Spesial', icon: ICONS.simCard, page: 'nomorSpesial' as Page },
-        { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
         { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
     ];
     
