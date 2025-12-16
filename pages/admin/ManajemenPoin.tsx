@@ -148,6 +148,32 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ currentUser, users, loyal
 
             <h1 className="text-2xl md:text-3xl font-bold text-gray-700 mb-6">Manajemen Transaksi & Poin</h1>
             
+            {/* ACTION BAR: AUDIT & SYNC - Diletakkan paling atas agar terlihat jelas */}
+            {!isOperator && (
+                <div className="mb-8 neu-card p-6 bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-yellow-500">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h2 className="text-lg font-bold text-yellow-800 flex items-center gap-2">
+                                <Icon path={ICONS.history} className="w-6 h-6"/>
+                                Audit & Sinkronisasi Poin Sistem
+                            </h2>
+                            <p className="text-sm text-yellow-700 mt-1">
+                                Fitur ini akan menghitung ulang poin semua mitra berdasarkan riwayat transaksi, 
+                                membatalkan penukaran yang tidak valid, dan menyesuaikan saldo poin secara otomatis.
+                            </p>
+                        </div>
+                        <button 
+                            onClick={adminBulkAudit}
+                            className="neu-button !w-full md:!w-auto bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-600 px-6 py-3 flex justify-center items-center gap-2 font-bold shadow-md"
+                            disabled={isReadOnly}
+                        >
+                            <Icon path={ICONS.calculator} className="w-5 h-5"/>
+                            Jalankan Audit Otomatis
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                 <div className="space-y-8">
                     {!isOperator && (
@@ -206,32 +232,10 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ currentUser, users, loyal
                             </form>
                         </div>
                     )}
-
-                    <div className="neu-card p-6">
-                         <h2 className="text-xl font-bold text-gray-700 mb-4">Alat Bantu & Audit</h2>
-                         <p className="text-sm text-gray-600 mb-4">Gunakan fitur ini untuk upload data massal atau melakukan audit poin otomatis.</p>
-                         <div className="flex flex-col gap-3">
-                            <div className="flex flex-col md:flex-row gap-3">
-                                <button onClick={() => setShowTxUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Transaksi (Excel)</button>
-                                {!isOperator && <button onClick={() => setShowLevelUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Level (Excel)</button>}
-                            </div>
-                            
-                            {!isOperator && (
-                                <button 
-                                    onClick={adminBulkAudit}
-                                    className="neu-button w-full bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-600 flex justify-center items-center gap-2"
-                                    disabled={isReadOnly}
-                                >
-                                    <Icon path={ICONS.history} className="w-5 h-5"/>
-                                    Audit & Perbaikan Poin Otomatis
-                                </button>
-                            )}
-                         </div>
-                    </div>
                 </div>
 
-                {!isOperator && (
-                    <div className="space-y-8">
+                <div className="space-y-8">
+                    {!isOperator && (
                         <div className="neu-card p-6 h-fit">
                             <h2 className="text-xl font-bold text-gray-700 mb-4">Update Poin Manual</h2>
                             <div className="space-y-4">
@@ -268,8 +272,19 @@ const ManajemenPoin: React.FC<ManajemenPoinProps> = ({ currentUser, users, loyal
                                 <button onClick={handleUpdatePoin} disabled={!manualUserId || manualPoints <= 0 || isReadOnly} className="neu-button text-red-600 w-full">Update Poin</button>
                             </div>
                         </div>
+                    )}
+
+                    <div className="neu-card p-6">
+                         <h2 className="text-xl font-bold text-gray-700 mb-4">Upload Massal (Excel)</h2>
+                         <p className="text-sm text-gray-600 mb-4">Gunakan fitur ini untuk upload data dalam jumlah banyak sekaligus.</p>
+                         <div className="flex flex-col gap-3">
+                            <div className="flex flex-col md:flex-row gap-3">
+                                <button onClick={() => setShowTxUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Riwayat Transaksi</button>
+                                {!isOperator && <button onClick={() => setShowLevelUploadModal(true)} className="neu-button w-full flex-1" disabled={isReadOnly}>Upload Level Mitra</button>}
+                            </div>
+                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

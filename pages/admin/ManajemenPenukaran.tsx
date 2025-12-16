@@ -550,11 +550,11 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                             Update {selectedIds.size} Terpilih
                         </button>
                     )}
-                    <button onClick={handleExportAppSheet} className="neu-button !w-auto px-4 flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 shadow-md">
+                    <button onClick={() => handleExportAppSheet()} className="neu-button !w-auto px-4 flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 shadow-md">
                         <Icon path={ICONS.simCard} className="w-5 h-5"/>
                         Template AppSheet
                     </button>
-                    <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
+                    <button onClick={() => handleExport()} className="neu-button !w-auto px-4 flex items-center gap-2">
                         <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Laporan
                     </button>
                 </div>

@@ -228,7 +228,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">{isOperator ? 'Status Nomor Spesial' : 'Manajemen Nomor Spesial'}</h1>
                 <div className="flex gap-2">
-                    <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2">
+                    <button onClick={() => handleExport()} className="neu-button !w-auto px-4 flex items-center gap-2">
                         <Icon path={ICONS.download} className="w-5 h-5" /> Download Data
                     </button>
                     {!isOperator && (
@@ -262,7 +262,7 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
                                 placeholder="e.g., 628123456789"
                                 className="input-field"
                             />
-                            <button onClick={handleSaveRecipient} className="neu-button !w-auto px-4">Simpan</button>
+                            <button onClick={() => handleSaveRecipient()} className="neu-button !w-auto px-4">Simpan</button>
                         </div>
                     </div>
                 </div>

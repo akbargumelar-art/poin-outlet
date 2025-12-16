@@ -293,7 +293,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         setProdukFilter('');
     };
 
-    const handleExport = () => {
+    const handleExport = (_?: any) => {
         if (filteredTransactions.length === 0) {
             alert("Tidak ada data untuk diekspor dengan filter yang dipilih.");
             return;
