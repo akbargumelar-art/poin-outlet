@@ -14,7 +14,9 @@ interface ManajemenPelangganProps {
     loyaltyPrograms: LoyaltyProgram[];
     adminUpdateUserLevel: (userId: string, level: string) => void;
     adminResetPassword: (userId: string) => void;
-    adminSetUserPoints: (userId: string, newPointValue: number, skipRefresh?: boolean) => Promise<boolean>; // New Prop signature
+    adminSetUserPoints: (userId: string, newPointValue: number, skipRefresh?: boolean) => Promise<boolean>; 
+    adminAuditSingleUser: (userId: string) => Promise<boolean>; // NEW PROP
+    adminBulkAudit: () => void; // NEW PROP
 }
 
 type SortableKeys = 'nama' | 'id' | 'tap' | 'salesforce' | 'totalPembelian' | 'points' | 'level' | 'role';
@@ -25,7 +27,7 @@ const HistoryAuditModal: React.FC<{
     userTransactions: Transaction[];
     userRedemptions: Redemption[];
     onClose: () => void;
-    onSync: (userId: string, calculatedPoints: number) => void;
+    onSync: (userId: string) => void;
 }> = ({ user, userTransactions, userRedemptions, onClose, onSync }) => {
     
     // State for Server Audit Data
@@ -128,16 +130,22 @@ const HistoryAuditModal: React.FC<{
                 ) : <p className="text-red-500 text-center">Gagal memuat data audit.</p>}
 
                 {auditData && auditData.discrepancy !== 0 && (
-                    <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-yellow-100 p-3 rounded border border-yellow-200">
-                        <p className="text-xs text-yellow-800">
-                            <span className="font-bold">Perhatian:</span> Poin tidak sesuai history.
-                            Hitungan sistem seharusnya: <b>{auditData.calculated.toLocaleString('id-ID')}</b>.
+                    <div className="flex flex-col gap-3 bg-yellow-100 p-4 rounded-lg border border-yellow-200">
+                        <p className="text-sm text-yellow-800">
+                            <span className="font-bold flex items-center gap-2 mb-1"><Icon path={ICONS.history} className="w-4 h-4"/> Perhatian: Data Tidak Sinkron</span>
+                            Saldo saat ini tidak sesuai dengan history. Seharusnya: <b>{auditData.calculated.toLocaleString('id-ID')}</b>.
+                        </p>
+                        <p className="text-xs text-yellow-700">
+                            Klik tombol di bawah untuk: <br/>
+                            1. Menyamakan saldo poin dengan history transaksi.<br/>
+                            2. Membatalkan penukaran 'Pending' jika poin tidak cukup.<br/>
+                            3. Mengirim notifikasi WA ke mitra jika ada pembatalan.
                         </p>
                         <button 
-                            onClick={() => onSync(user.id, auditData.calculated)}
-                            className="neu-button !w-auto px-3 py-1 text-xs bg-white text-yellow-700 border-yellow-300 hover:bg-yellow-50"
+                            onClick={() => onSync(user.id)}
+                            className="neu-button w-full px-3 py-2 text-sm bg-white text-yellow-700 border-yellow-300 hover:bg-yellow-50 font-bold shadow-sm"
                         >
-                            Perbaiki Poin Sekarang
+                            Jalankan Perbaikan Poin (Smart Audit)
                         </button>
                     </div>
                 )}
@@ -198,7 +206,7 @@ const HistoryAuditModal: React.FC<{
 };
 
 
-const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, redemptions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword, adminSetUserPoints }) => {
+const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transactions, redemptions, setCurrentPage, isReadOnly, loyaltyPrograms, adminUpdateUserLevel, adminResetPassword, adminSetUserPoints, adminAuditSingleUser, adminBulkAudit }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [tapFilter, setTapFilter] = useState('');
     const [salesforceFilter, setSalesforceFilter] = useState('');
@@ -348,11 +356,11 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
         }
     };
     
-    // --- Logic Sync Poin ---
-    const handleSyncSingleUser = (userId: string, calculatedPoints: number) => {
-        if(window.confirm("Apakah Anda yakin ingin memperbaiki poin user ini sesuai history transaksi?")) {
-            adminSetUserPoints(userId, calculatedPoints).then(() => {
-                setHistoryUser(null); // Close modal on success
+    // --- Logic Sync Poin (Updated to use smart audit) ---
+    const handleSyncSingleUser = (userId: string) => {
+        if(window.confirm("Yakin ingin memperbaiki poin user ini? Jika poin kurang, penukaran pending akan dibatalkan otomatis dan user dinotifikasi via WA.")) {
+            adminAuditSingleUser(userId).then((success) => {
+                if(success) setHistoryUser(null); // Close modal on success
             });
         }
     };
@@ -531,7 +539,18 @@ const ManajemenPelanggan: React.FC<ManajemenPelangganProps> = ({ users, transact
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Manajemen Pengguna</h1>
                 <div className="flex gap-2">
-                    {!isReadOnly && <button onClick={() => setCurrentPage('tambahUser')} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.plus} className="w-5 h-5"/>Tambah Pengguna</button>}
+                    {!isReadOnly && (
+                        <>
+                            <button onClick={adminBulkAudit} className="neu-button bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-600 !w-auto px-4 flex items-center gap-2 shadow-sm" title="Audit Otomatis Semua Mitra">
+                                <Icon path={ICONS.history} className="w-5 h-5"/>
+                                Audit Massal
+                            </button>
+                            <button onClick={() => setCurrentPage('tambahUser')} className="neu-button !w-auto px-4 flex items-center gap-2">
+                                <Icon path={ICONS.plus} className="w-5 h-5"/>
+                                Tambah Pengguna
+                            </button>
+                        </>
+                    )}
                     <button onClick={handleExport} className="neu-button !w-auto px-4 flex items-center gap-2"><Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel</button>
                 </div>
             </div>
