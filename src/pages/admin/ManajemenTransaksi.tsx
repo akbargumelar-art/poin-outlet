@@ -288,14 +288,14 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
     
-    // Fix: Remove unused optional argument to fix "Expected 0 arguments, but got 1"
+    // Fix: Ensure handleResetFilters takes 0 args as expected by call site.
     const handleResetFilters = () => {
         setFilter({ from: '', to: '' });
         setSearchTerm('');
         setProdukFilter('');
     };
 
-    // Fix: Remove unused optional argument to fix "Expected 0 arguments, but got 1"
+    // Fix: Ensure handleExport takes 0 args as expected by call site.
     const handleExport = () => {
         if (filteredTransactions.length === 0) {
             alert("Tidak ada data untuk diekspor dengan filter yang dipilih.");
@@ -504,10 +504,12 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                 <div className="text-xs text-right">
                                     <div className="flex items-center justify-end gap-2 mb-1">
                                         <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
+                                        {/* Fix: Correct variable name from momChartNames to momChartData.monthNames */}
                                         <span className="font-semibold text-gray-600">{momChartData.monthNames.current}</span>
                                     </div>
                                     <div className="flex items-center justify-end gap-2">
                                         <div className="w-3 h-3 bg-slate-300 rounded-sm"></div>
+                                        {/* Fix: Correct variable name from momChartNames to momChartData.monthNames */}
                                         <span className="text-gray-500">{momChartData.monthNames.last}</span>
                                     </div>
                                 </div>
@@ -521,7 +523,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
                                     const currentPercent = (currentVal / maxVal) * 100;
                                     const lastPercent = (lastVal / maxVal) * 100;
-                                    // Explicitly cast to number for arithmetic safety
                                     const growth = lastVal > 0 ? ((currentVal - lastVal) / lastVal) * 100 : 100;
                                     const isPositive = growth >= 0;
 
