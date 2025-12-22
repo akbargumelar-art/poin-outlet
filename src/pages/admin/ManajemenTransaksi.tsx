@@ -288,21 +288,21 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
     
-    // Fix: Allow optional arguments to satisfy strict type checks if passed as event handler
-    const handleResetFilters = (_?: any) => {
+    // Fix: Remove unused optional argument to fix "Expected 0 arguments, but got 1"
+    const handleResetFilters = () => {
         setFilter({ from: '', to: '' });
         setSearchTerm('');
         setProdukFilter('');
     };
 
-    // Fix: Simplify handleExport signature
-    const handleExport = (_?: any) => {
+    // Fix: Remove unused optional argument to fix "Expected 0 arguments, but got 1"
+    const handleExport = () => {
         if (filteredTransactions.length === 0) {
             alert("Tidak ada data untuk diekspor dengan filter yang dipilih.");
             return;
         }
     
-        const csvHeader = (['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Produk', 'Harga Satuan', 'Kuantiti', 'Total Pembelian', 'Poin Didapat'] as any[]).join(',');
+        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Produk', 'Harga Satuan', 'Kuantiti', 'Total Pembelian', 'Poin Didapat'].join(',');
         
         const csvRows = filteredTransactions.map(t => {
             const formattedDate = new Date(t.date).toLocaleString('id-ID', {
@@ -310,7 +310,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             }).replace(/\./g, ':');
 
-            return ([
+            return [
                 formattedDate,
                 t.userId,
                 `"${t.userName.replace(/"/g, '""')}"`,
@@ -321,10 +321,10 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                 t.kuantiti,
                 t.totalPembelian,
                 t.pointsEarned
-            ] as any[]).join(',');
+            ].join(',');
         });
     
-        const csv = ([csvHeader, ...csvRows] as any[]).join('\n');
+        const csv = [csvHeader, ...csvRows].join('\n');
         
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');

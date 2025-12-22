@@ -42,6 +42,7 @@ interface DocumentationSliderProps {
 }
 
 const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }) => {
+    // Fix: Remove redundant assignment to fix "Block-scoped variable 'setViewingItem' used before its declaration" and "Cannot assign to 'setViewingItem' because it is a constant"
     const [viewingItem, setViewingItem] = useState<Redemption | null>(null);
     
     const containerRef = useRef<HTMLDivElement>(null);
@@ -55,19 +56,17 @@ const DocumentationSlider: React.FC<DocumentationSliderProps> = ({ redemptions }
 
     const BASE_SPEED = 0.8; 
     
+    // Updated Logic: Sort by date descending (newest first)
     const validItems = useMemo(() => {
-        const filtered = redemptions.filter(r => r.status === 'Selesai' && r.documentationPhotoUrl);
-        const shuffled = [...filtered];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        return shuffled;
+        return redemptions
+            .filter(r => r.status === 'Selesai' && r.documentationPhotoUrl)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [redemptions]);
 
     const itemsToRender = useMemo(() => {
         if (validItems.length === 0) return [];
         let items = [...validItems];
+        // Ensure enough items for smooth loop
         while (items.length < 5) {
             items = [...items, ...validItems];
         }
