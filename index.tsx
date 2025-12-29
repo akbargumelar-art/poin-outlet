@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// Fix: Menggunakan casing yang konsisten dengan file src/App.tsx dan menambahkan ekstensi untuk kejelasan di lingkungan case-insensitive
-import App from './src/App.tsx';
+// Fix: Menggunakan App.tsx di root sebagai entry point utama aplikasi
+import App from './App';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

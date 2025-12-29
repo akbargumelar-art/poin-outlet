@@ -22,9 +22,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
         { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
         { name: 'Hadiah', icon: ICONS.gift, page: 'manajemenHadiah' as Page },
+        { name: 'Aktivitas', icon: ICONS.history, page: 'manajemenAktivitas' as Page }, // Integrasi baru
         { name: 'Nomor', icon: ICONS.simCard, page: 'manajemenNomor' as Page },
         { name: 'Riwayat Penukaran', icon: ICONS.trophy, page: 'manajemenPenukaran' as Page },
-        { name: 'Riwayat Transaksi', icon: ICONS.history, page: 'manajemenTransaksi' as Page },
+        { name: 'Riwayat Transaksi', icon: ICONS.calculator, page: 'manajemenTransaksi' as Page },
         { name: 'Input Poin', icon: ICONS.plus, page: 'manajemenPoin' as Page },
         { name: 'Undian', icon: ICONS.ticket, page: 'manajemenUndian' as Page },
         { name: 'Notifikasi', icon: ICONS.whatsapp, page: 'manajemenNotifikasi' as Page },
@@ -35,6 +36,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentUser, currentP
         { name: 'Mitra', icon: ICONS.users, page: 'manajemenPelanggan' as Page },
         { name: 'Program', icon: ICONS.program, page: 'manajemenProgram' as Page },
         { name: 'Home', icon: ICONS.dashboard, page: 'adminDashboard' as Page },
+        { name: 'Aktivitas', icon: ICONS.history, page: 'manajemenAktivitas' as Page }, // Integrasi baru
         { name: 'Riwayat Penukaran', icon: ICONS.history, page: 'manajemenPenukaran' as Page },
         { name: 'Riwayat Transaksi', icon: ICONS.calculator, page: 'manajemenTransaksi' as Page },
         { name: 'Nomor Spesial', icon: ICONS.simCard, page: 'nomorSpesial' as Page },

@@ -1,2 +1,2 @@
-// Fix: Menghindari duplikasi dengan src/App.tsx dan memperbaiki error Cannot find name 'isReadOnly'
+// This file is disabled to resolve casing conflicts with App.tsx at root
 export {};

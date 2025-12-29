@@ -1,9 +1,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Transaction, User } from '../../types';
-import Icon from '../../components/common/Icon';
-import { ICONS } from '../../constants';
-import Pagination from '../../components/common/Pagination';
+// Fix: Menggunakan jalur import yang benar untuk mencapai root dari direktori src/pages/admin/
+import { Transaction, User } from '../../../types';
+import Icon from '../../../components/common/Icon';
+import { ICONS } from '../../../constants';
+import Pagination from '../../../components/common/Pagination';
 
 type SortableKeys = 'date' | 'userName' | 'produk' | 'harga' | 'kuantiti' | 'totalPembelian' | 'pointsEarned';
 
@@ -18,11 +19,9 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
     const [filter, setFilter] = useState({ from: '', to: '' });
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
     
-    // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(20);
 
-    // SummaryCard component definition
     const SummaryCard = ({ title, value, subtext, colorClass, icon }: { title: string, value: string, subtext?: string, colorClass: string, icon: string }) => (
         <div className="neu-card p-4 flex items-center justify-between">
             <div className="flex-grow min-w-0 pr-2">
@@ -109,7 +108,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                         comparison = aValue.localeCompare(bValue);
                     }
                 } else if (typeof aValue === 'number' && typeof bValue === 'number') {
-                    comparison = aValue - bValue;
+                    comparison = Number(aValue) - Number(bValue);
                 }
                 
                 return sortConfig.direction === 'asc' ? comparison : -comparison;
@@ -120,7 +119,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
     }, [transactionsWithUserData, filter, searchTerm, produkFilter, sortConfig]);
     
-    // Explicitly type-cast the result of useMemo to avoid unknown type issues in JSX
     const summaryStats = useMemo(() => {
         let totalRevenue = 0;
         let totalPoints = 0;
@@ -128,16 +126,10 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         const productSales: Record<string, number> = {};
 
         filteredTransactions.forEach(t => {
-            const revenue = typeof t.totalPembelian === 'string' ? parseFloat(t.totalPembelian) : t.totalPembelian;
-            const points = typeof t.pointsEarned === 'string' ? parseFloat(t.pointsEarned) : t.pointsEarned;
-            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
-
-            totalRevenue += (isNaN(Number(revenue)) ? 0 : Number(revenue));
-            totalPoints += (isNaN(Number(points)) ? 0 : Number(points));
+            totalRevenue += Number(t.totalPembelian) || 0;
+            totalPoints += Number(t.pointsEarned) || 0;
             uniquePartners.add(t.userId);
-
-            const prodName = t.produk || 'Unknown';
-            productSales[prodName] = (productSales[prodName] || 0) + (isNaN(Number(qty)) ? 0 : Number(qty));
+            productSales[t.produk] = (productSales[t.produk] || 0) + (Number(t.kuantiti) || 0);
         });
 
         let bestSeller = '-';
@@ -157,127 +149,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             bestSeller,
             bestSellerQty: maxQty
         };
-    }, [filteredTransactions]) as {
-        totalRevenue: number;
-        totalTransactions: number;
-        uniquePartners: number;
-        totalPoints: number;
-        bestSeller: string;
-        bestSellerQty: number;
-    };
-
-    const chartData = useMemo(() => {
-        if (filteredTransactions.length === 0) return null;
-
-        const productQty: Record<string, number> = {};
-        
-        filteredTransactions.forEach(t => {
-            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
-            const safeQty = isNaN(Number(qty)) ? 0 : Number(qty);
-            
-            productQty[t.produk] = (productQty[t.produk] || 0) + safeQty;
-        });
-        
-        const topProducts = Object.entries(productQty)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(entry => entry[0]);
-
-        const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
-        const productColors: Record<string, string> = {};
-        topProducts.forEach((prod, index) => {
-            productColors[prod] = colors[index];
-        });
-        const otherColor = '#94a3b8'; 
-
-        const dailyGroups: Record<string, { total: number, breakdown: Record<string, number> }> = {};
-        
-        filteredTransactions.forEach(t => {
-            let dateKey: string;
-            try {
-                dateKey = new Date(t.date).toISOString().split('T')[0];
-            } catch (e) {
-                return;
-            }
-
-            if (!dailyGroups[dateKey]) {
-                dailyGroups[dateKey] = { total: 0, breakdown: {} };
-            }
-            
-            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
-            const safeQty = isNaN(Number(qty)) ? 0 : Number(qty);
-
-            dailyGroups[dateKey].total += safeQty;
-            
-            const key = topProducts.includes(t.produk) ? t.produk : 'Lainnya';
-            dailyGroups[dateKey].breakdown[key] = (dailyGroups[dateKey].breakdown[key] || 0) + safeQty;
-        });
-
-        const sortedDates = Object.keys(dailyGroups).sort();
-        const data = sortedDates.map(date => ({
-            date,
-            displayDate: new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-            total: dailyGroups[date].total,
-            breakdown: dailyGroups[date].breakdown
-        }));
-
-        const maxTotal = Math.max(...data.map(d => d.total));
-
-        return { data, topProducts, productColors, otherColor, maxTotal: maxTotal || 1 };
     }, [filteredTransactions]);
-
-    const momChartData = useMemo(() => {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
-        const currentDate = now.getDate();
-
-        const currentMonthStart = new Date(currentYear, currentMonth, 1);
-        const currentMonthEnd = now;
-
-        const lastMonthStart = new Date(currentYear, currentMonth - 1, 1);
-        const daysInLastMonth = new Date(currentYear, currentMonth, 0).getDate();
-        const lastMonthEndDay = Math.min(currentDate, daysInLastMonth);
-        const lastMonthEnd = new Date(currentYear, currentMonth - 1, lastMonthEndDay, 23, 59, 59);
-
-        const currentStats: Record<string, number> = {};
-        const lastStats: Record<string, number> = {};
-        const allProducts = new Set<string>();
-
-        transactionsWithUserData.forEach(t => {
-            const tDate = new Date(t.date);
-            const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
-            const safeQty = isNaN(Number(qty)) ? 0 : Number(qty);
-
-            if (tDate >= currentMonthStart && tDate <= currentMonthEnd) {
-                currentStats[t.produk] = (currentStats[t.produk] || 0) + safeQty;
-                allProducts.add(t.produk);
-            } else if (tDate >= lastMonthStart && tDate <= lastMonthEnd) {
-                lastStats[t.produk] = (lastStats[t.produk] || 0) + safeQty;
-                allProducts.add(t.produk);
-            }
-        });
-
-        const comparisonData = Array.from(allProducts).map(prod => ({
-            name: prod,
-            current: currentStats[prod] || 0,
-            last: lastStats[prod] || 0
-        })).sort((a, b) => b.current - a.current);
-
-        const maxValue = Math.max(
-            ...comparisonData.map(d => Math.max(d.current, d.last)), 
-            1 
-        );
-
-        return {
-            data: comparisonData,
-            maxValue,
-            monthNames: {
-                current: currentMonthStart.toLocaleString('id-ID', { month: 'long' }),
-                last: lastMonthStart.toLocaleString('id-ID', { month: 'long' })
-            }
-        };
-    }, [transactionsWithUserData]); 
 
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -309,272 +181,49 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
     const handleExport = () => {
         if (filteredTransactions.length === 0) {
-            alert("Tidak ada data untuk diekspor dengan filter yang dipilih.");
+            alert("Tidak ada data untuk diekspor.");
             return;
         }
-    
-        const csvHeader = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Salesforce', 'Produk', 'Harga Satuan', 'Kuantiti', 'Total Pembelian', 'Poin Didapat'].join(',');
-        
-        const csvRows = filteredTransactions.map(t => {
-            const formattedDate = new Date(t.date).toLocaleString('id-ID', {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            }).replace(/\./g, ':');
-
-            return [
-                formattedDate,
-                t.userId,
-                `"${t.userName.replace(/"/g, '""')}"`,
-                t.userTap,
-                t.userSalesforce,
-                `"${t.produk.replace(/"/g, '""')}"`,
-                t.harga,
-                t.kuantiti,
-                t.totalPembelian,
-                t.pointsEarned
-            ].join(',');
-        });
-    
-        const csv = [csvHeader, ...csvRows].join('\n');
-        
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const headers = ['Tanggal', 'ID Mitra', 'Nama Mitra', 'TAP', 'Produk', 'Harga', 'Kuantiti', 'Total', 'Poin'];
+        const rows = filteredTransactions.map(t => [
+            t.date, t.userId, `"${t.userName.replace(/"/g, '""')}"`, t.userTap, `"${t.produk.replace(/"/g, '""')}"`, t.harga, t.kuantiti, t.totalPembelian, t.pointsEarned
+        ].join(','));
+        const csv = [headers.join(','), ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'riwayat_transaksi.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+        link.href = url;
+        link.download = 'riwayat_transaksi.csv';
+        link.click();
     };
 
     return (
         <div>
-            <div>
-                <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Riwayat Transaksi Pembelian</h1>
-                    <button onClick={() => handleExport()} className="neu-button !w-auto px-4 flex items-center gap-2">
-                        <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel
-                    </button>
-                </div>
+            <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">Riwayat Transaksi Pembelian</h1>
+                <button onClick={() => handleExport()} className="neu-button !w-auto px-4 flex items-center gap-2">
+                    <Icon path={ICONS.download} className="w-5 h-5"/>Ekspor Excel
+                </button>
+            </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-                    {/* FIX: Ensure format argument is typed as number by removing redundant Number constructor call which sometimes causes unknown inference errors */}
-                    <SummaryCard 
-                        title="Total Omzet" 
-                        value={`Rp ${new Intl.NumberFormat('id-ID', { compactDisplay: "short", notation: "compact" }).format(summaryStats.totalRevenue)}`} 
-                        subtext="Dari data difilter"
-                        colorClass="text-green-600" 
-                        icon={ICONS.history} 
-                    />
-                    <SummaryCard 
-                        title="Total Transaksi" 
-                        value={new Intl.NumberFormat('id-ID').format(summaryStats.totalTransactions)} 
-                        subtext="Frekuensi"
-                        colorClass="text-blue-600" 
-                        icon={ICONS.dashboard} 
-                    />
-                    <SummaryCard 
-                        title="Mitra Berbelanja" 
-                        value={new Intl.NumberFormat('id-ID').format(summaryStats.uniquePartners)} 
-                        subtext="Mitra unik"
-                        colorClass="text-purple-600" 
-                        icon={ICONS.users} 
-                    />
-                    <SummaryCard 
-                        title="Produk Terlaris" 
-                        value={summaryStats.bestSeller} 
-                        subtext={`${summaryStats.bestSellerQty} terjual`}
-                        colorClass="text-amber-600" 
-                        icon={ICONS.ticket} 
-                    />
-                    <SummaryCard 
-                        title="Poin Diberikan" 
-                        value={new Intl.NumberFormat('id-ID', { compactDisplay: "short", notation: "compact" }).format(summaryStats.totalPoints)} 
-                        subtext="Total Reward"
-                        colorClass="text-red-600" 
-                        icon={ICONS.gift} 
-                    />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <SummaryCard title="Total Omzet" value={`Rp ${summaryStats.totalRevenue.toLocaleString('id-ID')}`} colorClass="text-green-600" icon={ICONS.history} />
+                <SummaryCard title="Total Transaksi" value={summaryStats.totalTransactions.toString()} colorClass="text-blue-600" icon={ICONS.dashboard} />
+                <SummaryCard title="Mitra Aktif" value={summaryStats.uniquePartners.toString()} colorClass="text-purple-600" icon={ICONS.users} />
+                <SummaryCard title="Best Seller" value={summaryStats.bestSeller} subtext={`${summaryStats.bestSellerQty} unit`} colorClass="text-amber-600" icon={ICONS.ticket} />
+                <SummaryCard title="Poin Keluar" value={summaryStats.totalPoints.toString()} colorClass="text-red-600" icon={ICONS.gift} />
+            </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    {chartData && chartData.data.length > 0 ? (
-                        <div className="neu-card p-6">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                                <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
-                                    <Icon path={ICONS.store} className="w-5 h-5 text-red-500" />
-                                    Tren Penjualan Harian (Qty)
-                                </h2>
-                                <div className="flex flex-wrap gap-2 mt-2 md:mt-0 justify-end">
-                                    {chartData.topProducts.slice(0, 3).map(prod => (
-                                        <div key={prod} className="flex items-center gap-1 text-[10px] text-gray-600">
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: chartData.productColors[prod] }}></div>
-                                            <span className="truncate max-w-[60px]">{prod}</span>
-                                        </div>
-                                    ))}
-                                    <div className="flex items-center gap-1 text-[10px] text-gray-600">
-                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: chartData.otherColor }}></div>
-                                        <span>Lainnya</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="w-full overflow-x-auto pb-2">
-                                <div className="h-64 relative" style={{ minWidth: `${Math.max(100, chartData.data.length * 40)}px` }}>
-                                    <div className="absolute inset-0 flex items-end justify-between px-2 gap-2">
-                                        {chartData.data.map((day, index) => {
-                                            return (
-                                                <div key={day.date} className="flex flex-col items-center justify-end h-full flex-1 group relative">
-                                                    <div className="absolute bottom-full mb-2 hidden group-hover:block z-20 bg-gray-800 text-white text-xs rounded p-2 shadow-lg w-max max-w-[200px] pointer-events-none">
-                                                        <p className="font-bold mb-1 border-b border-gray-600 pb-1">{day.displayDate}</p>
-                                                        <p className="font-bold">Total: {new Intl.NumberFormat('id-ID').format(day.total)} Unit</p>
-                                                        <div className="mt-1 space-y-0.5">
-                                                            {Object.entries(day.breakdown).sort((a,b)=>Number(b[1])-Number(a[1])).map(([prod, val]) => (
-                                                                <div key={prod} className="flex justify-between gap-4">
-                                                                    <span className="opacity-80">{prod}:</span>
-                                                                    <span>{new Intl.NumberFormat('id-ID').format(val as number)}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="w-full max-w-[30px] h-full flex flex-col-reverse justify-start rounded-t-sm overflow-hidden bg-gray-100 relative">
-                                                        {chartData.topProducts.map(prod => {
-                                                            const val = day.breakdown[prod] || 0;
-                                                            if (val === 0) return null;
-                                                            const height = (val / Number(chartData.maxTotal)) * 100;
-                                                            return (
-                                                                <div 
-                                                                    key={prod} 
-                                                                    style={{ height: `${height}%`, backgroundColor: chartData.productColors[prod] }}
-                                                                    className="w-full transition-all duration-300 hover:opacity-80"
-                                                                ></div>
-                                                            )
-                                                        })}
-                                                        {day.breakdown['Lainnya'] > 0 && (
-                                                            <div 
-                                                                style={{ height: `${(day.breakdown['Lainnya'] / Number(chartData.maxTotal)) * 100}%`, backgroundColor: chartData.otherColor }}
-                                                                className="w-full transition-all duration-300 hover:opacity-80"
-                                                            ></div>
-                                                        )}
-                                                    </div>
-                                                    
-                                                    <p className="text-[9px] text-gray-500 mt-2 font-medium whitespace-nowrap rotate-0 truncate w-full text-center">
-                                                        {day.displayDate.split(' ')[0]}
-                                                    </p>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between text-[9px] text-gray-300 font-mono select-none">
-                                        <div className="border-t border-gray-200 w-full relative"><span className="absolute -top-2 left-0 bg-white/80 px-1 text-gray-400">{new Intl.NumberFormat('id-ID').format(Number(chartData.maxTotal))}</span></div>
-                                        <div className="border-t border-gray-100 w-full"></div>
-                                        <div className="border-t border-gray-100 w-full"></div>
-                                        <div className="border-t border-gray-100 w-full"></div>
-                                        <div className="border-t border-gray-200 w-full"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="neu-card p-6 flex items-center justify-center text-gray-500">Belum ada data untuk grafik harian.</div>
-                    )}
-
-                    {momChartData && momChartData.data.length > 0 ? (
-                        <div className="neu-card p-6">
-                            <div className="flex justify-between items-start mb-6">
-                                <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
-                                    <Icon path={ICONS.history} className="w-5 h-5 text-blue-500" />
-                                    Komparasi MTD (Qty)
-                                </h2>
-                                <div className="text-xs text-right">
-                                    <div className="flex items-center justify-end gap-2 mb-1">
-                                        <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
-                                        <span className="font-semibold text-gray-600">{momChartData.monthNames.current}</span>
-                                    </div>
-                                    <div className="flex items-center justify-end gap-2">
-                                        <div className="w-3 h-3 bg-slate-300 rounded-sm"></div>
-                                        <span className="text-gray-500">{momChartData.monthNames.last}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="h-64 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
-                                {momChartData.data.map(item => {
-                                    const currentVal = Number(item.current);
-                                    const lastVal = Number(item.last);
-                                    const maxVal = Number(momChartData.maxValue);
-
-                                    const currentPercent = (currentVal / maxVal) * 100;
-                                    const lastPercent = (lastVal / maxVal) * 100;
-                                    const growth = lastVal > 0 ? ((currentVal - lastVal) / lastVal) * 100 : 100;
-                                    const isPositive = growth >= 0;
-
-                                    return (
-                                        <div key={item.name} className="relative group">
-                                            <div className="flex justify-between text-xs mb-1">
-                                                <span className="font-bold text-gray-700 truncate w-40" title={item.name}>{item.name}</span>
-                                                <div className="flex gap-2">
-                                                    <span className="text-gray-500 font-mono">{new Intl.NumberFormat('id-ID').format(currentVal)} unit</span>
-                                                    <span className={`font-mono font-bold w-12 text-right ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
-                                                        {isPositive ? '+' : ''}{Math.round(growth)}%
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1 overflow-hidden relative">
-                                                <div 
-                                                    className="absolute top-0 left-0 h-full bg-slate-300 rounded-full opacity-60" 
-                                                    style={{ width: `${lastPercent}%` }}
-                                                ></div>
-                                                <div 
-                                                    className="absolute top-0 left-0 h-full bg-red-500 rounded-full opacity-90" 
-                                                    style={{ width: `${currentPercent}%` }}
-                                                ></div>
-                                            </div>
-                                            
-                                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 hidden group-hover:block z-30 bg-gray-800 text-white text-xs rounded p-2 shadow-lg w-max pointer-events-none">
-                                                <p className="font-bold border-b border-gray-600 pb-1 mb-1">{item.name}</p>
-                                                <p>{momChartData.monthNames.current}: {new Intl.NumberFormat('id-ID').format(currentVal)} Unit</p>
-                                                <p className="text-gray-400">{momChartData.monthNames.last}: {new Intl.NumberFormat('id-ID').format(lastVal)} Unit</p>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="neu-card p-6 flex items-center justify-center text-gray-500">Belum ada data untuk komparasi bulan ini.</div>
-                    )}
-                </div>
-                
-                <div className="mb-6 neu-card-flat p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center">
-                    <input
-                        type="text"
-                        placeholder="Cari nama, ID, produk..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="input-field lg:col-span-2"
-                    />
-                     <select
-                        value={produkFilter}
-                        onChange={(e) => setProdukFilter(e.target.value)}
-                        className="input-field lg:col-span-2"
-                    >
-                        <option value="">Semua Produk</option>
-                        {uniqueProduk.map(produk => (
-                            <option key={produk} value={produk}>{produk}</option>
-                        ))}
-                    </select>
-                    <div className="flex items-center gap-2 lg:col-span-2">
-                        <input type="date" name="from" value={filter.from} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
-                        <span className="text-gray-500">-</span>
-                        <input type="date" name="to" value={filter.to} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
-                        <button onClick={() => handleResetFilters()} className="neu-button-icon !p-2" title="Clear Filter">
-                            <Icon path={ICONS.close} className="w-5 h-5" />
-                        </button>
-                    </div>
+            <div className="mb-6 neu-card-flat p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-center">
+                <input type="text" placeholder="Cari mitra atau produk..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-field lg:col-span-2" />
+                <select value={produkFilter} onChange={(e) => setProdukFilter(e.target.value)} className="input-field lg:col-span-2">
+                    <option value="">Semua Produk</option>
+                    {uniqueProduk.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <div className="flex items-center gap-2 lg:col-span-2">
+                    <input type="date" name="from" value={filter.from} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
+                    <input type="date" name="to" value={filter.to} onChange={handleFilterChange} className="input-field !w-auto text-sm" />
+                    <button onClick={handleResetFilters} className="neu-button-icon !p-2"><Icon path={ICONS.close} className="w-5 h-5" /></button>
                 </div>
             </div>
             
@@ -583,74 +232,28 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                     <table className="w-full min-w-max text-left">
                         <thead className="bg-slate-200 sticky top-0 z-10">
                             <tr>
-                                <th className="p-4 font-semibold text-gray-600 whitespace-nowrap">
-                                    <button onClick={() => requestSort('date')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                        Tanggal {getSortIcon('date')}
-                                    </button>
-                                </th>
-                                <th className="p-4 font-semibold text-gray-600">
-                                    <button onClick={() => requestSort('userName')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                        Nama Mitra {getSortIcon('userName')}
-                                    </button>
-                                </th>
-                                <th className="p-4 font-semibold text-gray-600">
-                                     <button onClick={() => requestSort('produk')} className="flex items-center gap-1 hover:text-red-600 transition-colors">
-                                        Produk {getSortIcon('produk')}
-                                    </button>
-                                </th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">
-                                    <button onClick={() => requestSort('harga')} className="w-full flex justify-end items-center gap-1 hover:text-red-600 transition-colors">
-                                        Harga Satuan {getSortIcon('harga')}
-                                    </button>
-                                </th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">
-                                     <button onClick={() => requestSort('kuantiti')} className="w-full flex justify-end items-center gap-1 hover:text-red-600 transition-colors">
-                                        Kuantiti {getSortIcon('kuantiti')}
-                                    </button>
-                                </th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">
-                                    <button onClick={() => requestSort('totalPembelian')} className="w-full flex justify-end items-center gap-1 hover:text-red-600 transition-colors">
-                                        Total {getSortIcon('totalPembelian')}
-                                    </button>
-                                </th>
-                                <th className="p-4 font-semibold text-gray-600 text-right whitespace-nowrap">
-                                    <button onClick={() => requestSort('pointsEarned')} className="w-full flex justify-end items-center gap-1 hover:text-red-600 transition-colors">
-                                        Poin {getSortIcon('pointsEarned')}
-                                    </button>
-                                </th>
+                                <th className="p-4 font-semibold text-gray-600"><button onClick={() => requestSort('date')} className="flex items-center gap-1">Tanggal {getSortIcon('date')}</button></th>
+                                <th className="p-4 font-semibold text-gray-600"><button onClick={() => requestSort('userName')} className="flex items-center gap-1">Mitra {getSortIcon('userName')}</button></th>
+                                <th className="p-4 font-semibold text-gray-600"><button onClick={() => requestSort('produk')} className="flex items-center gap-1">Produk {getSortIcon('produk')}</button></th>
+                                <th className="p-4 font-semibold text-gray-600 text-right"><button onClick={() => requestSort('totalPembelian')} className="flex items-center gap-1 justify-end w-full">Total {getSortIcon('totalPembelian')}</button></th>
+                                <th className="p-4 font-semibold text-gray-600 text-right"><button onClick={() => requestSort('pointsEarned')} className="flex items-center gap-1 justify-end w-full">Poin {getSortIcon('pointsEarned')}</button></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {currentItems.length > 0 ? currentItems.map((item) => (
+                            {currentItems.map((item) => (
                                 <tr key={item.id} className="border-t border-slate-200/80">
-                                    <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
-                                    <td className="p-4">
-                                        <p className="font-semibold text-gray-800">{item.userName}</p>
-                                        <p className="text-xs text-gray-500 font-mono">{item.userId}</p>
-                                    </td>
+                                    <td className="p-4 whitespace-nowrap">{new Date(item.date).toLocaleDateString('id-ID')}</td>
+                                    <td className="p-4"><div><p className="font-semibold">{item.userName}</p><p className="text-xs text-gray-500 font-mono">{item.userId}</p></div></td>
                                     <td className="p-4 font-semibold">{item.produk}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(item.harga) || 0)}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(item.kuantiti) || 0)}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(item.totalPembelian) || 0)}</td>
-                                    <td className="p-4 font-bold text-right text-green-600 whitespace-nowrap">+{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(item.pointsEarned) || 0)}</td>
+                                    <td className="p-4 text-right">Rp {Number(item.totalPembelian).toLocaleString('id-ID')}</td>
+                                    <td className="p-4 font-bold text-right text-green-600">+{item.pointsEarned.toLocaleString('id-ID')}</td>
                                 </tr>
-                            )) : (
-                                 <tr>
-                                    <td colSpan={7} className="p-8 text-center text-gray-500">Tidak ada riwayat transaksi yang cocok.</td>
-                                </tr>
-                            )}
+                            ))}
                         </tbody>
                     </table>
                 </div>
             </div>
-            
-            {/* Pagination Component */}
-            <Pagination 
-                itemsPerPage={itemsPerPage} 
-                totalItems={filteredTransactions.length} 
-                paginate={paginate} 
-                currentPage={currentPage} 
-            />
+            <Pagination itemsPerPage={itemsPerPage} totalItems={filteredTransactions.length} paginate={paginate} currentPage={currentPage} />
         </div>
     );
 };

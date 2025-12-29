@@ -35,9 +35,6 @@ app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ message: 'File terlalu besar. Ukuran maksimal adalah 10MB.' });
     }
-    if (err.type === 'entity.too.large') {
-         return res.status(413).json({ message: 'Request terlalu besar. Ukuran maksimal adalah 10MB.' });
-    }
     console.error(err.stack);
     res.status(500).json({ message: 'An unexpected error occurred on the server.' });
 });
@@ -160,6 +157,35 @@ const setupDatabase = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
+        await runSafe(connection, 'raffle_programs', `
+            CREATE TABLE IF NOT EXISTS raffle_programs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                prize VARCHAR(255),
+                period VARCHAR(100),
+                is_active TINYINT(1) DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        await runSafe(connection, 'raffle_winners', `
+            CREATE TABLE IF NOT EXISTS raffle_winners (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255),
+                prize VARCHAR(255),
+                photo_url VARCHAR(2048),
+                period VARCHAR(100)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        await runSafe(connection, 'coupon_redemptions', `
+            CREATE TABLE IF NOT EXISTS coupon_redemptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(255),
+                raffle_program_id INT,
+                redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
         await runSafe(connection, 'special_numbers', `
             CREATE TABLE IF NOT EXISTS special_numbers (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -185,15 +211,6 @@ const setupDatabase = async () => {
                 special_number_status_recipient_id VARCHAR(100)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
-        
-        // Migration check for missing columns in whatsapp_settings
-        try {
-            await connection.execute("SELECT special_number_status_recipient_id FROM whatsapp_settings LIMIT 1");
-        } catch (e) {
-            console.log("Migrating: Adding special number status notification columns");
-            await runSafe(connection, 'alter_wa_settings_type', "ALTER TABLE whatsapp_settings ADD COLUMN special_number_status_recipient_type ENUM('personal', 'group') DEFAULT 'personal'");
-            await runSafe(connection, 'alter_wa_settings_id', "ALTER TABLE whatsapp_settings ADD COLUMN special_number_status_recipient_id VARCHAR(100)");
-        }
 
         await runSafe(connection, 'digipos_data', `
             CREATE TABLE IF NOT EXISTS digipos_data (
