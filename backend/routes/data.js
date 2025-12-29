@@ -102,7 +102,7 @@ router.get('/bootstrap', async (req, res) => {
                 receiverName: r.receiver_name,
                 receiverRole: r.receiver_role,
                 surveyorName: r.surveyor_name,
-                locationCoordinates: r.location_coordinates
+                location_coordinates: r.location_coordinates
             })),
             runningPrograms: programsWithTargets,
             specialNumbers: specialNumbers.map(n => ({
@@ -155,57 +155,79 @@ router.put('/settings/whatsapp', async (req, res) => {
 });
 
 // ============================================================
-// 3. APPSHEET SYNC (SINKRONISASI DUA ARAH - ROBUST)
+// 3. APPSHEET SYNC (SINKRONISASI DUA ARAH - VERSI STABIL)
 // ============================================================
 router.post('/integration/appsheet/sync-all', async (req, res) => {
     const APPSHEET_APP_ID = process.env.APPSHEET_APP_ID;
     const APPSHEET_ACCESS_KEY = process.env.APPSHEET_ACCESS_KEY;
 
     if (!APPSHEET_APP_ID || !APPSHEET_ACCESS_KEY) {
-        return res.status(400).json({ success: false, message: 'Kredensial AppSheet tidak ditemukan.' });
+        return res.status(400).json({ success: false, message: 'Kredensial AppSheet tidak ditemukan di .env.' });
     }
 
     try {
+        // Nama tabel harus persis dengan yang ada di AppSheet Editor (biasanya Case Sensitive)
         const tableName = encodeURIComponent('Tracking Tukar Poin');
         const appsheetUrl = `https://api.appsheet.com/api/v1/apps/${APPSHEET_APP_ID}/tables/${tableName}/Action`;
         
+        console.log(`[Sync] Menghubungi AppSheet: ${tableName}`);
+
         const response = await axios.post(appsheetUrl, {
             "Action": "Find",
-            "Properties": { "Locale": "id-ID" },
+            "Properties": { "Locale": "id-ID", "Timezone": "Asia/Jakarta" },
             "Rows": []
         }, {
             headers: { "ApplicationAccessKey": APPSHEET_ACCESS_KEY, "Content-Type": "application/json" },
-            timeout: 30000 
+            timeout: 60000 // Berikan waktu lebih lama (60 detik)
         });
 
-        let appsheetRows = response.data;
+        let rawData = response.data;
+        let appsheetRows = [];
 
-        // PENANGANAN RESPON APPSHEET YANG BERBEDA-BEDA
-        // Kadang berupa Array, kadang berupa Objek Metadata
-        if (!Array.isArray(appsheetRows)) {
-            if (appsheetRows && Array.isArray(appsheetRows.Rows)) {
-                appsheetRows = appsheetRows.Rows;
-            } else if (appsheetRows && appsheetRows.Success === true && (appsheetRows.RowValues === null || !appsheetRows.RowValues)) {
-                return res.json({ success: true, message: "Koneksi Berhasil, tetapi tidak ada data baru di AppSheet yang bisa ditarik." });
-            } else {
-                return res.status(400).json({ success: false, message: `Respon AppSheet tidak valid: ${JSON.stringify(appsheetRows)}` });
+        // Parsing Berbagai Format Respon AppSheet
+        if (Array.isArray(rawData)) {
+            appsheetRows = rawData;
+        } else if (rawData && typeof rawData === 'object') {
+            if (Array.isArray(rawData.Rows)) {
+                appsheetRows = rawData.Rows;
+            } else if (rawData.RowValues && Array.isArray(rawData.RowValues)) {
+                appsheetRows = rawData.RowValues;
+            } else if (rawData.Success === true && (rawData.RowValues === null || !rawData.RowValues)) {
+                return res.json({ success: true, message: "Koneksi Berhasil, tetapi tidak ada data (RowValues: null)." });
             }
         }
 
+        if (appsheetRows.length === 0) {
+            console.log("[Sync] AppSheet mengembalikan 0 baris.");
+            return res.json({ success: true, message: "Sinkronisasi Berhasil. Tidak ada data baru di Spreadsheet." });
+        }
+
+        console.log(`[Sync] Mendapat ${appsheetRows.length} baris dari AppSheet. Memulai pemrosesan...`);
+
         let updateCount = 0;
+        let skipCount = 0;
         const connection = await db.getConnection();
+        
         try {
             await connection.beginTransaction();
-            for (const row of appsheetRows) {
-                const redeemId = row['ID Redeem'];
-                if (!redeemId) continue;
 
-                const photo = row['Photo Dokumentasi'] || '';
-                const loc = row['Long - Lat'] || '';
+            for (const row of appsheetRows) {
+                // Cari key ID Redeem secara fleksibel
+                const redeemId = row['ID Redeem'] || row['id_redeem'] || row['ID_Redeem'];
+                
+                if (!redeemId) {
+                    skipCount++;
+                    continue;
+                }
+
+                const photo = row['Photo Dokumentasi'] || row['photo_dokumentasi'] || '';
+                const loc = row['Long - Lat'] || row['location'] || '';
                 const surveyor = row['Nama Surveyor'] || '';
                 const receiver = row['Nama Penerima'] || '';
 
+                // Hanya update jika ada bukti foto atau lokasi
                 if (photo || loc) {
+                    // Update: Jika status belum selesai atau foto kosong, kita tarik datanya
                     const [result] = await connection.execute(
                         `UPDATE redemptions SET 
                             status = 'Selesai', 
@@ -214,14 +236,24 @@ router.post('/integration/appsheet/sync-all', async (req, res) => {
                             surveyor_name = ?,
                             receiver_name = ?,
                             status_updated_at = NOW()
-                         WHERE id = ? AND (documentation_photo_url IS NULL OR documentation_photo_url = '')`,
+                         WHERE id = ? AND (status != 'Selesai' OR documentation_photo_url IS NULL OR documentation_photo_url = '')`,
                         [photo, loc, surveyor, receiver, redeemId]
                     );
-                    if (result.affectedRows > 0) updateCount++;
+
+                    if (result.affectedRows > 0) {
+                        updateCount++;
+                    }
                 }
             }
+
             await connection.commit();
-            res.json({ success: true, message: `Sinkronisasi Selesai! ${updateCount} data diperbarui.` });
+            console.log(`[Sync] Selesai. Diperbarui: ${updateCount}, Dilewati: ${skipCount}`);
+            
+            res.json({ 
+                success: true, 
+                message: `Berhasil! ${updateCount} data diperbarui dari total ${appsheetRows.length} baris di Spreadsheet.` 
+            });
+
         } catch (dbErr) {
             await connection.rollback();
             throw dbErr;
@@ -229,7 +261,11 @@ router.post('/integration/appsheet/sync-all', async (req, res) => {
             connection.release();
         }
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Gagal: ' + error.message });
+        console.error('[Sync Error]', error.message);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Gagal Sinkronisasi: ' + (error.response?.data?.Message || error.message) 
+        });
     }
 });
 
