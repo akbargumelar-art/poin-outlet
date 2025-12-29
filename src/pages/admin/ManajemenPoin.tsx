@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, LoyaltyProgram, Transaction } from '../../types';
-import Modal from '../../components/common/Modal';
-import Icon from '../../components/common/Icon';
+// Fix: Import Modal from root components to resolve missing default export in src/components
+import Modal from '../../../components/common/Modal';
+// Fix: Import Icon from root components to resolve missing default export in src/components
+import Icon from '../../../components/common/Icon';
 import { ICONS } from '../../constants';
 
 // --- Main Component ---

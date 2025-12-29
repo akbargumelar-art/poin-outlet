@@ -3,7 +3,8 @@ import React from 'react';
 import { User, Transaction, LoyaltyProgram, RunningProgram, Page, RaffleWinner, Redemption } from '../../types';
 import PemenangUndian from '../../components/PemenangUndian';
 import SimulasiPoin from '../../components/SimulasiPoin';
-import Icon from '../../components/common/Icon';
+// Fix: Import Icon from root components to resolve missing default export in src/components
+import Icon from '../../../components/common/Icon';
 import { ICONS } from '../../constants';
 import DocumentationSlider from '../../components/common/DocumentationSlider';
 

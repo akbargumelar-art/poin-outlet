@@ -2,10 +2,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import axios from 'axios';
 import { Redemption, User } from '../../types';
-import Icon from '../../components/common/Icon';
+// Fix: Import Icon from root components to resolve missing default export in src/components
+import Icon from '../../../components/common/Icon';
 import { ICONS } from '../../constants';
-import Modal from '../../components/common/Modal';
-import Pagination from '../../components/common/Pagination';
+// Fix: Import Modal from root components to resolve missing default export in src/components
+import Modal from '../../../components/common/Modal';
+// Fix: Import Pagination from root components to resolve missing default export in src/components
+import Pagination from '../../../components/common/Pagination';
 
 // --- Status Edit Modal Component ---
 const StatusEditModal: React.FC<{
@@ -140,8 +143,8 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
     const filteredRedemptions = useMemo(() => {
         return redemptionsWithUserData.filter(item => {
             const itemDate = new Date(item.date);
-            const fromDate = dateFilter.from ? new Date(dateFilter.from) : null;
-            const toDate = dateFilter.to ? new Date(dateFilter.to) : null;
+            const fromDate = dateFilter.from ? new Date(filter.from) : null;
+            const toDate = dateFilter.to ? new Date(filter.to) : null;
             if (fromDate) fromDate.setHours(0,0,0,0);
             if (toDate) toDate.setHours(23,59,59,999);
 
@@ -352,33 +355,4 @@ const ManajemenPenukaran: React.FC<ManajemenPenukaranProps> = ({ redemptions, us
                                     <td className="p-4 text-right font-bold text-red-600">{item.pointsSpent.toLocaleString('id-ID')}</td>
                                     <td className="p-4">
                                         <span className={`px-2 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                                            item.status === 'Selesai' ? 'bg-green-100 text-green-700' : 
-                                            item.status === 'Ditolak' ? 'bg-red-100 text-red-700' :
-                                            item.status === 'Diproses' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-                                        }`}>
-                                            {item.status || 'Diajukan'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex gap-2">
-                                            <button onClick={() => setViewingPhoto(item)} disabled={!item.documentationPhotoUrl} className="neu-button-icon text-purple-600 disabled:opacity-20" title="Lihat Bukti"><Icon path={ICONS.eye} className="w-5 h-5"/></button>
-                                            {!isReadOnly && <button onClick={() => setEditingRedemption(item)} className="neu-button-icon text-blue-600" title="Edit Status"><Icon path={ICONS.edit} className="w-5 h-5"/></button>}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {currentItems.length === 0 && (
-                                <tr>
-                                    <td colSpan={8} className="p-12 text-center text-gray-500 italic">Tidak ada data penukaran yang sesuai dengan filter.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <Pagination itemsPerPage={itemsPerPage} totalItems={filteredRedemptions.length} paginate={setCurrentPage} currentPage={currentPage} />
-        </div>
-    );
-};
-
-export default ManajemenPenukaran;
+                                            item.

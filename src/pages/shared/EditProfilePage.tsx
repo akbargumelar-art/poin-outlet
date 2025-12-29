@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { User, UserProfile } from '../../types';
-import Icon from '../../components/common/Icon';
+// Fix: Import Icon from root components to resolve missing default export in src/components
+import Icon from '../../../components/common/Icon';
 import { ICONS } from '../../constants';
 
 interface EditProfilePageProps {

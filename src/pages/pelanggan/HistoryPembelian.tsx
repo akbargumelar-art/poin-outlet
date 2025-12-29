@@ -1,10 +1,13 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { User, Transaction, Redemption, HistoryItem } from '../../types';
-import Icon from '../../components/common/Icon';
+// Fix: Import Icon from root components to resolve missing default export in src/components
+import Icon from '../../../components/common/Icon';
 import { ICONS } from '../../constants';
-import Modal from '../../components/common/Modal';
-import Pagination from '../../components/common/Pagination';
+// Fix: Import Modal from root components to resolve missing default export in src/components
+import Modal from '../../../components/common/Modal';
+// Fix: Import Pagination from root components to resolve missing default export in src/components
+import Pagination from '../../../components/common/Pagination';
 
 interface HistoryPembelianProps {
     currentUser: User;

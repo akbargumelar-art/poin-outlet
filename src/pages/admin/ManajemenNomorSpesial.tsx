@@ -78,12 +78,19 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
 
 
     useEffect(() => {
-        setRecipientNumber(settings?.specialNumberRecipient || '');
+        if (settings) {
+            setRecipientNumber(settings.specialNumberRecipient || '');
+        }
     }, [settings]);
 
     const handleSaveRecipient = () => {
+        if (!settings) {
+            alert("Pengaturan WhatsApp utama belum dikonfigurasi di Manajemen Notifikasi.");
+            return;
+        }
         const newSettings = { ...settings, specialNumberRecipient: recipientNumber };
-        onSaveSettings(newSettings as WhatsAppSettings);
+        onSaveSettings(newSettings);
+        alert("Nomor penerima pesanan berhasil diperbarui!");
     };
 
     const handleSave = (numberData: Omit<SpecialNumber, 'id' | 'isSold'> & { id?: number }) => {
@@ -161,12 +168,12 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
 
     const getSortIcon = (key: SortableKeys) => {
         if (!sortConfig || sortConfig.key !== key) {
-            return <Icon path="M12 5.83l2.59 2.59L16 7l-4-4-4 4 1.41 1.41L10 5.83v12.34h2V5.83z" className="w-4 h-4 text-gray-400" />;
+            return <Icon path={ICONS.sortNeutral} className="w-4 h-4 text-gray-400" />;
         }
         if (sortConfig.direction === 'asc') {
-            return <Icon path="M12 4l-1.41 1.41L12 2.83l1.41 1.41L12 4zm0 16l-1.41-1.41L12 21.17l1.41-1.41L12 20z" className="w-4 h-4" />;
+            return <Icon path={ICONS.sortUp} className="w-4 h-4 text-gray-800" />;
         }
-        return <Icon path="M12 20l1.41-1.41L12 21.17l-1.41-1.41L12 20zM12 4l1.41 1.41L12 2.83 10.59 4.24 12 4z" className="w-4 h-4" />;
+        return <Icon path={ICONS.sortDown} className="w-4 h-4 text-gray-800" />;
     };
 
     const handleExport = () => {
@@ -218,6 +225,9 @@ const ManajemenNomorSpesial: React.FC<ManajemenNomorProps> = ({ currentUser, num
                         <p className="mb-6">
                             Anda yakin ingin mengubah status nomor <strong>{confirmingStatus.phoneNumber}</strong> menjadi <strong>{confirmingStatus.isSold ? 'Tersedia' : 'Terjual'}</strong>?
                         </p>
+                        {confirmingStatus.isSold === false && (
+                            <p className="text-xs text-red-600 -mt-4 mb-6 font-bold">*Sistem akan mengirim notifikasi WhatsApp otomatis ke Grup Koordinasi.</p>
+                        )}
                         <div className="flex gap-4 justify-center">
                             <button onClick={() => setConfirmingStatus(null)} className="neu-button">Batal</button>
                             <button onClick={handleConfirmStatusChange} className="neu-button text-red-600">Ya, Ubah Status</button>

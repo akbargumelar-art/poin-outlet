@@ -1,9 +1,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, Page, Transaction, LoyaltyProgram, UserRole, Redemption } from '../../types';
-import Icon from '../../components/common/Icon';
+// Fix: Import Icon from root components to resolve missing default export in src/components
+import Icon from '../../../components/common/Icon';
 import { ICONS } from '../../constants';
-import Modal from '../../components/common/Modal';
+// Fix: Import Modal from root components to resolve missing default export in src/components
+import Modal from '../../../components/common/Modal';
 
 interface ManajemenPelangganProps {
     users: User[];

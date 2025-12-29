@@ -1,9 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
 import { RunningProgram, PrizeCategory, User } from '../../types';
-import Icon from '../../components/common/Icon';
+// Fix: Import Icon from root components to resolve missing default export in src/components
+import Icon from '../../../components/common/Icon';
 import { ICONS } from '../../constants';
-import Modal from '../../components/common/Modal';
+// Fix: Import Modal from root components to resolve missing default export in src/components
+import Modal from '../../../components/common/Modal';
 
 // --- Form Component ---
 interface ProgramFormProps {
@@ -58,7 +60,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                     <label className="text-sm font-semibold text-gray-600 mb-1 block">Kategori Hadiah</label>
+                     <label className="block text-gray-600 text-sm font-semibold mb-1">Kategori Hadiah</label>
                      <select name="prizeCategory" value={formData.prizeCategory} onChange={handleChange} className="input-field">
                         <option value="Barang">Barang</option>
                         <option value="Uang Tunai">Uang Tunai</option>
@@ -66,7 +68,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, onSave, onCancel }) 
                      </select>
                 </div>
                 <div>
-                    <label className="text-sm font-semibold text-gray-600 mb-1 block">Deskripsi Hadiah</label>
+                    <label className="block text-gray-600 text-sm font-semibold mb-1">Deskripsi Hadiah</label>
                     <input name="prizeDescription" value={formData.prizeDescription} onChange={handleChange} placeholder="e.g., iPhone 15 atau 5.000.000" className="input-field" required />
                 </div>
             </div>

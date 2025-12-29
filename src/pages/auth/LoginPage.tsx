@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import Icon from '../../components/common/Icon';
+// Fix: Import Icon from root components to resolve missing default export in src/components
+import Icon from '../../../components/common/Icon';
 import { ICONS } from '../../constants';
 import { Page } from '../../types';
 

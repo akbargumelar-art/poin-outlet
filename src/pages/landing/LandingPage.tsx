@@ -1,7 +1,8 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { Page, Reward, RunningProgram, RaffleWinner, LoyaltyProgram, Redemption } from '../../types';
-import Icon from '../../components/common/Icon';
+// Fix: Import Icon from root components to resolve missing default export in src/components
+import Icon from '../../../components/common/Icon';
 import { ICONS, APP_VERSION } from '../../constants';
 import PemenangUndian from '../../components/PemenangUndian';
 import SimulasiPoin from '../../components/SimulasiPoin';

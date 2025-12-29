@@ -1,9 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
 import { User, Transaction, RunningProgram, LoyaltyProgram, SpecialNumber, Redemption } from '../../types';
-import Icon from '../../components/common/Icon';
+// Fix: Import Icon from root components to resolve missing default export in src/components
+import Icon from '../../../components/common/Icon';
 import { ICONS } from '../../constants';
-import Modal from '../../components/common/Modal';
+// Fix: Import Modal from root components to resolve missing default export in src/components
+import Modal from '../../../components/common/Modal';
 import SimulasiPoin from '../../components/SimulasiPoin';
 
 interface AdminDashboardProps {
@@ -58,13 +60,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, transactions, ru
     const totalPoin = filteredUsers.reduce((sum, u) => sum + Number(u.points || 0), 0);
     
     // Special Numbers Stats
+    // Note: Special numbers don't strictly link to users/TAP in this context unless we track buyer ID in specialNumbers table (which we don't currently for filtering). 
+    // We will show global stats or try to filter if 'lokasi' matches TAP.
     const filteredSpecialNumbers = useMemo(() => {
         if (!tapFilter) return safeSpecialNumbers;
+        // Assuming 'lokasi' in special numbers might match TAP names roughly
         return safeSpecialNumbers.filter(n => n.lokasi && n.lokasi.toLowerCase().includes(tapFilter.toLowerCase())); 
     }, [safeSpecialNumbers, tapFilter]);
 
     const soldSpecialNumbers = filteredSpecialNumbers.filter(n => n.isSold);
     
+    // FIX: Force convert to number using parseFloat to handle potential strings from DB and avoid concatenation
     const totalSpecialNumberRevenue = soldSpecialNumbers.reduce((sum, n) => {
         const price = typeof n.price === 'string' ? parseFloat(n.price) : n.price;
         return sum + (isNaN(price) ? 0 : price);
