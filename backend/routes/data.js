@@ -6,35 +6,33 @@ const db = require('../db');
 const axios = require('axios');
 
 // ============================================================
-// 1. BOOTSTRAP (AMBIL DATA UTAMA UNTUK DASHBOARD)
+// 1. BOOTSTRAP (AMBIL DATA UTAMA - ANTI BLANK)
 // ============================================================
 router.get('/bootstrap', async (req, res) => {
     console.log('[API] Bootstrap: Memulai pengambilan data...');
     try {
-        // Eksekusi semua query secara paralel untuk kecepatan
-        const [
-            [users],
-            [transactions],
-            [loyaltyPrograms],
-            [rewards],
-            [redemptions],
-            [runningPrograms],
-            [targets],
-            [specialNumbers],
-            [waSettings]
-        ] = await Promise.all([
-            db.execute('SELECT * FROM users'),
-            db.execute('SELECT * FROM transactions ORDER BY date DESC LIMIT 500'),
-            db.execute('SELECT * FROM loyalty_programs'),
-            db.execute('SELECT * FROM rewards ORDER BY display_order ASC'),
-            db.execute('SELECT * FROM redemptions ORDER BY date DESC'),
-            db.execute('SELECT * FROM running_programs'),
-            db.execute('SELECT * FROM running_program_targets'),
-            db.execute('SELECT * FROM special_numbers'),
-            db.execute('SELECT * FROM whatsapp_settings LIMIT 1')
-        ]);
+        // Fungsi helper untuk query aman (jika satu tabel gagal, tidak merusak semuanya)
+        const safeQuery = async (sql, params = []) => {
+            try {
+                const [rows] = await db.execute(sql, params);
+                return rows;
+            } catch (err) {
+                console.error(`[DB Error] Query Gagal: ${sql}`, err.message);
+                return []; // Kembalikan array kosong jika gagal
+            }
+        };
 
-        console.log(`[API] Bootstrap: Berhasil mengambil ${users.length} user dan ${redemptions.length} data penukaran.`);
+        const users = await safeQuery('SELECT * FROM users');
+        const transactions = await safeQuery('SELECT * FROM transactions ORDER BY date DESC LIMIT 500');
+        const loyaltyPrograms = await safeQuery('SELECT * FROM loyalty_programs');
+        const rewards = await safeQuery('SELECT * FROM rewards ORDER BY display_order ASC');
+        const redemptions = await safeQuery('SELECT * FROM redemptions ORDER BY date DESC');
+        const runningPrograms = await safeQuery('SELECT * FROM running_programs');
+        const targets = await safeQuery('SELECT * FROM running_program_targets');
+        const specialNumbers = await safeQuery('SELECT * FROM special_numbers');
+        const waSettings = await safeQuery('SELECT * FROM whatsapp_settings LIMIT 1');
+
+        console.log(`[API] Bootstrap Selesai. Mitra: ${users.length}, Tukar: ${redemptions.length}`);
 
         // Mapping targets ke program
         const programsWithTargets = runningPrograms.map(p => ({
@@ -124,7 +122,7 @@ router.get('/bootstrap', async (req, res) => {
 
     } catch (error) {
         console.error('[API] Bootstrap Fatal Error:', error);
-        res.status(500).json({ success: false, message: 'Gagal memuat data awal: ' + error.message });
+        res.status(500).json({ success: false, message: 'Gagal memuat data: ' + error.message });
     }
 });
 
@@ -142,17 +140,11 @@ router.put('/settings/whatsapp', async (req, res) => {
         const [rows] = await db.execute('SELECT id FROM whatsapp_settings LIMIT 1');
         
         if (rows.length > 0) {
-            // Update existing
             await db.execute(`
                 UPDATE whatsapp_settings SET 
-                    webhook_url = ?, 
-                    sender_number = ?, 
-                    recipient_type = ?, 
-                    recipient_id = ?, 
-                    api_key = ?, 
-                    session_name = ?, 
-                    special_number_recipient = ?,
-                    special_number_status_recipient_type = ?,
+                    webhook_url = ?, sender_number = ?, recipient_type = ?, 
+                    recipient_id = ?, api_key = ?, session_name = ?, 
+                    special_number_recipient = ?, special_number_status_recipient_type = ?,
                     special_number_status_recipient_id = ?
                 WHERE id = ?
             `, [
@@ -162,7 +154,6 @@ router.put('/settings/whatsapp', async (req, res) => {
                 rows[0].id
             ]);
         } else {
-            // Insert new
             await db.execute(`
                 INSERT INTO whatsapp_settings 
                 (webhook_url, sender_number, recipient_type, recipient_id, api_key, session_name, special_number_recipient, special_number_status_recipient_type, special_number_status_recipient_id)
@@ -173,46 +164,51 @@ router.put('/settings/whatsapp', async (req, res) => {
                 specialNumberStatusRecipientType, specialNumberStatusRecipientId
             ]);
         }
-        
-        res.json({ success: true, message: 'Pengaturan WhatsApp berhasil disimpan.' });
+        res.json({ success: true, message: 'Pengaturan disimpan.' });
     } catch (error) {
-        console.error('Save WhatsApp settings error:', error);
-        res.status(500).json({ success: false, message: 'Gagal menyimpan ke database: ' + error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
 // ============================================================
-// 3. APPSHEET SYNC (SINKRONISASI DUA ARAH)
+// 3. APPSHEET SYNC (SINKRONISASI DUA ARAH - FIXED URL & HEADERS)
 // ============================================================
 router.post('/integration/appsheet/sync-all', async (req, res) => {
     const APPSHEET_APP_ID = process.env.APPSHEET_APP_ID;
     const APPSHEET_ACCESS_KEY = process.env.APPSHEET_ACCESS_KEY;
 
-    console.log('[Sync] Memulai sinkronisasi AppSheet...');
-
     if (!APPSHEET_APP_ID || !APPSHEET_ACCESS_KEY) {
-        return res.status(400).json({ success: false, message: 'Kredensial AppSheet tidak ditemukan di ENV server.' });
+        return res.status(400).json({ success: false, message: 'Kredensial AppSheet (ID/Key) tidak ditemukan di server.' });
     }
 
     try {
-        const appsheetUrl = `https://api.appsheet.com/api/v1/apps/${APPSHEET_APP_ID}/tables/Tracking Tukar Poin/Action`;
+        // FIX: Gunakan encodeURIComponent untuk menangani spasi di nama tabel
+        const tableName = encodeURIComponent('Tracking Tukar Poin');
+        const appsheetUrl = `https://api.appsheet.com/api/v1/apps/${APPSHEET_APP_ID}/tables/${tableName}/Action`;
         
+        console.log(`[Sync] Menghubungi AppSheet: ${appsheetUrl}`);
+
         const response = await axios.post(appsheetUrl, {
             "Action": "Find",
             "Properties": { "Locale": "id-ID" },
             "Rows": []
         }, {
-            headers: { "ApplicationAccessKey": APPSHEET_ACCESS_KEY },
-            timeout: 20000 
+            headers: { 
+                "ApplicationAccessKey": APPSHEET_ACCESS_KEY,
+                "Content-Type": "application/json" // Wajib ada
+            },
+            timeout: 25000 
         });
 
         const appsheetRows = response.data;
 
+        // Jika AppSheet mengembalikan objek error bukannya array data
         if (!Array.isArray(appsheetRows)) {
-            console.error('[Sync] Respon AppSheet bukan array:', appsheetRows);
+            const errorMsg = appsheetRows.Error || JSON.stringify(appsheetRows);
+            console.error('[Sync] AppSheet Error Detail:', errorMsg);
             return res.status(400).json({ 
                 success: false, 
-                message: 'Gagal: Tabel "Tracking Tukar Poin" tidak ditemukan atau Access Key ditolak AppSheet.' 
+                message: `AppSheet menolak permintaan: ${errorMsg}` 
             });
         }
 
@@ -226,13 +222,14 @@ router.post('/integration/appsheet/sync-all', async (req, res) => {
                 const redeemId = row['ID Redeem'];
                 if (!redeemId) continue;
 
-                // Ambil data foto & lokasi dari AppSheet
+                // Ambil data penting dari Google Sheet (AppSheet)
                 const photo = row['Photo Dokumentasi'] || '';
                 const loc = row['Long - Lat'] || '';
                 const surveyor = row['Nama Surveyor'] || '';
                 const receiver = row['Nama Penerima'] || '';
 
-                // Hanya update jika AppSheet punya data baru (foto/lokasi)
+                // UPDATE DATABASE: Hanya jika AppSheet memiliki foto/lokasi baru
+                // Dan data di database kita masih kosong fotonya
                 if (photo || loc) {
                     const [result] = await connection.execute(
                         `UPDATE redemptions SET 
@@ -250,7 +247,7 @@ router.post('/integration/appsheet/sync-all', async (req, res) => {
             }
 
             await connection.commit();
-            res.json({ success: true, message: `Sinkronisasi Berhasil! ${updateCount} data foto/lokasi diperbarui.` });
+            res.json({ success: true, message: `Sinkronisasi Berhasil! ${updateCount} data diperbarui.` });
 
         } catch (dbError) {
             await connection.rollback();
@@ -261,7 +258,7 @@ router.post('/integration/appsheet/sync-all', async (req, res) => {
 
     } catch (error) {
         console.error('[Sync] Fatal Error:', error.message);
-        res.status(500).json({ success: false, message: 'Koneksi ke AppSheet gagal: ' + error.message });
+        res.status(500).json({ success: false, message: 'Gagal terhubung ke AppSheet: ' + error.message });
     }
 });
 
