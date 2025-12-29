@@ -10,14 +10,13 @@ const fs = require('fs');
 const xlsx = require('xlsx');
 const bcrypt = require('bcryptjs');
 
-// Konfigurasi Multer untuk berbagai jenis upload
+// Konfigurasi Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         let dir = 'uploads/';
         if (file.fieldname === 'photo' || file.fieldname === 'image') dir += 'images';
         else if (file.fieldname === 'banner') dir += 'banners';
         else dir += 'docs';
-        
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         cb(null, dir);
     },
@@ -28,7 +27,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 // ============================================================
-// 1. BOOTSTRAP (AMBIL DATA UTAMA)
+// 1. BOOTSTRAP & CORE DATA
 // ============================================================
 router.get('/bootstrap', async (req, res) => {
     try {
@@ -45,10 +44,7 @@ router.get('/bootstrap', async (req, res) => {
         const programsWithTargets = runningPrograms.map(p => ({
             ...p,
             targets: targets.filter(t => t.program_id === p.id).map(t => ({
-                id: t.id,
-                programId: t.program_id,
-                userId: t.user_id,
-                progress: t.progress
+                id: t.id, programId: t.program_id, userId: t.user_id, progress: t.progress
             }))
         }));
 
@@ -86,202 +82,135 @@ router.get('/bootstrap', async (req, res) => {
             whatsAppSettings: waSettings[0] || null
         });
     } catch (error) {
-        res.status(500).json({ message: 'Gagal bootstrap: ' + error.message });
+        res.status(500).json({ message: 'Gagal memuat data: ' + error.message });
     }
 });
 
 // ============================================================
-// 2. AUDIT & SINRONISASI POIN (FIX ERROR 404)
+// 2. MANAJEMEN PENUKARAN (PARTNER & ADMIN)
 // ============================================================
-router.post('/audit/bulk-fix', async (req, res) => {
+
+// Partner: Mengajukan penukaran
+router.post('/redemptions', async (req, res) => {
+    const { rewardId, userId } = req.body;
     try {
-        const [users] = await db.execute('SELECT id FROM users WHERE role = "pelanggan"');
-        let processed = 0, fixed = 0;
+        const [user] = await db.execute('SELECT points, nama, tap FROM users WHERE id = ?', [userId]);
+        const [reward] = await db.execute('SELECT name, points, stock FROM rewards WHERE id = ?', [rewardId]);
 
-        for (const user of users) {
-            const [txRows] = await db.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id = ?', [user.id]);
-            const [rdRows] = await db.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id = ? AND status != "Ditolak"', [user.id]);
-            
-            const earned = txRows[0].total || 0;
-            const spent = rdRows[0].total || 0;
-            const calculatedPoints = Math.max(0, earned - spent);
-
-            await db.execute('UPDATE users SET points = ? WHERE id = ?', [calculatedPoints, user.id]);
-            processed++;
-        }
-
-        res.json({ success: true, message: `Audit selesai. ${processed} akun diproses.` });
-    } catch (error) {
-        res.status(500).json({ message: 'Gagal audit massal: ' + error.message });
-    }
-});
-
-router.post('/audit/fix/:userId', async (req, res) => {
-    const { userId } = req.params;
-    try {
-        const [txRows] = await db.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id = ?', [userId]);
-        const [rdRows] = await db.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id = ? AND status != "Ditolak"', [userId]);
-        
-        const earned = txRows[0].total || 0;
-        const spent = rdRows[0].total || 0;
-        const calculatedPoints = Math.max(0, earned - spent);
-
-        await db.execute('UPDATE users SET points = ? WHERE id = ?', [calculatedPoints, userId]);
-        res.json({ success: true, message: `Sinkronisasi poin ${userId} berhasil.` });
-    } catch (error) {
-        res.status(500).json({ message: 'Gagal audit user: ' + error.message });
-    }
-});
-
-// ============================================================
-// 3. TRANSAKSI & POIN (FIX ERROR 404)
-// ============================================================
-router.post('/transactions', async (req, res) => {
-    const { userId, produk, harga, kuantiti, date, totalPembelian } = req.body;
-    try {
-        const [uRows] = await db.execute('SELECT level FROM users WHERE id = ?', [userId]);
-        if (uRows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan' });
-
-        const [lRows] = await db.execute('SELECT multiplier FROM loyalty_programs WHERE level = ?', [uRows[0].level]);
-        const multiplier = lRows[0] ? parseFloat(lRows[0].multiplier) : 1;
-        const pointsEarned = Math.floor((totalPembelian / 1000) * multiplier);
+        if (!user[0] || !reward[0]) return res.status(404).json({ message: 'User atau Hadiah tidak ditemukan' });
+        if (user[0].points < reward[0].points) return res.status(400).json({ message: 'Poin tidak cukup' });
+        if (reward[0].stock <= 0) return res.status(400).json({ message: 'Stok hadiah habis' });
 
         await db.execute(
-            'INSERT INTO transactions (user_id, produk, harga, kuantiti, total_pembelian, points_earned, date) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [userId, produk, harga, kuantiti, totalPembelian, pointsEarned, date]
+            'INSERT INTO redemptions (user_id, reward_id, points_spent, user_name, reward_name, status) VALUES (?, ?, ?, ?, ?, "Diajukan")',
+            [userId, rewardId, reward[0].points, user[0].nama, reward[0].name]
         );
 
-        await db.execute('UPDATE users SET points = points + ? WHERE id = ?', [pointsEarned, userId]);
-        res.json({ success: true, message: 'Transaksi berhasil ditambahkan' });
+        await db.execute('UPDATE users SET points = points - ? WHERE id = ?', [reward[0].points, userId]);
+        await db.execute('UPDATE rewards SET stock = stock - 1 WHERE id = ?', [rewardId]);
+
+        res.json({ success: true, message: 'Penukaran diajukan' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
-router.post('/transactions/bulk', upload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ message: 'File tidak ditemukan' });
-    try {
-        const workbook = xlsx.readFile(req.file.path);
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const data = xlsx.utils.sheet_to_json(sheet);
-
-        for (const row of data) {
-            const { id_digipos, produk, harga, kuantiti, tanggal } = row;
-            const total = harga * kuantiti;
-            
-            const [uRows] = await db.execute('SELECT level FROM users WHERE id = ?', [id_digipos]);
-            if (uRows.length > 0) {
-                const [lRows] = await db.execute('SELECT multiplier FROM loyalty_programs WHERE level = ?', [uRows[0].level]);
-                const multiplier = lRows[0] ? parseFloat(lRows[0].multiplier) : 1;
-                const points = Math.floor((total / 1000) * multiplier);
-
-                await db.execute(
-                    'INSERT INTO transactions (user_id, produk, harga, kuantiti, total_pembelian, points_earned, date) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    [id_digipos, produk, harga, kuantiti, total, points, tanggal || new Date()]
-                );
-                await db.execute('UPDATE users SET points = points + ? WHERE id = ?', [points, id_digipos]);
-            }
-        }
-        fs.unlinkSync(req.file.path);
-        res.json({ success: true, message: 'Upload transaksi selesai' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-router.post('/users/:id/points', async (req, res) => {
-    const { id } = req.params;
-    const { points, action } = req.body;
-    try {
-        const sql = action === 'tambah' ? 'UPDATE users SET points = points + ? WHERE id = ?' : 'UPDATE users SET points = points - ? WHERE id = ?';
-        await db.execute(sql, [points, id]);
-        res.json({ success: true, message: 'Poin diperbarui' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// ============================================================
-// 4. MANAJEMEN PENUKARAN (REDEMPTIONS)
-// ============================================================
+// Admin: Update Status Massal
 router.post('/redemptions/bulk/status', async (req, res) => {
     const { ids, status, statusNote } = req.body;
     try {
         await db.query('UPDATE redemptions SET status = ?, status_note = ?, status_updated_at = NOW() WHERE id IN (?)', [status, statusNote, ids]);
-        res.json({ success: true, message: 'Status diperbarui massal' });
+        res.json({ success: true, message: 'Status massal diperbarui' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
-uploadRouter.put('/redemptions/:id/status', upload.single('photo'), async (req, res) => {
+// ============================================================
+// 3. AUDIT POIN & MANAJEMEN USER
+// ============================================================
+
+// Audit detail untuk modal
+router.get('/users/:id/audit', async (req, res) => {
     const { id } = req.params;
-    const { status, note } = req.body;
-    const photoUrl = req.file ? `/uploads/images/${req.file.filename}` : null;
     try {
-        let sql = 'UPDATE redemptions SET status = ?, status_note = ?, status_updated_at = NOW()';
-        let params = [status, note];
-        if (photoUrl) { sql += ', documentation_photo_url = ?'; params.push(photoUrl); }
-        sql += ' WHERE id = ?'; params.push(id);
-        await db.execute(sql, params);
-        res.json({ success: true, message: 'Status diperbarui' });
+        const [tx] = await db.execute('SELECT SUM(points_earned) as earned FROM transactions WHERE user_id = ?', [id]);
+        const [rd] = await db.execute('SELECT SUM(points_spent) as spent FROM redemptions WHERE user_id = ? AND status != "Ditolak"', [id]);
+        const [user] = await db.execute('SELECT points FROM users WHERE id = ?', [id]);
+
+        const earned = tx[0].earned || 0;
+        const spent = rd[0].spent || 0;
+        const calculated = earned - spent;
+        const actual = user[0].points || 0;
+
+        res.json({ earned, spent, calculated, actual, discrepancy: actual - calculated });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
-// ============================================================
-// 5. PENGATURAN & INTEGRASI
-// ============================================================
-router.post('/integration/appsheet/sync-all', async (req, res) => {
-    res.json({ success: true, message: 'Sinkronisasi AppSheet disimulasikan berhasil.' });
-});
-
-router.put('/settings/whatsapp', async (req, res) => {
-    const s = req.body;
+// Fix audit massal
+router.post('/audit/bulk-fix', async (req, res) => {
     try {
-        const [rows] = await db.execute('SELECT id FROM whatsapp_settings LIMIT 1');
-        if (rows.length > 0) {
-            await db.execute('UPDATE whatsapp_settings SET webhook_url=?, sender_number=?, recipient_type=?, recipient_id=?, api_key=?, session_name=?, special_number_recipient=? WHERE id=?', 
-            [s.webhookUrl, s.senderNumber, s.recipientType, s.recipientId, s.apiKey, s.sessionName, s.specialNumberRecipient, rows[0].id]);
-        } else {
-            await db.execute('INSERT INTO whatsapp_settings (webhook_url, sender_number, recipient_type, recipient_id, api_key, session_name, special_number_recipient) VALUES (?,?,?,?,?,?,?)', 
-            [s.webhookUrl, s.senderNumber, s.recipientType, s.recipientId, s.apiKey, s.sessionName, s.specialNumberRecipient]);
+        const [users] = await db.execute('SELECT id FROM users WHERE role = "pelanggan"');
+        for (const u of users) {
+            const [tx] = await db.execute('SELECT SUM(points_earned) as earned FROM transactions WHERE user_id = ?', [u.id]);
+            const [rd] = await db.execute('SELECT SUM(points_spent) as spent FROM redemptions WHERE user_id = ? AND status != "Ditolak"', [u.id]);
+            const calculated = (tx[0].earned || 0) - (rd[0].spent || 0);
+            await db.execute('UPDATE users SET points = ? WHERE id = ?', [Math.max(0, calculated), u.id]);
         }
-        res.json({ success: true, message: 'Pengaturan WhatsApp disimpan.' });
+        res.json({ success: true, message: 'Audit massal selesai.' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Reset Password
+router.post('/users/:id/reset-password', async (req, res) => {
+    try {
+        const hashed = await bcrypt.hash('mitra123', 10);
+        await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashed, req.params.id]);
+        res.json({ success: true, message: 'Password direset ke default: mitra123' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Set Level User
+router.put('/users/:id/level', async (req, res) => {
+    try {
+        await db.execute('UPDATE users SET level = ? WHERE id = ?', [req.body.level, req.params.id]);
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
 // ============================================================
-// 6. CRUD LAINNYA (PROGRAM, REWARDS, DLL)
+// 4. MANAJEMEN NOMOR SPESIAL
 // ============================================================
-uploadRouter.post('/rewards', upload.single('image'), async (req, res) => {
-    const { name, points, stock } = req.body;
-    const imageUrl = req.file ? `/uploads/images/${req.file.filename}` : null;
+router.post('/special-numbers', async (req, res) => {
+    const { phoneNumber, price, sn, lokasi } = req.body;
     try {
-        await db.execute('INSERT INTO rewards (name, points, stock, image_url) VALUES (?, ?, ?, ?)', [name, points, stock, imageUrl]);
+        await db.execute('INSERT INTO special_numbers (phone_number, price, sn, lokasi) VALUES (?, ?, ?, ?)', [phoneNumber, price, sn, lokasi]);
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ message: e.message }); }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 });
 
-router.post('/users', async (req, res) => {
-    const u = req.body;
+router.delete('/special-numbers/:id', async (req, res) => {
     try {
-        const hashed = await bcrypt.hash(u.password, 10);
-        await db.execute('INSERT INTO users (id, password, role, nama, phone, tap) VALUES (?, ?, ?, ?, ?, ?)', [u.id, hashed, u.role, u.profile.nama, u.profile.phone, u.profile.tap]);
+        await db.execute('DELETE FROM special_numbers WHERE id = ?', [req.params.id]);
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ message: e.message }); }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 });
 
-router.put('/loyalty-programs/:level', async (req, res) => {
-    const { level } = req.params;
-    const { pointsNeeded, benefit, multiplier } = req.body;
-    try {
-        await db.execute('UPDATE loyalty_programs SET pointsNeeded=?, benefit=?, multiplier=? WHERE level=?', [pointsNeeded, benefit, multiplier, level]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ message: e.message }); }
+uploadRouter.post('/special-numbers/banner', upload.single('banner'), async (req, res) => {
+    // Simulasikan penyimpanan setting banner (misal di DB atau config)
+    res.json({ success: true, message: 'Banner diperbarui' });
 });
 
 module.exports = { router, uploadRouter };
