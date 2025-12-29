@@ -25,14 +25,30 @@ const upload = multer({ storage: storage });
 
 const getBaseUrl = (req) => `${req.protocol}://${req.get('host')}`;
 
-// --- HELPER: FORMAT PHONE FOR WA ---
-const formatPhoneForWA = (phone) => {
-    if (!phone) return null;
-    let p = String(phone).trim().replace(/[^0-9]/g, '');
-    if (p.startsWith('0')) p = '62' + p.slice(1);
-    if (!p.startsWith('62')) p = '62' + p;
-    if (!p.endsWith('@c.us')) p += '@c.us';
-    return p;
+// --- HELPER: SEND WHATSAPP MESSAGE VIA WAHA ---
+const sendWAMessage = async (to, message) => {
+    try {
+        const [settingsRows] = await db.execute('SELECT * FROM whatsapp_settings LIMIT 1');
+        if (settingsRows.length === 0) return false;
+        
+        const s = settingsRows[0];
+        if (!s.webhook_url || !s.api_key) return false;
+
+        const cleanTo = to.includes('@') ? to : to + '@c.us';
+        const url = `${s.webhook_url.replace(/\/$/, '')}/api/sendText`;
+
+        await axios.post(url, {
+            chatId: cleanTo,
+            text: message,
+            session: s.session_name || 'default'
+        }, {
+            headers: { 'X-Api-Key': s.api_key }
+        });
+        return true;
+    } catch (error) {
+        console.error('WA Notification Error:', error.message);
+        return false;
+    }
 };
 
 // ==========================================
@@ -62,11 +78,8 @@ uploadRouter.put('/users/:id/profile', upload.single('photo'), async (req, res) 
         params.push(id);
 
         await db.execute(query, params);
-        
-        // Return new photo URL if updated
         res.json({ message: 'Profil berhasil diperbarui', photoUrl: photoUrl });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -74,347 +87,186 @@ uploadRouter.put('/users/:id/profile', upload.single('photo'), async (req, res) 
 // 1. Upload & Process Program Progress (Excel)
 uploadRouter.post('/programs/:id/progress', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    
     try {
         const workbook = xlsx.readFile(req.file.path);
-        const sheetName = workbook.SheetNames[0];
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-        
+        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
         const connection = await db.getConnection();
         await connection.beginTransaction();
-        
         for (const row of data) {
-            const userId = row['id_digipos']; // Excel column name
-            const progress = row['progress']; // Excel column name
-            
+            const userId = row['id_digipos'];
+            const progress = row['progress'];
             if (userId && progress !== undefined) {
-                // Check if target exists
-                const [existing] = await connection.execute(
-                    'SELECT id FROM running_program_targets WHERE program_id = ? AND user_id = ?',
-                    [req.params.id, userId]
-                );
-                
+                const [existing] = await connection.execute('SELECT id FROM running_program_targets WHERE program_id = ? AND user_id = ?', [req.params.id, userId]);
                 if (existing.length > 0) {
-                    await connection.execute(
-                        'UPDATE running_program_targets SET progress = ? WHERE id = ?',
-                        [progress, existing[0].id]
-                    );
+                    await connection.execute('UPDATE running_program_targets SET progress = ? WHERE id = ?', [progress, existing[0].id]);
                 } else {
-                    await connection.execute(
-                        'INSERT INTO running_program_targets (program_id, user_id, progress) VALUES (?, ?, ?)',
-                        [req.params.id, userId, progress]
-                    );
+                    await connection.execute('INSERT INTO running_program_targets (program_id, user_id, progress) VALUES (?, ?, ?)', [req.params.id, userId, progress]);
                 }
             }
         }
-        
         await connection.commit();
         connection.release();
-        fs.unlinkSync(req.file.path); // Clean up
+        fs.unlinkSync(req.file.path);
         res.json({ message: 'Progress updated successfully' });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ message: 'Failed to process file' });
     }
 });
 
-// 2a. Add Program (with Image)
+// 2. Add/Update Programs
 uploadRouter.post('/programs', upload.single('image'), async (req, res) => {
     const { name, mechanism, prizeCategory, prizeDescription, startDate, endDate } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
-
     try {
-        await db.execute(
-            'INSERT INTO running_programs (name, mechanism, prize_category, prize_description, start_date, end_date, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [name, mechanism, prizeCategory, prizeDescription, startDate, endDate, imageUrl]
-        );
+        await db.execute('INSERT INTO running_programs (name, mechanism, prize_category, prize_description, start_date, end_date, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)', [name, mechanism, prizeCategory, prizeDescription, startDate, endDate, imageUrl]);
         res.json({ message: 'Program created' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
-// 2b. Update Program (with optional Image)
 uploadRouter.put('/programs/:id', upload.single('image'), async (req, res) => {
     const { name, mechanism, prizeCategory, prizeDescription, startDate, endDate } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
-
     try {
         let query = 'UPDATE running_programs SET name=?, mechanism=?, prize_category=?, prize_description=?, start_date=?, end_date=?';
         const params = [name, mechanism, prizeCategory, prizeDescription, startDate, endDate];
-
-        if (imageUrl) {
-            query += ', image_url=?';
-            params.push(imageUrl);
-        }
-        query += ' WHERE id=?';
-        params.push(req.params.id);
-
+        if (imageUrl) { query += ', image_url=?'; params.push(imageUrl); }
+        query += ' WHERE id=?'; params.push(req.params.id);
         await db.execute(query, params);
         res.json({ message: 'Program updated' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
-// 3a. Add Reward (Image)
+// 3. Add/Update Rewards
 uploadRouter.post('/rewards', upload.single('image'), async (req, res) => {
     const { name, points, stock } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
-    
     try {
-        await db.execute(
-            'INSERT INTO rewards (name, points, image_url, stock) VALUES (?, ?, ?, ?)',
-            [name, points, imageUrl, stock]
-        );
+        await db.execute('INSERT INTO rewards (name, points, image_url, stock) VALUES (?, ?, ?, ?)', [name, points, imageUrl, stock]);
         res.json({ message: 'Reward added' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
-// 3b. Update Reward
 uploadRouter.put('/rewards/:id', upload.single('image'), async (req, res) => {
     const { name, points, stock } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
-    
     try {
         let query = 'UPDATE rewards SET name=?, points=?, stock=?';
         const params = [name, points, stock];
-
-        if (imageUrl) {
-            query += ', image_url=?';
-            params.push(imageUrl);
-        }
-        query += ' WHERE id=?';
-        params.push(req.params.id);
-
+        if (imageUrl) { query += ', image_url=?'; params.push(imageUrl); }
+        query += ' WHERE id=?'; params.push(req.params.id);
         await db.execute(query, params);
         res.json({ message: 'Reward updated' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
-// 4. Update Redemption Status (with optional Photo)
+// 4. Redemption Status
 uploadRouter.put('/redemptions/:id/status', upload.single('photo'), async (req, res) => {
     const { status, note } = req.body;
     const photoUrl = req.file ? `${getBaseUrl(req)}/uploads/${req.file.filename}` : null;
-    
     try {
         let query = 'UPDATE redemptions SET status = ?, status_note = ?, status_updated_at = NOW()';
         const params = [status, note];
-        
-        if (photoUrl) {
-            query += ', documentation_photo_url = ?';
-            params.push(photoUrl);
-        }
-        
-        query += ' WHERE id = ?';
-        params.push(req.params.id);
-        
+        if (photoUrl) { query += ', documentation_photo_url = ?'; params.push(photoUrl); }
+        query += ' WHERE id = ?'; params.push(req.params.id);
         await db.execute(query, params);
-        
-        // If status is 'Ditolak', return stock
         if (status === 'Ditolak') {
-             await db.execute(
-                'UPDATE rewards r JOIN redemptions rd ON r.id = rd.reward_id SET r.stock = r.stock + 1 WHERE rd.id = ?',
-                [req.params.id]
-            );
+            await db.execute('UPDATE rewards r JOIN redemptions rd ON r.id = rd.reward_id SET r.stock = r.stock + 1 WHERE rd.id = ?', [req.params.id]);
         }
-
         res.json({ message: 'Status updated' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    } catch (error) { res.status(500).json({ message: error.message }); }
 });
-
-// 5. Bulk Import Transactions
-uploadRouter.post('/transactions/bulk', upload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    
-    const connection = await db.getConnection();
-    try {
-        await connection.beginTransaction();
-        const workbook = xlsx.readFile(req.file.path);
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-        
-        for (const row of data) {
-            // Excel columns: tanggal, id_digipos, produk, harga, kuantiti
-            const userId = row['id_digipos'];
-            if (!userId) continue;
-
-            // Simple user check
-            const [userRows] = await connection.execute('SELECT level FROM users WHERE id = ?', [userId]);
-            if (userRows.length === 0) continue; // Skip unknown users
-
-            const userLevel = userRows[0].level;
-            const [levelRows] = await connection.execute('SELECT multiplier FROM loyalty_programs WHERE level = ?', [userLevel]);
-            const multiplier = levelRows[0]?.multiplier || 1;
-
-            const harga = Number(row['harga']) || 0;
-            const kuantiti = Number(row['kuantiti']) || 1;
-            const total = harga * kuantiti;
-            const pointsEarned = Math.floor((total / 1000) * multiplier);
-            
-            // Parse date or use now
-            let date = new Date();
-            if (row['tanggal']) date = new Date(row['tanggal']);
-
-            await connection.execute(
-                'INSERT INTO transactions (user_id, date, produk, harga, kuantiti, total_pembelian, points_earned) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [userId, date, row['produk'], harga, kuantiti, total, pointsEarned]
-            );
-
-            await connection.execute(
-                'UPDATE users SET points = points + ? WHERE id = ?',
-                [pointsEarned, userId]
-            );
-        }
-        
-        await connection.commit();
-        res.json({ message: 'Bulk transactions imported' });
-    } catch (error) {
-        await connection.rollback();
-        res.status(500).json({ message: error.message });
-    } finally {
-        connection.release();
-        if (req.file) fs.unlinkSync(req.file.path);
-    }
-});
-
-// 6. Bulk Update Levels
-uploadRouter.post('/users/levels/bulk', upload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    
-    try {
-        const workbook = xlsx.readFile(req.file.path);
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-        
-        const connection = await db.getConnection();
-        await connection.beginTransaction();
-        
-        for (const row of data) {
-            const userId = row['id_digipos'];
-            const level = row['level'];
-            if (userId && level) {
-                await connection.execute('UPDATE users SET level = ? WHERE id = ?', [level, userId]);
-            }
-        }
-        
-        await connection.commit();
-        connection.release();
-        fs.unlinkSync(req.file.path);
-        res.json({ message: 'Levels updated successfully' });
-    } catch (e) {
-        res.status(500).json({ message: e.message });
-    }
-});
-
-// 7. Bulk Import Special Numbers
-uploadRouter.post('/special-numbers/bulk', upload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    
-    try {
-        const workbook = xlsx.readFile(req.file.path);
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-        
-        const connection = await db.getConnection();
-        await connection.beginTransaction();
-        
-        for (const row of data) {
-            // Columns: nomor, harga, sn, lokasi
-            const phone = row['nomor'];
-            const price = row['harga'];
-            const sn = row['sn'] || null;
-            const lokasi = row['lokasi'] || null;
-
-            if (phone && price) {
-                // Insert or ignore if exists
-                await connection.execute(
-                    'INSERT IGNORE INTO special_numbers (phone_number, price, sn, lokasi, is_sold) VALUES (?, ?, ?, ?, 0)',
-                    [phone, price, sn, lokasi]
-                );
-            }
-        }
-        
-        await connection.commit();
-        connection.release();
-        fs.unlinkSync(req.file.path);
-        res.json({ message: 'Special numbers imported successfully' });
-    } catch (e) {
-        res.status(500).json({ message: e.message });
-    }
-});
-
-// 8. Upload Special Number Banner
-uploadRouter.post('/special-numbers/banner', upload.single('banner'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    const bannerUrl = `${getBaseUrl(req)}/uploads/${req.file.filename}`;
-    
-    const configPath = path.join(__dirname, '../config_store.json');
-    let config = {};
-    if (fs.existsSync(configPath)) {
-        config = JSON.parse(fs.readFileSync(configPath));
-    }
-    config.specialNumberBannerUrl = bannerUrl;
-    fs.writeFileSync(configPath, JSON.stringify(config));
-
-    res.json({ url: bannerUrl });
-});
-
-// 9. Bulk Add Program Participants
-uploadRouter.post('/programs/:id/participants/bulk', upload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    
-    try {
-        const workbook = xlsx.readFile(req.file.path);
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-        const programId = req.params.id;
-
-        const connection = await db.getConnection();
-        await connection.beginTransaction();
-
-        await connection.execute('DELETE FROM running_program_targets WHERE program_id = ?', [programId]);
-
-        for (const row of data) {
-            const userId = row['id_digipos'];
-            if (userId) {
-                await connection.execute(
-                    'INSERT IGNORE INTO running_program_targets (program_id, user_id, progress) VALUES (?, ?, 0)',
-                    [programId, userId]
-                );
-            }
-        }
-
-        await connection.commit();
-        connection.release();
-        fs.unlinkSync(req.file.path);
-        res.json({ message: 'Participants imported successfully' });
-    } catch (e) {
-        res.status(500).json({ message: e.message });
-    }
-});
-
 
 // ==========================================
 // DATA ROUTER (JSON APIs)
 // ==========================================
 
+// --- NEW: APPSHEET INTEGRATION WEBHOOK (NO CHANGE NEEDED BY USER) ---
+router.post('/integration/redemption/update', async (req, res) => {
+    const data = req.body;
+    const redeemId = data.id;
+    if (!redeemId) return res.status(400).json({ message: 'Missing Redemption ID' });
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const [redemptions] = await connection.execute('SELECT * FROM redemptions WHERE id = ?', [redeemId]);
+        if (redemptions.length === 0) throw new Error(`Redemption ID ${redeemId} not found.`);
+        const redemption = redemptions[0];
+
+        const updateSql = `
+            UPDATE redemptions SET 
+                status = ?, status_note = ?, documentation_photo_url = ?, 
+                receiver_name = ?, receiver_role = ?, surveyor_name = ?, 
+                location_coordinates = ?, status_updated_at = NOW() 
+            WHERE id = ?
+        `;
+        await connection.execute(updateSql, [
+            data.status || redemption.status,
+            data.note || redemption.status_note,
+            data.photo_url || redemption.documentation_photo_url,
+            data.receiver_name || redemption.receiver_name,
+            data.receiver_role || redemption.receiver_role,
+            data.surveyor_name || redemption.surveyor_name,
+            data.location || redemption.location_coordinates,
+            redeemId
+        ]);
+
+        if (data.status === 'Ditolak' && redemption.status !== 'Ditolak') {
+            await connection.execute('UPDATE users SET points = points + ? WHERE id = ?', [redemption.points_spent, redemption.user_id]);
+            await connection.execute('UPDATE rewards SET stock = stock + 1 WHERE id = ?', [redemption.reward_id]);
+        }
+
+        await connection.commit();
+        res.json({ success: true, message: 'Sync successful' });
+    } catch (error) {
+        await connection.rollback();
+        res.status(500).json({ message: error.message });
+    } finally { connection.release(); }
+});
+
+// --- SPECIAL NUMBERS: STATUS CHANGE WITH AUTOMATIC WA NOTIFICATION ---
+router.put('/special-numbers/:id/status', async (req, res) => {
+    const { id } = req.params;
+    const { isSold } = req.body;
+    
+    try {
+        // 1. Get current state
+        const [rows] = await db.execute('SELECT * FROM special_numbers WHERE id = ?', [id]);
+        if (rows.length === 0) return res.status(404).json({ message: 'Nomor tidak ditemukan' });
+        
+        const number = rows[0];
+        const wasSold = Boolean(number.is_sold);
+        const nowSold = Boolean(isSold);
+
+        // 2. Update status
+        await db.execute('UPDATE special_numbers SET is_sold = ? WHERE id = ?', [nowSold ? 1 : 0, id]);
+
+        // 3. Send Notification IF status changed from Available to Sold
+        if (!wasSold && nowSold) {
+            const [settingsRows] = await db.execute('SELECT * FROM whatsapp_settings LIMIT 1');
+            if (settingsRows.length > 0) {
+                const s = settingsRows[0];
+                const message = `📢 *NOTIFIKASI NOMOR TERJUAL*\n\n` +
+                                `📱 *Nomor:* ${number.phone_number}\n` +
+                                `📍 *Lokasi:* ${number.lokasi || '-'}\n` +
+                                `🏷️ *Harga:* Rp ${Number(number.price).toLocaleString('id-ID')}\n` +
+                                `🔢 *SN:* ${number.sn || '-'}\n\n` +
+                                `✅ Status telah diupdate ke *TERJUAL* oleh sistem.`;
+                
+                await sendWAMessage(s.recipient_id, message);
+            }
+        }
+
+        res.json({ message: 'Status updated' });
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+});
+
 // --- BOOTSTRAP: Get All Initial Data ---
 router.get('/bootstrap', async (req, res) => {
     try {
-        // Safe query helper
-        const safeQuery = async (query, params = []) => {
-            try {
-                const [rows] = await db.execute(query, params);
-                return rows;
-            } catch (err) {
-                console.warn(`SafeQuery Error for "${query.substring(0, 30)}...":`, err.message);
-                return []; // Return empty array on failure
-            }
-        };
-
+        const safeQuery = async (q) => { try { const [r] = await db.execute(q); return r; } catch (e) { return []; } };
         const users = await safeQuery('SELECT * FROM users');
         const transactions = await safeQuery('SELECT * FROM transactions ORDER BY date DESC');
         const loyaltyPrograms = await safeQuery('SELECT * FROM loyalty_programs');
@@ -427,626 +279,218 @@ router.get('/bootstrap', async (req, res) => {
         const couponRedemptions = await safeQuery('SELECT * FROM coupon_redemptions');
         const specialNumbers = await safeQuery('SELECT * FROM special_numbers');
         const waSettings = await safeQuery('SELECT * FROM whatsapp_settings LIMIT 1');
-        
-        // Locations for Register Dropdown
         const locations = await safeQuery('SELECT DISTINCT kabupaten, kecamatan FROM digipos_data'); 
 
-        // Load config file for banner
         const configPath = path.join(__dirname, '../config_store.json');
-        let specialNumberBannerUrl = null;
-        if (fs.existsSync(configPath)) {
-            const config = JSON.parse(fs.readFileSync(configPath));
-            specialNumberBannerUrl = config.specialNumberBannerUrl;
-        }
-
-        // Structure Users (Parse photo_url)
-        const structuredUsers = users.map(u => ({
-            id: u.id,
-            role: u.role,
-            points: u.points,
-            level: u.level,
-            kuponUndian: u.kupon_undian,
-            profile: {
-                nama: u.nama,
-                email: u.email,
-                phone: u.phone,
-                owner: u.owner,
-                kabupaten: u.kabupaten,
-                kecamatan: u.kecamatan,
-                salesforce: u.salesforce,
-                noRs: u.no_rs,
-                alamat: u.alamat,
-                tap: u.tap,
-                jabatan: u.jabatan,
-                photoUrl: u.photo_url
-            }
-        }));
-
-        // --- FIX: Map Snake Case DB Columns to CamelCase for Frontend ---
-        const structuredTransactions = transactions.map(t => ({
-            id: t.id,
-            userId: t.user_id,
-            date: t.date,
-            produk: t.produk,
-            harga: Number(t.harga),
-            kuantiti: Number(t.kuantiti),
-            totalPembelian: Number(t.total_pembelian), // Fixed mapping
-            pointsEarned: Number(t.points_earned)      // Fixed mapping
-        }));
-
-        // Attach targets to running programs
-        const structuredRunningPrograms = runningPrograms.map(p => ({
-            id: p.id,
-            name: p.name,
-            mechanism: p.mechanism,
-            prizeCategory: p.prize_category,
-            prizeDescription: p.prize_description,
-            startDate: p.start_date,
-            endDate: p.end_date,
-            imageUrl: p.image_url,
-            targets: runningProgramTargets
-                .filter(t => t.program_id === p.id)
-                .map(t => ({ userId: t.user_id, progress: t.progress }))
-        }));
-        
-        // Format Rewards
-        const structuredRewards = rewards.map(r => ({
-            id: r.id,
-            name: r.name,
-            points: r.points,
-            imageUrl: r.image_url,
-            stock: r.stock
-        }));
-
-        // Format Redemptions
-        const structuredRedemptions = redemptions.map(r => ({
-            id: r.id,
-            userId: r.user_id,
-            userName: r.user_name,
-            rewardId: r.reward_id,
-            rewardName: r.reward_name,
-            pointsSpent: r.points_spent,
-            date: r.date,
-            status: r.status,
-            statusNote: r.status_note,
-            statusUpdatedAt: r.status_updated_at,
-            documentationPhotoUrl: r.documentation_photo_url,
-            receiverName: r.receiver_name,
-            receiverRole: r.receiver_role,
-            surveyorName: r.surveyor_name,
-            locationCoordinates: r.location_coordinates
-        }));
-        
-        // Format Special Numbers
-        const structuredSpecialNumbers = specialNumbers.map(n => ({
-            id: n.id,
-            phoneNumber: n.phone_number,
-            price: Number(n.price),
-            isSold: Boolean(n.is_sold),
-            sn: n.sn,
-            lokasi: n.lokasi
-        }));
-        
-        // Format Settings
-        const structuredWhatsAppSettings = waSettings.length > 0 ? {
-            webhookUrl: waSettings[0].webhook_url,
-            senderNumber: waSettings[0].sender_number,
-            recipientType: waSettings[0].recipient_type,
-            recipientId: waSettings[0].recipient_id,
-            apiKey: waSettings[0].api_key,
-            sessionName: waSettings[0].session_name,
-            specialNumberRecipient: waSettings[0].special_number_recipient
-        } : null;
+        let specialNumberBannerUrl = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath)).specialNumberBannerUrl : null;
 
         res.json({
-            users: structuredUsers,
-            transactions: structuredTransactions, // Use mapped transactions
+            users: users.map(u => ({ id: u.id, role: u.role, points: u.points, level: u.level, kuponUndian: u.kupon_undian, profile: { nama: u.nama, email: u.email, phone: u.phone, owner: u.owner, kabupaten: u.kabupaten, kecamatan: u.kecamatan, salesforce: u.salesforce, noRs: u.no_rs, alamat: u.alamat, tap: u.tap, jabatan: u.jabatan, photoUrl: u.photo_url } })),
+            transactions: transactions.map(t => ({ id: t.id, userId: t.user_id, date: t.date, produk: t.produk, harga: Number(t.harga), kuantiti: Number(t.kuantiti), totalPembelian: Number(t.total_pembelian), pointsEarned: Number(t.points_earned) })),
             loyaltyPrograms,
-            runningPrograms: structuredRunningPrograms,
-            rewards: structuredRewards,
+            runningPrograms: runningPrograms.map(p => ({ ...p, prizeCategory: p.prize_category, prizeDescription: p.prize_description, startDate: p.start_date, endDate: p.end_date, imageUrl: p.image_url, targets: runningProgramTargets.filter(t => t.program_id === p.id).map(t => ({ userId: t.user_id, progress: t.progress })) })),
+            rewards: rewards.map(r => ({ id: r.id, name: r.name, points: r.points, imageUrl: r.image_url, stock: r.stock })),
             rafflePrograms,
             raffleWinners: raffleWinners.map(w => ({...w, photoUrl: w.photo_url})),
-            redemptions: structuredRedemptions,
-            couponRedemptions: couponRedemptions.map(c => ({ id: c.id, userId: c.user_id, raffleProgramId: c.raffle_program_id, redeemedAt: c.redeemed_at })),
-            specialNumbers: structuredSpecialNumbers,
-            whatsAppSettings: structuredWhatsAppSettings,
+            redemptions: redemptions.map(r => ({ id: r.id, userId: r.user_id, userName: r.user_name, rewardId: r.reward_id, rewardName: r.reward_name, pointsSpent: r.points_spent, date: r.date, status: r.status, statusNote: r.status_note, statusUpdatedAt: r.status_updated_at, documentationPhotoUrl: r.documentation_photo_url, receiverName: r.receiver_name, receiverRole: r.receiver_role, surveyorName: r.surveyor_name, locationCoordinates: r.location_coordinates })),
+            specialNumbers: specialNumbers.map(n => ({ id: n.id, phoneNumber: n.phone_number, price: Number(n.price), isSold: Boolean(n.is_sold), sn: n.sn, lokasi: n.lokasi })),
+            whatsAppSettings: waSettings.length > 0 ? { webhookUrl: waSettings[0].webhook_url, senderNumber: waSettings[0].sender_number, recipientType: waSettings[0].recipient_type, recipientId: waSettings[0].recipient_id, apiKey: waSettings[0].api_key, sessionName: waSettings[0].session_name, specialNumberRecipient: waSettings[0].special_number_recipient } : null,
             specialNumberBannerUrl,
-            locations // { kabupaten, kecamatan }
+            locations
         });
-
-    } catch (error) {
-        console.error("Bootstrap Fatal Error:", error);
-        res.status(500).json({ message: 'Failed to fetch bootstrap data' });
-    }
+    } catch (error) { res.status(500).json({ message: 'Failed to fetch bootstrap data' }); }
 });
 
-// --- USERS CRUD ---
+// --- USERS & OTHER CRUD ---
 router.post('/users', async (req, res) => {
-    const { id, password, role, profile, points, level } = req.body;
+    const { id, password, role, profile } = req.body;
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        // Basic insert, expand fields as needed
-        await db.execute(
-            `INSERT INTO users (id, password, role, nama, email, phone, tap, points, level, jabatan, salesforce, no_rs, owner, kabupaten, kecamatan, alamat) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                id, hashedPassword, role, profile.nama, profile.email, profile.phone, profile.tap, 
-                points || 0, level || 'Bronze', profile.jabatan, profile.salesforce, 
-                profile.noRs, profile.owner, profile.kabupaten, profile.kecamatan, profile.alamat
-            ]
-        );
+        const hashed = await bcrypt.hash(password, 10);
+        await db.execute(`INSERT INTO users (id, password, role, nama, email, phone, tap, points, level, jabatan, salesforce, no_rs, owner, kabupaten, kecamatan, alamat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [id, hashed, role, profile.nama, profile.email, profile.phone, profile.tap, 0, 'Bronze', profile.jabatan, profile.salesforce, profile.noRs, profile.owner, profile.kabupaten, profile.kecamatan, profile.alamat]);
         res.json({ message: 'User created' });
-    } catch (error) { res.status(500).json({ message: error.message }); }
+    } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
 router.put('/users/:id/level', async (req, res) => {
-    try {
-        await db.execute('UPDATE users SET level = ? WHERE id = ?', [req.body.level, req.params.id]);
-        res.json({ message: 'Level updated' });
-    } catch (error) { res.status(500).json({ message: error.message }); }
+    try { await db.execute('UPDATE users SET level = ? WHERE id = ?', [req.body.level, req.params.id]); res.json({ message: 'Level updated' }); } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
 router.post('/users/:id/reset-password', async (req, res) => {
     try {
-        // Generate random 6 char password
-        const newPassword = Math.random().toString(36).slice(-6);
-        const hashed = await bcrypt.hash(newPassword, 10);
+        const newPass = Math.random().toString(36).slice(-6);
+        const hashed = await bcrypt.hash(newPass, 10);
         await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashed, req.params.id]);
-        
-        // TODO: Send WA with new password
-        
-        res.json({ message: 'Password reset', newPassword }); // In real app, send via WA, don't return
-    } catch (error) { res.status(500).json({ message: error.message }); }
+        res.json({ message: 'Password reset', newPassword: newPass });
+    } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
 router.put('/users/:id/points-set', async (req, res) => {
-    try {
-        await db.execute('UPDATE users SET points = ? WHERE id = ?', [req.body.points, req.params.id]);
-        res.json({ message: 'Points updated' });
-    } catch (error) { res.status(500).json({ message: error.message }); }
+    try { await db.execute('UPDATE users SET points = ? WHERE id = ?', [req.body.points, req.params.id]); res.json({ message: 'Points updated' }); } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
 router.post('/users/:id/points', async (req, res) => {
     const { points, action } = req.body;
-    try {
-        const operator = action === 'tambah' ? '+' : '-';
-        await db.execute(`UPDATE users SET points = points ${operator} ? WHERE id = ?`, [points, req.params.id]);
-        res.json({ message: 'Points updated' });
-    } catch (error) { res.status(500).json({ message: error.message }); }
+    try { const op = action === 'tambah' ? '+' : '-'; await db.execute(`UPDATE users SET points = points ${op} ? WHERE id = ?`, [points, req.params.id]); res.json({ message: 'Points updated' }); } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// --- TRANSACTIONS ---
 router.post('/transactions', async (req, res) => {
     const { userId, produk, harga, kuantiti, totalPembelian, date } = req.body;
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        
-        // Calculate points based on level
-        const [userRows] = await connection.execute('SELECT level FROM users WHERE id = ?', [userId]);
-        const level = userRows[0]?.level || 'Bronze';
-        const [progRows] = await connection.execute('SELECT multiplier FROM loyalty_programs WHERE level = ?', [level]);
-        const multiplier = progRows[0]?.multiplier || 1;
-        const pointsEarned = Math.floor((totalPembelian / 1000) * multiplier);
-
-        await connection.execute(
-            'INSERT INTO transactions (user_id, date, produk, harga, kuantiti, total_pembelian, points_earned) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [userId, date, produk, harga, kuantiti, totalPembelian, pointsEarned]
-        );
-        
-        await connection.execute('UPDATE users SET points = points + ? WHERE id = ?', [pointsEarned, userId]);
-        
+        const [u] = await connection.execute('SELECT level FROM users WHERE id = ?', [userId]);
+        const [lp] = await connection.execute('SELECT multiplier FROM loyalty_programs WHERE level = ?', [u[0]?.level || 'Bronze']);
+        const pts = Math.floor((totalPembelian / 1000) * (lp[0]?.multiplier || 1));
+        await connection.execute('INSERT INTO transactions (user_id, date, produk, harga, kuantiti, total_pembelian, points_earned) VALUES (?, ?, ?, ?, ?, ?, ?)', [userId, date, produk, harga, kuantiti, totalPembelian, pts]);
+        await connection.execute('UPDATE users SET points = points + ? WHERE id = ?', [pts, userId]);
         await connection.commit();
         res.json({ message: 'Transaction added' });
-    } catch (error) {
-        await connection.rollback();
-        res.status(500).json({ message: error.message });
-    } finally {
-        connection.release();
-    }
+    } catch (e) { await connection.rollback(); res.status(500).json({ message: e.message }); } finally { connection.release(); }
 });
 
-// --- LOYALTY PROGRAMS ---
 router.put('/loyalty-programs/:level', async (req, res) => {
-    const { pointsNeeded, benefit, multiplier } = req.body;
-    try {
-        await db.execute(
-            'UPDATE loyalty_programs SET pointsNeeded = ?, benefit = ?, multiplier = ? WHERE level = ?',
-            [pointsNeeded, benefit, multiplier, req.params.level]
-        );
-        res.json({ message: 'Program updated' });
-    } catch (error) { res.status(500).json({ message: error.message }); }
+    try { await db.execute('UPDATE loyalty_programs SET pointsNeeded = ?, benefit = ?, multiplier = ? WHERE level = ?', [req.body.pointsNeeded, req.body.benefit, req.body.multiplier, req.params.level]); res.json({ message: 'Program updated' }); } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// --- REWARDS ---
 router.delete('/rewards/:id', async (req, res) => {
-    try {
-        await db.execute('DELETE FROM rewards WHERE id = ?', [req.params.id]);
-        res.json({ message: 'Reward deleted' });
-    } catch (error) { res.status(500).json({ message: error.message }); }
+    try { await db.execute('DELETE FROM rewards WHERE id = ?', [req.params.id]); res.json({ message: 'Reward deleted' }); } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
 router.put('/rewards/reorder', async (req, res) => {
-    const { orderData } = req.body; // [{id, displayOrder}, ...]
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        for (const item of orderData) {
-            await connection.execute('UPDATE rewards SET display_order = ? WHERE id = ?', [item.displayOrder, item.id]);
-        }
-        await connection.commit();
-        res.json({ message: 'Reordered' });
-    } catch (e) {
-        await connection.rollback();
-        res.status(500).json({ message: e.message });
-    } finally {
-        connection.release();
-    }
+        for (const item of req.body.orderData) { await connection.execute('UPDATE rewards SET display_order = ? WHERE id = ?', [item.displayOrder, item.id]); }
+        await connection.commit(); res.json({ message: 'Reordered' });
+    } catch (e) { await connection.rollback(); res.status(500).json({ message: e.message }); } finally { connection.release(); }
 });
 
-// --- REDEMPTIONS ---
 router.post('/redemptions', async (req, res) => {
     const { userId, rewardId } = req.body;
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        
-        // Check points and stock
-        const [userRows] = await connection.execute('SELECT points, nama FROM users WHERE id = ?', [userId]);
-        const [rewardRows] = await connection.execute('SELECT points, stock, name FROM rewards WHERE id = ?', [rewardId]);
-        
-        if (userRows.length === 0 || rewardRows.length === 0) throw new Error('User or Reward not found');
-        
-        const user = userRows[0];
-        const reward = rewardRows[0];
-        
-        if (user.points < reward.points) throw new Error('Poin tidak cukup');
-        if (reward.stock <= 0) throw new Error('Stok habis');
-        
-        // Deduct points and stock
-        await connection.execute('UPDATE users SET points = points - ? WHERE id = ?', [reward.points, userId]);
+        const [u] = await connection.execute('SELECT points, nama FROM users WHERE id = ?', [userId]);
+        const [r] = await connection.execute('SELECT points, stock, name FROM rewards WHERE id = ?', [rewardId]);
+        if (u[0].points < r[0].points) throw new Error('Poin tidak cukup');
+        if (r[0].stock <= 0) throw new Error('Stok habis');
+        await connection.execute('UPDATE users SET points = points - ? WHERE id = ?', [r[0].points, userId]);
         await connection.execute('UPDATE rewards SET stock = stock - 1 WHERE id = ?', [rewardId]);
-        
-        // Record redemption
-        await connection.execute(
-            'INSERT INTO redemptions (user_id, reward_id, points_spent, date, user_name, reward_name, status) VALUES (?, ?, ?, NOW(), ?, ?, ?)',
-            [userId, rewardId, reward.points, user.nama, reward.name, 'Diajukan']
-        );
-        
-        // Check special logic for "Kupon Undian"
-        if (reward.name.toLowerCase().includes('kupon undian')) {
+        await connection.execute('INSERT INTO redemptions (user_id, reward_id, points_spent, date, user_name, reward_name, status) VALUES (?, ?, ?, NOW(), ?, ?, ?)', [userId, rewardId, r[0].points, u[0].nama, r[0].name, 'Diajukan']);
+        if (r[0].name.toLowerCase().includes('kupon undian')) {
              await connection.execute('UPDATE users SET kupon_undian = kupon_undian + 1 WHERE id = ?', [userId]);
-             // Find active raffle
-             const [raffles] = await connection.execute('SELECT id FROM raffle_programs WHERE is_active = 1 LIMIT 1');
-             if(raffles.length > 0) {
-                 await connection.execute(
-                     'INSERT INTO coupon_redemptions (user_id, raffle_program_id, redeemed_at) VALUES (?, ?, NOW())',
-                     [userId, raffles[0].id]
-                 );
-             }
+             const [ra] = await connection.execute('SELECT id FROM raffle_programs WHERE is_active = 1 LIMIT 1');
+             if(ra.length > 0) await connection.execute('INSERT INTO coupon_redemptions (user_id, raffle_program_id, redeemed_at) VALUES (?, ?, NOW())', [userId, ra[0].id]);
         }
-
-        await connection.commit();
-        res.json({ message: 'Redemption successful' });
-        
-    } catch (error) {
-        await connection.rollback();
-        res.status(400).json({ message: error.message });
-    } finally {
-        connection.release();
-    }
+        await connection.commit(); res.json({ message: 'Redemption successful' });
+    } catch (e) { await connection.rollback(); res.status(400).json({ message: e.message }); } finally { connection.release(); }
 });
 
 router.post('/redemptions/bulk/status', async (req, res) => {
-    const { ids, status, statusNote } = req.body;
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        
-        if (status === 'Ditolak') {
-            for (const id of ids) {
-                // Get redemption info to refund
-                const [rows] = await connection.execute('SELECT reward_id, status FROM redemptions WHERE id = ?', [id]);
-                if (rows.length > 0 && rows[0].status !== 'Ditolak') {
-                     await connection.execute('UPDATE rewards SET stock = stock + 1 WHERE id = ?', [rows[0].reward_id]);
-                }
+        if (req.body.status === 'Ditolak') {
+            for (const id of req.body.ids) {
+                const [r] = await connection.execute('SELECT reward_id, status FROM redemptions WHERE id = ?', [id]);
+                if (r.length > 0 && r[0].status !== 'Ditolak') await connection.execute('UPDATE rewards SET stock = stock + 1 WHERE id = ?', [r[0].reward_id]);
             }
         }
-
-        const placeholders = ids.map(() => '?').join(',');
-        await connection.execute(
-            `UPDATE redemptions SET status = ?, status_note = ?, status_updated_at = NOW() WHERE id IN (${placeholders})`,
-            [status, statusNote, ...ids]
-        );
-        
-        await connection.commit();
-        res.json({ message: 'Bulk status updated' });
-    } catch (e) {
-        await connection.rollback();
-        res.status(500).json({ message: e.message });
-    } finally {
-        connection.release();
-    }
+        const ph = req.body.ids.map(() => '?').join(',');
+        await connection.execute(`UPDATE redemptions SET status = ?, status_note = ?, status_updated_at = NOW() WHERE id IN (${ph})`, [req.body.status, req.body.statusNote, ...req.body.ids]);
+        await connection.commit(); res.json({ message: 'Bulk status updated' });
+    } catch (e) { await connection.rollback(); res.status(500).json({ message: e.message }); } finally { connection.release(); }
 });
 
-// --- SPECIAL NUMBERS ---
 router.post('/special-numbers', async (req, res) => {
-    const { phoneNumber, price, sn, lokasi } = req.body;
-    try {
-        await db.execute(
-            'INSERT INTO special_numbers (phone_number, price, sn, lokasi, is_sold) VALUES (?, ?, ?, ?, 0)',
-            [phoneNumber, price, sn, lokasi]
-        );
-        res.json({ message: 'Number added' });
-    } catch (e) { res.status(500).json({ message: e.message }); }
+    try { await db.execute('INSERT INTO special_numbers (phone_number, price, sn, lokasi, is_sold) VALUES (?, ?, ?, ?, 0)', [req.body.phoneNumber, req.body.price, req.body.sn, req.body.lokasi]); res.json({ message: 'Number added' }); } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
 router.put('/special-numbers/:id', async (req, res) => {
-    const { phoneNumber, price, sn, lokasi } = req.body;
-    try {
-        await db.execute(
-            'UPDATE special_numbers SET phone_number=?, price=?, sn=?, lokasi=? WHERE id=?',
-            [phoneNumber, price, sn, lokasi, req.params.id]
-        );
-        res.json({ message: 'Number updated' });
-    } catch (e) { res.status(500).json({ message: e.message }); }
+    try { await db.execute('UPDATE special_numbers SET phone_number=?, price=?, sn=?, lokasi=? WHERE id=?', [req.body.phoneNumber, req.body.price, req.body.sn, req.body.lokasi, req.params.id]); res.json({ message: 'Number updated' }); } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
 router.delete('/special-numbers/:id', async (req, res) => {
-    try {
-        await db.execute('DELETE FROM special_numbers WHERE id = ?', [req.params.id]);
-        res.json({ message: 'Deleted' });
-    } catch (e) { res.status(500).json({ message: e.message }); }
+    try { await db.execute('DELETE FROM special_numbers WHERE id = ?', [req.params.id]); res.json({ message: 'Deleted' }); } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-router.put('/special-numbers/:id/status', async (req, res) => {
-    try {
-        await db.execute('UPDATE special_numbers SET is_sold = ? WHERE id = ?', [req.body.isSold, req.params.id]);
-        res.json({ message: 'Status updated' });
-    } catch (e) { res.status(500).json({ message: e.message }); }
-});
-
-// --- SETTINGS ---
 router.put('/settings/whatsapp', async (req, res) => {
-    const settings = req.body;
-    try {
-        await db.execute('DELETE FROM whatsapp_settings'); // Clear old
-        await db.execute(
-            'INSERT INTO whatsapp_settings (webhook_url, sender_number, recipient_type, recipient_id, api_key, session_name, special_number_recipient) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [settings.webhookUrl, settings.senderNumber, settings.recipientType, settings.recipientId, settings.apiKey, settings.sessionName, settings.specialNumberRecipient]
-        );
-        res.json({ message: 'Settings saved' });
-    } catch (e) { res.status(500).json({ message: e.message }); }
+    try { await db.execute('DELETE FROM whatsapp_settings'); await db.execute('INSERT INTO whatsapp_settings (webhook_url, sender_number, recipient_type, recipient_id, api_key, session_name, special_number_recipient) VALUES (?, ?, ?, ?, ?, ?, ?)', [req.body.webhookUrl, req.body.senderNumber, req.body.recipientType, req.body.recipientId, req.body.apiKey, req.body.sessionName, req.body.specialNumberRecipient]); res.json({ message: 'Settings saved' }); } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// --- RAFFLES ---
 router.post('/raffles', async (req, res) => {
-    const { name, prize, period, isActive } = req.body;
     const connection = await db.getConnection();
-    try {
-        await connection.beginTransaction();
-        if (isActive) {
-            await connection.execute('UPDATE raffle_programs SET is_active = 0');
-        }
-        await connection.execute(
-            'INSERT INTO raffle_programs (name, prize, period, is_active) VALUES (?, ?, ?, ?)',
-            [name, prize, period, isActive]
-        );
-        await connection.commit();
-        res.json({ message: 'Raffle program added' });
-    } catch (e) {
-        await connection.rollback();
-        res.status(500).json({ message: e.message });
-    } finally {
-        connection.release();
-    }
+    try { await connection.beginTransaction(); if (req.body.isActive) await connection.execute('UPDATE raffle_programs SET is_active = 0'); await connection.execute('INSERT INTO raffle_programs (name, prize, period, is_active) VALUES (?, ?, ?, ?)', [req.body.name, req.body.prize, req.body.period, req.body.isActive]); await connection.commit(); res.json({ message: 'Raffle program added' }); } catch (e) { await connection.rollback(); res.status(500).json({ message: e.message }); } finally { connection.release(); }
 });
 
-router.put('/raffles/:id', async (req, res) => {
-    const { name, prize, period, isActive } = req.body;
-    const connection = await db.getConnection();
-    try {
-        await connection.beginTransaction();
-        if (isActive) {
-            await connection.execute('UPDATE raffle_programs SET is_active = 0');
-        }
-        await connection.execute(
-            'UPDATE raffle_programs SET name=?, prize=?, period=?, is_active=? WHERE id=?',
-            [name, prize, period, isActive, req.params.id]
-        );
-        await connection.commit();
-        res.json({ message: 'Raffle program updated' });
-    } catch (e) {
-        await connection.rollback();
-        res.status(500).json({ message: e.message });
-    } finally {
-        connection.release();
-    }
-});
-
-router.delete('/raffles/:id', async (req, res) => {
-    try {
-        await db.execute('DELETE FROM raffle_programs WHERE id = ?', [req.params.id]);
-        res.json({ message: 'Deleted' });
-    } catch (e) { res.status(500).json({ message: e.message }); }
-});
-
-// --- PROGRAMS (Update Participants) ---
 router.put('/programs/:id/participants', async (req, res) => {
-    const { participantIds } = req.body;
-    const programId = req.params.id;
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        // 1. Get current participants
-        const [current] = await connection.execute('SELECT user_id FROM running_program_targets WHERE program_id = ?', [programId]);
-        const currentSet = new Set(current.map(c => c.user_id));
-        const newSet = new Set(participantIds);
-
-        // 2. Add new
-        for (const uid of participantIds) {
-            if (!currentSet.has(uid)) {
-                await connection.execute('INSERT INTO running_program_targets (program_id, user_id, progress) VALUES (?, ?, 0)', [programId, uid]);
-            }
-        }
-
-        // 3. Remove old (Optional: typically we want to keep history, but for management UI: remove)
-        for (const uid of currentSet) {
-            if (!newSet.has(uid)) {
-                await connection.execute('DELETE FROM running_program_targets WHERE program_id = ? AND user_id = ?', [programId, uid]);
-            }
-        }
-
-        await connection.commit();
-        res.json({ message: 'Participants updated' });
-    } catch (e) {
-        await connection.rollback();
-        res.status(500).json({ message: e.message });
-    } finally {
-        connection.release();
-    }
+        const [curr] = await connection.execute('SELECT user_id FROM running_program_targets WHERE program_id = ?', [req.params.id]);
+        const currSet = new Set(curr.map(c => c.user_id));
+        const newSet = new Set(req.body.participantIds);
+        for (const uid of req.body.participantIds) { if (!currSet.has(uid)) await connection.execute('INSERT INTO running_program_targets (program_id, user_id, progress) VALUES (?, ?, 0)', [req.params.id, uid]); }
+        for (const uid of currSet) { if (!newSet.has(uid)) await connection.execute('DELETE FROM running_program_targets WHERE program_id = ? AND user_id = ?', [req.params.id, uid]); }
+        await connection.commit(); res.json({ message: 'Participants updated' });
+    } catch (e) { await connection.rollback(); res.status(500).json({ message: e.message }); } finally { connection.release(); }
 });
 
-
-// ** NEW: SERVER-SIDE AUDIT ENDPOINTS **
 router.get('/users/:id/audit', async (req, res) => {
     try {
-        const { id } = req.params;
-        const [earnedRows] = await db.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id=?', [id]);
-        const [spentRows] = await db.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=? AND status != "Ditolak"', [id]);
-        const [userRows] = await db.execute('SELECT points FROM users WHERE id=?', [id]);
-
-        const earned = earnedRows[0].total ? parseInt(earnedRows[0].total) : 0;
-        const spent = spentRows[0].total ? parseInt(spentRows[0].total) : 0;
-        const actual = userRows[0] ? userRows[0].points : 0;
-        const calculated = earned - spent;
-
-        res.json({
-            userId: id,
-            earned,
-            spent,
-            calculated,
-            actual,
-            discrepancy: actual - calculated,
-            isSync: actual === calculated
-        });
+        const [e] = await db.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id=?', [req.params.id]);
+        const [s] = await db.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=? AND status != "Ditolak"', [req.params.id]);
+        const [u] = await db.execute('SELECT points FROM users WHERE id=?', [req.params.id]);
+        const earned = e[0].total || 0; const spent = s[0].total || 0; const actual = u[0]?.points || 0;
+        res.json({ earned, spent, calculated: earned - spent, actual, discrepancy: actual - (earned - spent) });
     } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 router.post('/audit/fix/:id', async (req, res) => {
-    const { id } = req.params;
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-
-        const [settingsRows] = await connection.execute('SELECT * FROM whatsapp_settings LIMIT 1');
-        const waSettings = settingsRows[0];
-
-        const [earnedRows] = await connection.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id=?', [id]);
-        const totalEarned = earnedRows[0].total ? parseInt(earnedRows[0].total) : 0;
-
-        const [spentFinishedRows] = await connection.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=? AND status = "Selesai"', [id]);
-        const spentFinished = spentFinishedRows[0].total ? parseInt(spentFinishedRows[0].total) : 0;
-
-        let availablePoints = totalEarned - spentFinished;
-        let cancelledCount = 0;
-
-        const [pendingRedemptions] = await connection.execute(
-            `SELECT r.id, r.points_spent, r.reward_name, u.phone, u.nama FROM redemptions r JOIN users u ON r.user_id = u.id WHERE r.user_id=? AND r.status IN ("Diajukan", "Diproses") ORDER BY r.date ASC`,
-            [id]
-        );
-
-        for (const redemption of pendingRedemptions) {
-            if (availablePoints >= redemption.points_spent) {
-                availablePoints -= redemption.points_spent;
-            } else {
-                await connection.execute('UPDATE redemptions SET status="Ditolak", status_note=?, status_updated_at=NOW() WHERE id=?', ['Audit Sistem: Dibatalkan otomatis karena poin kurang.', redemption.id]);
-                await connection.execute('UPDATE rewards r JOIN redemptions rd ON r.id = rd.reward_id SET r.stock = r.stock + 1 WHERE rd.id = ?', [redemption.id]);
-                cancelledCount++;
+        const [e] = await connection.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id=?', [req.params.id]);
+        const [s] = await connection.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=? AND status = "Selesai"', [req.params.id]);
+        let avail = (e[0].total || 0) - (s[0].total || 0);
+        const [pr] = await connection.execute('SELECT id, points_spent FROM redemptions WHERE user_id=? AND status IN ("Diajukan", "Diproses") ORDER BY date ASC', [req.params.id]);
+        for (const r of pr) {
+            if (avail >= r.points_spent) avail -= r.points_spent;
+            else {
+                await connection.execute('UPDATE redemptions SET status="Ditolak", status_note="Audit: Poin kurang", status_updated_at=NOW() WHERE id=?', [r.id]);
+                await connection.execute('UPDATE rewards r JOIN redemptions rd ON r.id = rd.reward_id SET r.stock = r.stock + 1 WHERE rd.id = ?', [r.id]);
             }
         }
-
-        await connection.execute('UPDATE users SET points=? WHERE id=?', [availablePoints, id]);
-        await connection.commit();
-        res.json({ success: true, message: `Poin fixed: ${availablePoints}. Cancelled: ${cancelledCount}` });
-    } catch (err) {
-        await connection.rollback();
-        res.status(500).json({ message: err.message });
-    } finally {
-        connection.release();
-    }
+        await connection.execute('UPDATE users SET points=? WHERE id=?', [avail, req.params.id]);
+        await connection.commit(); res.json({ success: true, message: `Fixed to ${avail}` });
+    } catch (err) { await connection.rollback(); res.status(500).json({ message: err.message }); } finally { connection.release(); }
 });
 
-// --- BULK AUDIT LOGIC (UPDATED WITH REPORT) ---
 router.post('/audit/bulk-fix', async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        const [users] = await connection.execute("SELECT id FROM users WHERE role = 'pelanggan'");
-        
-        let processedCount = 0;
-        let fixedCount = 0;
-        let cancelledRedemptions = 0;
-
-        for (const user of users) {
-            const userId = user.id;
-            
-            // 1. Calculate Earned
-            const [earnedRows] = await connection.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id=?', [userId]);
-            const totalEarned = earnedRows[0].total ? parseInt(earnedRows[0].total) : 0;
-
-            // 2. Calculate Spent (Only Finished/Successful)
-            const [spentFinishedRows] = await connection.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=? AND status = "Selesai"', [userId]);
-            const spentFinished = spentFinishedRows[0].total ? parseInt(spentFinishedRows[0].total) : 0;
-
-            // 3. Determine actual available points
-            let availablePoints = totalEarned - spentFinished;
-
-            // 4. Check Pending Redemptions
-            const [pendingRedemptions] = await connection.execute(
-                `SELECT id, points_spent FROM redemptions WHERE user_id=? AND status IN ("Diajukan", "Diproses") ORDER BY date ASC`,
-                [userId]
-            );
-
-            for (const redemption of pendingRedemptions) {
-                if (availablePoints >= redemption.points_spent) {
-                    availablePoints -= redemption.points_spent;
-                } else {
-                    // Not enough points, cancel this request
-                    await connection.execute('UPDATE redemptions SET status="Ditolak", status_note=?, status_updated_at=NOW() WHERE id=?', ['Audit Sistem: Dibatalkan otomatis karena poin kurang.', redemption.id]);
-                    // Return stock
-                    await connection.execute('UPDATE rewards r JOIN redemptions rd ON r.id = rd.reward_id SET r.stock = r.stock + 1 WHERE rd.id = ?', [redemption.id]);
-                    cancelledRedemptions++;
+        const [us] = await connection.execute("SELECT id FROM users WHERE role = 'pelanggan'");
+        let f=0; let c=0;
+        for (const user of us) {
+            const [e] = await connection.execute('SELECT SUM(points_earned) as total FROM transactions WHERE user_id=?', [user.id]);
+            const [s] = await connection.execute('SELECT SUM(points_spent) as total FROM redemptions WHERE user_id=? AND status = "Selesai"', [user.id]);
+            let avail = (e[0].total || 0) - (s[0].total || 0);
+            const [pr] = await connection.execute('SELECT id, points_spent FROM redemptions WHERE user_id=? AND status IN ("Diajukan", "Diproses") ORDER BY date ASC', [user.id]);
+            for (const r of pr) {
+                if (avail >= r.points_spent) avail -= r.points_spent;
+                else {
+                    await connection.execute('UPDATE redemptions SET status="Ditolak", status_note="Audit: Poin kurang", status_updated_at=NOW() WHERE id=?', [r.id]);
+                    await connection.execute('UPDATE rewards r JOIN redemptions rd ON r.id = rd.reward_id SET r.stock = r.stock + 1 WHERE rd.id = ?', [r.id]);
+                    c++;
                 }
             }
-
-            // 5. Update User Points if different
-            const [currentUserRows] = await connection.execute('SELECT points FROM users WHERE id=?', [userId]);
-            const currentPoints = currentUserRows[0].points;
-
-            if (currentPoints !== availablePoints) {
-                await connection.execute('UPDATE users SET points=? WHERE id=?', [availablePoints, userId]);
-                fixedCount++;
-            }
-            
-            processedCount++;
+            const [cu] = await connection.execute('SELECT points FROM users WHERE id=?', [user.id]);
+            if (cu[0].points !== avail) { await connection.execute('UPDATE users SET points=? WHERE id=?', [avail, user.id]); f++; }
         }
-
-        await connection.commit();
-        res.json({ 
-            message: 'Bulk audit complete',
-            report: {
-                processed: processedCount,
-                fixed: fixedCount,
-                cancelled: cancelledRedemptions
-            }
-        });
-    } catch (e) {
-        await connection.rollback();
-        res.status(500).json({ message: e.message });
-    } finally {
-        connection.release();
-    }
+        await connection.commit(); res.json({ message: 'Audit complete', report: { processed: us.length, fixed: f, cancelled: c } });
+    } catch (e) { await connection.rollback(); res.status(500).json({ message: e.message }); } finally { connection.release(); }
 });
 
 module.exports = { router, uploadRouter };

@@ -22,22 +22,28 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(20);
 
-    const requestSort = (key: SortableKeys) => {
-        let direction: 'asc' | 'desc' = 'asc';
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        setSortConfig({ key, direction });
+    // FIX: SummaryCard defined outside or at top level of component
+    const SummaryCard = ({ title, value, subtext, colorClass, icon }: { title: string, value: string, subtext?: string, colorClass: string, icon: string }) => (
+        <div className="neu-card p-4 flex items-center justify-between">
+            <div className="flex-grow min-w-0 pr-2">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide truncate">{title}</p>
+                <p className={`text-xl font-bold mt-1 truncate ${colorClass}`} title={value}>{value}</p>
+                {subtext && <p className="text-xs text-gray-400 mt-0.5 truncate">{subtext}</p>}
+            </div>
+            <div className={`p-2 rounded-full flex-shrink-0 ${colorClass.replace('text-', 'bg-').replace('600', '100').replace('700', '100')}`}>
+                <Icon path={icon} className={`w-6 h-6 ${colorClass}`} />
+            </div>
+        </div>
+    );
+
+    const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    const getSortIcon = (key: SortableKeys) => {
-        if (!sortConfig || sortConfig.key !== key) {
-            return <Icon path={ICONS.sortNeutral} className="w-4 h-4 text-gray-400" />;
-        }
-        if (sortConfig.direction === 'asc') {
-            return <Icon path={ICONS.sortUp} className="w-4 h-4 text-gray-800" />;
-        }
-        return <Icon path={ICONS.sortDown} className="w-4 h-4 text-gray-800" />;
+    const handleResetFilters = () => {
+        setFilter({ from: '', to: '' });
+        setSearchTerm('');
+        setProdukFilter('');
     };
 
     const userMap = useMemo(() => {
@@ -114,7 +120,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
     }, [transactionsWithUserData, filter, searchTerm, produkFilter, sortConfig]);
     
-    // --- Summary Calculations ---
     const summaryStats = useMemo(() => {
         let totalRevenue = 0;
         let totalPoints = 0;
@@ -134,7 +139,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             productSales[prodName] = (productSales[prodName] || 0) + (isNaN(qty) ? 0 : qty);
         });
 
-        // Find Best Seller
         let bestSeller = '-';
         let maxQty = 0;
         Object.entries(productSales).forEach(([name, qty]) => {
@@ -154,11 +158,9 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         };
     }, [filteredTransactions]);
 
-    // --- Chart Data Calculation (Daily Stacked Bar - QUANTITY BASED) ---
     const chartData = useMemo(() => {
         if (filteredTransactions.length === 0) return null;
 
-        // 1. Identify Top 5 Products by QUANTITY
         const productQty: Record<string, number> = {};
         
         filteredTransactions.forEach(t => {
@@ -194,7 +196,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                 dailyGroups[dateKey] = { total: 0, breakdown: {} };
             }
             
-            // Use Quantity for Chart
             const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
             const safeQty = isNaN(qty) ? 0 : qty;
 
@@ -217,7 +218,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         return { data, topProducts, productColors, otherColor, maxTotal: maxTotal || 1 };
     }, [filteredTransactions]);
 
-    // --- MoM Product Comparison Data (Month to Date - QUANTITY BASED - ALL PRODUCTS) ---
     const momChartData = useMemo(() => {
         const now = new Date();
         const currentYear = now.getFullYear();
@@ -238,7 +238,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
         transactionsWithUserData.forEach(t => {
             const tDate = new Date(t.date);
-            // USE QUANTITY for MoM Comparison
             const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
             const safeQty = isNaN(qty) ? 0 : qty;
 
@@ -255,7 +254,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             name: prod,
             current: currentStats[prod] || 0,
             last: lastStats[prod] || 0
-        })).sort((a, b) => b.current - a.current); // NO SLICE, SHOW ALL
+        })).sort((a, b) => b.current - a.current);
 
         const maxValue = Math.max(
             ...comparisonData.map(d => Math.max(d.current, d.last)), 
@@ -272,8 +271,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         };
     }, [transactionsWithUserData]); 
 
-
-    // Pagination Logic
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem);
@@ -284,18 +281,24 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
     const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-    const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFilter(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    };
-    
-    // Fix: Ensure handleResetFilters takes 0 args as expected by call site.
-    const handleResetFilters = () => {
-        setFilter({ from: '', to: '' });
-        setSearchTerm('');
-        setProdukFilter('');
+    const requestSort = (key: SortableKeys) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
     };
 
-    // Fix: Ensure handleExport takes 0 args as expected by call site.
+    const getSortIcon = (key: SortableKeys) => {
+        if (!sortConfig || sortConfig.key !== key) {
+            return <Icon path={ICONS.sortNeutral} className="w-4 h-4 text-gray-400" />;
+        }
+        if (sortConfig.direction === 'asc') {
+            return <Icon path={ICONS.sortUp} className="w-4 h-4 text-gray-800" />;
+        }
+        return <Icon path={ICONS.sortDown} className="w-4 h-4 text-gray-800" />;
+    };
+
     const handleExport = () => {
         if (filteredTransactions.length === 0) {
             alert("Tidak ada data untuk diekspor dengan filter yang dipilih.");
@@ -339,19 +342,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         }
     };
 
-    const SummaryCard = ({ title, value, subtext, colorClass, icon }: { title: string, value: string, subtext?: string, colorClass: string, icon: string }) => (
-        <div className="neu-card p-4 flex items-center justify-between">
-            <div className="flex-grow min-w-0 pr-2">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide truncate">{title}</p>
-                <p className={`text-xl font-bold mt-1 truncate ${colorClass}`} title={value}>{value}</p>
-                {subtext && <p className="text-xs text-gray-400 mt-0.5 truncate">{subtext}</p>}
-            </div>
-            <div className={`p-2 rounded-full flex-shrink-0 ${colorClass.replace('text-', 'bg-').replace('600', '100').replace('700', '100')}`}>
-                <Icon path={icon} className={`w-6 h-6 ${colorClass}`} />
-            </div>
-        </div>
-    );
-
     return (
         <div>
             <div>
@@ -362,25 +352,25 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                     </button>
                 </div>
 
-                {/* Summary Section */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+                    {/* FIX: Use Number() to explicitly cast summaryStats properties to numbers for format() calls to avoid 'unknown' type errors */}
                     <SummaryCard 
                         title="Total Omzet" 
-                        value={`Rp ${summaryStats.totalRevenue.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })}`} 
+                        value={`Rp ${new Intl.NumberFormat('id-ID', { compactDisplay: "short", notation: "compact" }).format(Number(summaryStats.totalRevenue))}`} 
                         subtext="Dari data difilter"
                         colorClass="text-green-600" 
                         icon={ICONS.history} 
                     />
                     <SummaryCard 
                         title="Total Transaksi" 
-                        value={Number(summaryStats.totalTransactions).toLocaleString('id-ID')} 
+                        value={new Intl.NumberFormat('id-ID').format(Number(summaryStats.totalTransactions))} 
                         subtext="Frekuensi"
                         colorClass="text-blue-600" 
                         icon={ICONS.dashboard} 
                     />
                     <SummaryCard 
                         title="Mitra Berbelanja" 
-                        value={Number(summaryStats.uniquePartners).toLocaleString('id-ID')} 
+                        value={new Intl.NumberFormat('id-ID').format(Number(summaryStats.uniquePartners))} 
                         subtext="Mitra unik"
                         colorClass="text-purple-600" 
                         icon={ICONS.users} 
@@ -394,17 +384,14 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                     />
                     <SummaryCard 
                         title="Poin Diberikan" 
-                        value={summaryStats.totalPoints.toLocaleString('id-ID', { compactDisplay: "short", notation: "compact" })} 
+                        value={new Intl.NumberFormat('id-ID', { compactDisplay: "short", notation: "compact" }).format(Number(summaryStats.totalPoints))} 
                         subtext="Total Reward"
                         colorClass="text-red-600" 
                         icon={ICONS.gift} 
                     />
                 </div>
 
-                {/* CHARTS GRID */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    
-                    {/* 1. Daily Product Sales Chart (Quantity Based) */}
                     {chartData && chartData.data.length > 0 ? (
                         <div className="neu-card p-6">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -412,7 +399,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                     <Icon path={ICONS.store} className="w-5 h-5 text-red-500" />
                                     Tren Penjualan Harian (Qty)
                                 </h2>
-                                {/* Legend */}
                                 <div className="flex flex-wrap gap-2 mt-2 md:mt-0 justify-end">
                                     {chartData.topProducts.slice(0, 3).map(prod => (
                                         <div key={prod} className="flex items-center gap-1 text-[10px] text-gray-600">
@@ -427,28 +413,25 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                 </div>
                             </div>
 
-                            {/* Scrollable Chart Container */}
                             <div className="w-full overflow-x-auto pb-2">
                                 <div className="h-64 relative" style={{ minWidth: `${Math.max(100, chartData.data.length * 40)}px` }}>
                                     <div className="absolute inset-0 flex items-end justify-between px-2 gap-2">
                                         {chartData.data.map((day, index) => {
                                             return (
                                                 <div key={day.date} className="flex flex-col items-center justify-end h-full flex-1 group relative">
-                                                    {/* Tooltip - Show Unit count */}
                                                     <div className="absolute bottom-full mb-2 hidden group-hover:block z-20 bg-gray-800 text-white text-xs rounded p-2 shadow-lg w-max max-w-[200px] pointer-events-none">
                                                         <p className="font-bold mb-1 border-b border-gray-600 pb-1">{day.displayDate}</p>
-                                                        <p className="font-bold">Total: {day.total.toLocaleString('id-ID')} Unit</p>
+                                                        <p className="font-bold">Total: {new Intl.NumberFormat('id-ID').format(day.total)} Unit</p>
                                                         <div className="mt-1 space-y-0.5">
                                                             {Object.entries(day.breakdown).sort((a,b)=>Number(b[1])-Number(a[1])).map(([prod, val]) => (
                                                                 <div key={prod} className="flex justify-between gap-4">
                                                                     <span className="opacity-80">{prod}:</span>
-                                                                    <span>{val.toLocaleString('id-ID')}</span>
+                                                                    <span>{new Intl.NumberFormat('id-ID').format(val)}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </div>
 
-                                                    {/* Bars Stack */}
                                                     <div className="w-full max-w-[30px] h-full flex flex-col-reverse justify-start rounded-t-sm overflow-hidden bg-gray-100 relative">
                                                         {chartData.topProducts.map(prod => {
                                                             const val = day.breakdown[prod] || 0;
@@ -470,7 +453,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                                         )}
                                                     </div>
                                                     
-                                                    {/* X-Axis Label */}
                                                     <p className="text-[9px] text-gray-500 mt-2 font-medium whitespace-nowrap rotate-0 truncate w-full text-center">
                                                         {day.displayDate.split(' ')[0]}
                                                     </p>
@@ -478,9 +460,8 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                             )
                                         })}
                                     </div>
-                                    {/* Y-Axis Grid Lines - Show Quantity */}
                                     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between text-[9px] text-gray-300 font-mono select-none">
-                                        <div className="border-t border-gray-200 w-full relative"><span className="absolute -top-2 left-0 bg-white/80 px-1 text-gray-400">{Number(chartData.maxTotal).toLocaleString('id-ID')}</span></div>
+                                        <div className="border-t border-gray-200 w-full relative"><span className="absolute -top-2 left-0 bg-white/80 px-1 text-gray-400">{new Intl.NumberFormat('id-ID').format(Number(chartData.maxTotal))}</span></div>
                                         <div className="border-t border-gray-100 w-full"></div>
                                         <div className="border-t border-gray-100 w-full"></div>
                                         <div className="border-t border-gray-100 w-full"></div>
@@ -493,7 +474,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                         <div className="neu-card p-6 flex items-center justify-center text-gray-500">Belum ada data untuk grafik harian.</div>
                     )}
 
-                    {/* 2. MoM Comparison Chart (Quantity Based - All Products) */}
                     {momChartData && momChartData.data.length > 0 ? (
                         <div className="neu-card p-6">
                             <div className="flex justify-between items-start mb-6">
@@ -504,12 +484,10 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                 <div className="text-xs text-right">
                                     <div className="flex items-center justify-end gap-2 mb-1">
                                         <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
-                                        {/* Fix: Correct variable name from momChartNames to momChartData.monthNames */}
                                         <span className="font-semibold text-gray-600">{momChartData.monthNames.current}</span>
                                     </div>
                                     <div className="flex items-center justify-end gap-2">
                                         <div className="w-3 h-3 bg-slate-300 rounded-sm"></div>
-                                        {/* Fix: Correct variable name from momChartNames to momChartData.monthNames */}
                                         <span className="text-gray-500">{momChartData.monthNames.last}</span>
                                     </div>
                                 </div>
@@ -531,13 +509,12 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                             <div className="flex justify-between text-xs mb-1">
                                                 <span className="font-bold text-gray-700 truncate w-40" title={item.name}>{item.name}</span>
                                                 <div className="flex gap-2">
-                                                    <span className="text-gray-500 font-mono">{currentVal.toLocaleString('id-ID')} unit</span>
+                                                    <span className="text-gray-500 font-mono">{new Intl.NumberFormat('id-ID').format(currentVal)} unit</span>
                                                     <span className={`font-mono font-bold w-12 text-right ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
                                                         {isPositive ? '+' : ''}{Math.round(growth)}%
                                                     </span>
                                                 </div>
                                             </div>
-                                            {/* Stacked bars for cleaner look */}
                                             <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1 overflow-hidden relative">
                                                 <div 
                                                     className="absolute top-0 left-0 h-full bg-slate-300 rounded-full opacity-60" 
@@ -549,11 +526,10 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                                 ></div>
                                             </div>
                                             
-                                            {/* Tooltip */}
                                             <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 hidden group-hover:block z-30 bg-gray-800 text-white text-xs rounded p-2 shadow-lg w-max pointer-events-none">
                                                 <p className="font-bold border-b border-gray-600 pb-1 mb-1">{item.name}</p>
-                                                <p>{momChartData.monthNames.current}: {currentVal.toLocaleString('id-ID')} Unit</p>
-                                                <p className="text-gray-400">{momChartData.monthNames.last}: {lastVal.toLocaleString('id-ID')} Unit</p>
+                                                <p>{momChartData.monthNames.current}: {new Intl.NumberFormat('id-ID').format(currentVal)} Unit</p>
+                                                <p className="text-gray-400">{momChartData.monthNames.last}: {new Intl.NumberFormat('id-ID').format(lastVal)} Unit</p>
                                             </div>
                                         </div>
                                     )
@@ -565,7 +541,6 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                     )}
                 </div>
                 
-                {/* Filters */}
                 <div className="mb-6 neu-card-flat p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center">
                     <input
                         type="text"
@@ -646,10 +621,10 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                         <p className="text-xs text-gray-500 font-mono">{item.userId}</p>
                                     </td>
                                     <td className="p-4 font-semibold">{item.produk}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">Rp {(Number(item.harga) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">{(Number(item.kuantiti) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
-                                    <td className="p-4 text-right whitespace-nowrap">Rp {(Number(item.totalPembelian) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
-                                    <td className="p-4 font-bold text-right text-green-600 whitespace-nowrap">+{(Number(item.pointsEarned) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
+                                    <td className="p-4 text-right whitespace-nowrap">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(item.harga) || 0)}</td>
+                                    <td className="p-4 text-right whitespace-nowrap">{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(item.kuantiti) || 0)}</td>
+                                    <td className="p-4 text-right whitespace-nowrap">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(item.totalPembelian) || 0)}</td>
+                                    <td className="p-4 font-bold text-right text-green-600 whitespace-nowrap">+{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(item.pointsEarned) || 0)}</td>
                                 </tr>
                             )) : (
                                  <tr>
