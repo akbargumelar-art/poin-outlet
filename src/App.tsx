@@ -3,7 +3,7 @@ import axios from 'axios';
 import { 
     User, Page, Transaction, LoyaltyProgram, RunningProgram, 
     Reward, RaffleProgram, RaffleWinner, Redemption, 
-    SpecialNumber, WhatsAppSettings, UserProfile, CouponRedemption, UserRole
+    SpecialNumber, WhatsAppSettings, UserProfile, CouponRedemption, UserRole, Location
 } from './types'; 
 import { ICONS } from './constants';
 
@@ -71,7 +71,7 @@ const App: React.FC = () => {
     const [loyaltyPrograms, setLoyaltyPrograms] = useState<LoyaltyProgram[]>([]);
     const [runningPrograms, setRunningPrograms] = useState<RunningProgram[]>([]);
     const [rewards, setRewards] = useState<Reward[]>([]);
-    // Fix: Added missing rafflePrograms state to address errors at lines 583 and 591
+    // Fix: rafflePrograms state added correctly
     const [rafflePrograms, setRafflePrograms] = useState<RaffleProgram[]>([]);
     const [raffleWinners, setRaffleWinners] = useState<RaffleWinner[]>([]);
     const [redemptionHistory, setRedemptionHistory] = useState<Redemption[]>([]);
@@ -79,7 +79,8 @@ const App: React.FC = () => {
     const [specialNumbers, setSpecialNumbers] = useState<SpecialNumber[]>([]);
     const [whatsAppSettings, setWhatsAppSettings] = useState<WhatsAppSettings | null>(null);
     const [specialNumberBannerUrl, setSpecialNumberBannerUrl] = useState<string | null>(null);
-    const [locations, setLocations] = useState<any[]>([]);
+    // Fix: typed locations as Location[]
+    const [locations, setLocations] = useState<Location[]>([]);
 
     // Helper: Determine roles
     const isSupervisor = currentUser?.role === 'supervisor';
@@ -102,7 +103,7 @@ const App: React.FC = () => {
             setLoyaltyPrograms(data.loyaltyPrograms || []);
             setRunningPrograms(data.runningPrograms || []);
             setRewards(data.rewards || []);
-            // Fix: Added rafflePrograms to fetch logic
+            // Correctly set rafflePrograms
             setRafflePrograms(data.rafflePrograms || []);
             setRaffleWinners(data.raffleWinners || []);
             setRedemptionHistory(data.redemptions || []);
@@ -595,6 +596,7 @@ const App: React.FC = () => {
         manajemenUndian: <ManajemenUndian users={users.filter(u => u.role === 'pelanggan')} programs={rafflePrograms} redemptions={couponRedemptions} onSave={saveRaffleProgram} onDelete={deleteRaffleProgram} isReadOnly={isSupervisor} />,
         manajemenPenukaran: <ManajemenPenukaran redemptions={redemptionHistory} users={users} isReadOnly={isSupervisor} adminUpdateRedemptionStatus={adminUpdateRedemptionStatus} adminBulkUpdateRedemptionStatus={adminBulkUpdateRedemptionStatus} />,
         manajemenTransaksi: <ManajemenTransaksi transactions={transactions} users={users} />,
+        // Corrected ManajemenNotifikasi props
         manajemenNotifikasi: <ManajemenNotifikasi settings={whatsAppSettings} onSave={adminSaveWhatsAppSettings} isReadOnly={isSupervisor} showToast={showToast} />,
         nomorSpesial: <NomorSpesialPage currentUser={currentUser!} numbers={specialNumbers.filter(n => !n.isSold)} recipientNumber={whatsAppSettings?.specialNumberRecipient || ''} specialNumberBannerUrl={specialNumberBannerUrl} />,
         manajemenNomor: <ManajemenNomor currentUser={currentUser!} numbers={specialNumbers} onSave={adminManageSpecialNumber} onDelete={adminDeleteSpecialNumber} onStatusChange={adminUpdateSpecialNumberStatus} onBulkUpload={adminBulkUploadNumbers} adminUploadSpecialNumberBanner={adminUploadSpecialNumberBanner} settings={whatsAppSettings} onSaveSettings={adminSaveWhatsAppSettings} />,
