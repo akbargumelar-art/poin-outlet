@@ -8,33 +8,35 @@ import {
 import { ICONS } from '../constants';
 
 // Components
-import MainLayout from './components/layout/MainLayout';
-import LoadingOverlay from './components/common/LoadingOverlay';
-import Modal from './components/common/Modal';
-import Toast from './components/common/Toast';
+/* Fix: Corrected import paths from ./ to ../ to properly resolve root-level directories from src/App.tsx */
+import MainLayout from '../components/layout/MainLayout';
+import LoadingOverlay from '../components/common/LoadingOverlay';
+import Modal from '../components/common/Modal';
+import Toast from '../components/common/Toast';
 
 // Pages
-import LandingPage from './pages/landing/LandingPage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import PelangganDashboard from './pages/pelanggan/PelangganDashboard';
-import HistoryPembelian from './pages/pelanggan/HistoryPembelian';
-import PencapaianProgram from './pages/pelanggan/PencapaianProgram';
-import TukarPoin from './pages/pelanggan/TukarPoin';
-import EditProfilePage from './pages/shared/EditProfilePage';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import ManajemenPelanggan from './pages/admin/ManajemenPelanggan';
-import TambahUserPage from './pages/admin/TambahUserPage';
-import ManajemenProgram from './pages/admin/ManajemenProgram';
-import ManajemenPoin from './pages/admin/ManajemenPoin';
-import ManajemenHadiah from './pages/admin/ManajemenHadiah';
-import ManajemenUndian from './pages/admin/ManajemenUndian';
-import ManajemenPenukaran from './pages/admin/ManajemenPenukaran';
-import ManajemenTransaksi from './pages/admin/ManajemenTransaksi';
-import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
-import NomorSpesialPage from './pages/shared/NomorSpesialPage';
-import ManajemenNomor from './pages/admin/ManajemenNomorSpesial';
-import ManajemenAktivitas from './pages/admin/ManajemenAktivitas';
+/* Fix: Corrected import paths from ./ to ../ to properly resolve root-level directories from src/App.tsx */
+import LandingPage from '../pages/landing/LandingPage';
+import LoginPage from '../pages/auth/LoginPage';
+import RegisterPage from '../pages/auth/RegisterPage';
+import PelangganDashboard from '../pages/pelanggan/PelangganDashboard';
+import HistoryPembelian from '../pages/pelanggan/HistoryPembelian';
+import PencapaianProgram from '../pages/pelanggan/PencapaianProgram';
+import TukarPoin from '../pages/pelanggan/TukarPoin';
+import EditProfilePage from '../pages/shared/EditProfilePage';
+import AdminDashboard from '../pages/admin/AdminDashboard';
+import ManajemenPelanggan from '../pages/admin/ManajemenPelanggan';
+import TambahUserPage from '../pages/admin/TambahUserPage';
+import ManajemenProgram from '../pages/admin/ManajemenProgram';
+import ManajemenPoin from '../pages/admin/ManajemenPoin';
+import ManajemenHadiah from '../pages/admin/ManajemenHadiah';
+import ManajemenUndian from '../pages/admin/ManajemenUndian';
+import ManajemenPenukaran from '../pages/admin/ManajemenPenukaran';
+import ManajemenTransaksi from '../pages/admin/ManajemenTransaksi';
+import ManajemenNotifikasi from '../pages/admin/ManajemenNotifikasi';
+import NomorSpesialPage from '../pages/shared/NomorSpesialPage';
+import ManajemenNomor from '../pages/admin/ManajemenNomorSpesial';
+import ManajemenAktivitas from '../pages/admin/ManajemenAktivitas';
 
 const App: React.FC = () => {
     // --- Session Persistence Helper ---
