@@ -22,7 +22,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(20);
 
-    // FIX: SummaryCard defined outside or at top level of component
+    // SummaryCard component definition
     const SummaryCard = ({ title, value, subtext, colorClass, icon }: { title: string, value: string, subtext?: string, colorClass: string, icon: string }) => (
         <div className="neu-card p-4 flex items-center justify-between">
             <div className="flex-grow min-w-0 pr-2">
@@ -120,7 +120,15 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
     }, [transactionsWithUserData, filter, searchTerm, produkFilter, sortConfig]);
     
-    const summaryStats = useMemo(() => {
+    // Explicitly typed return to avoid 'unknown' type errors in JSX
+    const summaryStats = useMemo<{
+        totalRevenue: number;
+        totalTransactions: number;
+        uniquePartners: number;
+        totalPoints: number;
+        bestSeller: string;
+        bestSellerQty: number;
+    }>(() => {
         let totalRevenue = 0;
         let totalPoints = 0;
         const uniquePartners = new Set<string>();
@@ -131,12 +139,12 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             const points = typeof t.pointsEarned === 'string' ? parseFloat(t.pointsEarned) : t.pointsEarned;
             const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
 
-            totalRevenue += (isNaN(revenue) ? 0 : revenue);
-            totalPoints += (isNaN(points) ? 0 : points);
+            totalRevenue += (isNaN(Number(revenue)) ? 0 : Number(revenue));
+            totalPoints += (isNaN(Number(points)) ? 0 : Number(points));
             uniquePartners.add(t.userId);
 
             const prodName = t.produk || 'Unknown';
-            productSales[prodName] = (productSales[prodName] || 0) + (isNaN(qty) ? 0 : qty);
+            productSales[prodName] = (productSales[prodName] || 0) + (isNaN(Number(qty)) ? 0 : Number(qty));
         });
 
         let bestSeller = '-';
@@ -165,7 +173,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         
         filteredTransactions.forEach(t => {
             const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
-            const safeQty = isNaN(qty) ? 0 : qty;
+            const safeQty = isNaN(Number(qty)) ? 0 : Number(qty);
             
             productQty[t.produk] = (productQty[t.produk] || 0) + safeQty;
         });
@@ -197,7 +205,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             }
             
             const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
-            const safeQty = isNaN(qty) ? 0 : qty;
+            const safeQty = isNaN(Number(qty)) ? 0 : Number(qty);
 
             dailyGroups[dateKey].total += safeQty;
             
@@ -239,7 +247,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
         transactionsWithUserData.forEach(t => {
             const tDate = new Date(t.date);
             const qty = typeof t.kuantiti === 'string' ? parseFloat(t.kuantiti as string) : t.kuantiti;
-            const safeQty = isNaN(qty) ? 0 : qty;
+            const safeQty = isNaN(Number(qty)) ? 0 : Number(qty);
 
             if (tDate >= currentMonthStart && tDate <= currentMonthEnd) {
                 currentStats[t.produk] = (currentStats[t.produk] || 0) + safeQty;
@@ -353,7 +361,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-                    {/* FIX: Use Number() to explicitly cast summaryStats properties to numbers for format() calls to avoid 'unknown' type errors */}
+                    {/* Explicitly cast summaryStats properties to numbers for format() calls to avoid 'unknown' type errors */}
                     <SummaryCard 
                         title="Total Omzet" 
                         value={`Rp ${new Intl.NumberFormat('id-ID', { compactDisplay: "short", notation: "compact" }).format(Number(summaryStats.totalRevenue))}`} 

@@ -35,7 +35,7 @@ export interface UserProfile {
     alamat?: string;
     tap?: string; 
     jabatan?: string;
-    photoUrl?: string; // Standardized to photoUrl
+    photoUrl?: string;
 }
 
 export interface User {
@@ -74,40 +74,36 @@ export interface Redemption {
     rewardName: string; 
     pointsSpent: number;
     date: string;
-    userName?: string; // Ditambahkan untuk halaman admin
-    userTap?: string; // Added for documentation display
+    userName?: string;
+    userTap?: string;
     status?: string;
     statusNote?: string;
     statusUpdatedAt?: string;
     documentationPhotoUrl?: string;
-    // AppSheet / Integration Fields
     receiverName?: string;
     receiverRole?: string;
     surveyorName?: string;
     locationCoordinates?: string;
 }
 
-// Tipe baru untuk menyatukan history
 export type HistoryItem = {
-    id?: number; // Added optional ID for reference
+    id?: number;
     date: string;
     type: 'Pembelian' | 'Penukaran';
     description: string;
-    amount: number; // Ini akan menjadi totalPembelian untuk pembelian
-    points: number; // bisa positif atau negatif
+    amount: number;
+    points: number;
     harga?: number;
     kuantiti?: number;
     status?: string;
     statusNote?: string;
     statusUpdatedAt?: string;
     documentationPhotoUrl?: string;
-    // New fields for Partner View
     receiverName?: string;
     receiverRole?: string;
     surveyorName?: string;
     locationCoordinates?: string;
 };
-
 
 export interface LoyaltyProgram {
     level: string;
@@ -131,8 +127,8 @@ export interface RunningProgram {
     mechanism: string;
     prizeCategory: PrizeCategory;
     prizeDescription: string;
-    startDate: string; // ISO date string e.g. "2025-09-01"
-    endDate: string;   // ISO date string e.g. "2025-09-30"
+    startDate: string;
+    endDate: string;
     imageUrl: string;
     targets: RunningProgramTarget[];
 }
@@ -141,7 +137,7 @@ export interface RaffleProgram {
     id: number;
     name: string;
     prize: string;
-    period: string; // e.g., "1 Sep - 30 Sep 2024"
+    period: string;
     isActive: boolean;
 }
 
@@ -149,7 +145,7 @@ export interface CouponRedemption {
     id: number;
     userId: string;
     raffleProgramId: number;
-    redeemedAt: string; // ISO date string
+    redeemedAt: string;
 }
 
 export interface RaffleWinner {
@@ -183,4 +179,6 @@ export interface WhatsAppSettings {
     apiKey: string;
     sessionName?: string;
     specialNumberRecipient: string;
+    specialNumberStatusRecipientType: 'personal' | 'group'; // New field
+    specialNumberStatusRecipientId: string; // New field
 }

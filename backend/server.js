@@ -2,53 +2,39 @@
 // Load environment variables from .env file
 require('dotenv').config();
 const path = require('path');
-const multer = require('multer'); // Required for error handling instance check
+const multer = require('multer');
 
 const express = require('express');
 const cors = require('cors');
-const db = require('./db'); // This is the database pool
+const db = require('./db');
 const authRoutes = require('./routes/auth');
 const digiposRoutes = require('./routes/digipos');
 const { router: dataRoutes, uploadRouter } = require('./routes/data');
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// --- MIDDLEWARE REORDERING TO FIX FILE UPLOADS ---
-// 1. Register file upload routes FIRST. These routes use multer and handle multipart/form-data.
 app.use('/api', uploadRouter);
-
-// 2. Register body parsers AFTER the upload routes.
-//    Increase the limit to 10MB to handle large photo uploads within the form data.
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-
-// 3. Register the remaining API routes that expect JSON or urlencoded bodies.
 app.use('/api/auth', authRoutes);
 app.use('/api/validate-digipos', digiposRoutes);
 app.use('/api', dataRoutes);
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date() });
 });
 
-// If a request starts with /api/ but doesn't match any route, send a 404 response.
 app.use('/api/*', (req, res) => {
     res.status(404).json({ message: 'API endpoint not found' });
 });
 
-// Global error handler - this must be the LAST middleware.
 app.use((err, req, res, next) => {
-    // Check for Multer's file size error
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ message: 'File terlalu besar. Ukuran maksimal adalah 10MB.' });
     }
-    // Check for Express's body-parser error for large payloads
     if (err.type === 'entity.too.large') {
          return res.status(413).json({ message: 'Request terlalu besar. Ukuran maksimal adalah 10MB.' });
     }
@@ -56,10 +42,8 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'An unexpected error occurred on the server.' });
 });
 
-
 const PORT = process.env.PORT || 4001;
 
-// Helper to run SQL safely without stopping the whole process
 const runSafe = async (connection, label, sql) => {
     try {
         await connection.execute(sql);
@@ -69,14 +53,12 @@ const runSafe = async (connection, label, sql) => {
     }
 };
 
-// Function to check and set up the database schema
 const setupDatabase = async () => {
     let connection; 
     try {
         connection = await db.getConnection();
-        console.log('--- Initializing Database Schema (Robust Mode) ---');
+        console.log('--- Initializing Database Schema ---');
 
-        // 1. Users Table
         await runSafe(connection, 'users', `
             CREATE TABLE IF NOT EXISTS users (
                 id VARCHAR(255) PRIMARY KEY,
@@ -100,7 +82,6 @@ const setupDatabase = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
-        // 2. Loyalty Programs (Levels)
         await runSafe(connection, 'loyalty_programs', `
             CREATE TABLE IF NOT EXISTS loyalty_programs (
                 level VARCHAR(50) PRIMARY KEY,
@@ -110,22 +91,6 @@ const setupDatabase = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
         
-        // Seed Levels if empty
-        try {
-            const [levels] = await connection.execute('SELECT count(*) as count FROM loyalty_programs');
-            if (levels[0].count === 0) {
-                console.log("Seeding Loyalty Programs...");
-                await connection.execute(`
-                    INSERT INTO loyalty_programs (level, pointsNeeded, benefit, multiplier) VALUES 
-                    ('Bronze', 0, 'Level awal', 1.0),
-                    ('Silver', 10000, 'Multiplier 1.1x', 1.1),
-                    ('Gold', 50000, 'Multiplier 1.2x', 1.2),
-                    ('Platinum', 100000, 'Multiplier 1.5x', 1.5);
-                `);
-            }
-        } catch (e) { console.error("Seeding Levels Error:", e.message); }
-
-        // 3. Rewards
         await runSafe(connection, 'rewards', `
             CREATE TABLE IF NOT EXISTS rewards (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -137,7 +102,6 @@ const setupDatabase = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
-        // 4. Transactions
         await runSafe(connection, 'transactions', `
             CREATE TABLE IF NOT EXISTS transactions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -151,23 +115,7 @@ const setupDatabase = async () => {
                 INDEX (user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
-        
-        // --- Schema Update for Transactions (Ensure Columns Exist) ---
-        try {
-            await connection.execute("SELECT total_pembelian FROM transactions LIMIT 1");
-        } catch (e) {
-            console.log("Migrating: Adding total_pembelian column to transactions");
-            await runSafe(connection, 'alter_transactions_total', "ALTER TABLE transactions ADD COLUMN total_pembelian DECIMAL(15,2) DEFAULT 0");
-        }
-        try {
-            await connection.execute("SELECT points_earned FROM transactions LIMIT 1");
-        } catch (e) {
-            console.log("Migrating: Adding points_earned column to transactions");
-            await runSafe(connection, 'alter_transactions_points', "ALTER TABLE transactions ADD COLUMN points_earned INT DEFAULT 0");
-        }
 
-
-        // 5. Redemptions
         await runSafe(connection, 'redemptions', `
             CREATE TABLE IF NOT EXISTS redemptions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -189,7 +137,6 @@ const setupDatabase = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
-        // 6. Running Programs
         await runSafe(connection, 'running_programs', `
             CREATE TABLE IF NOT EXISTS running_programs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -203,7 +150,6 @@ const setupDatabase = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
-        // 7. Running Program Targets
         await runSafe(connection, 'running_program_targets', `
             CREATE TABLE IF NOT EXISTS running_program_targets (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -214,7 +160,6 @@ const setupDatabase = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
-        // 8. Special Numbers
         await runSafe(connection, 'special_numbers', `
             CREATE TABLE IF NOT EXISTS special_numbers (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -226,39 +171,6 @@ const setupDatabase = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
-        // 9. Raffle Programs
-        await runSafe(connection, 'raffle_programs', `
-            CREATE TABLE IF NOT EXISTS raffle_programs (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255),
-                prize VARCHAR(255),
-                period VARCHAR(100),
-                is_active TINYINT(1) DEFAULT 0
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
-
-        // 10. Raffle Winners
-        await runSafe(connection, 'raffle_winners', `
-            CREATE TABLE IF NOT EXISTS raffle_winners (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255),
-                prize VARCHAR(255),
-                photo_url VARCHAR(2048),
-                period VARCHAR(100)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
-
-        // 11. Coupon Redemptions
-        await runSafe(connection, 'coupon_redemptions', `
-            CREATE TABLE IF NOT EXISTS coupon_redemptions (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id VARCHAR(255),
-                raffle_program_id INT,
-                redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
-
-        // 12. WhatsApp Settings
         await runSafe(connection, 'whatsapp_settings', `
             CREATE TABLE IF NOT EXISTS whatsapp_settings (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -268,11 +180,21 @@ const setupDatabase = async () => {
                 recipient_id VARCHAR(50),
                 api_key VARCHAR(255),
                 session_name VARCHAR(50),
-                special_number_recipient VARCHAR(50)
+                special_number_recipient VARCHAR(50),
+                special_number_status_recipient_type ENUM('personal', 'group') DEFAULT 'personal',
+                special_number_status_recipient_id VARCHAR(100)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
+        
+        // Migration check for missing columns in whatsapp_settings
+        try {
+            await connection.execute("SELECT special_number_status_recipient_id FROM whatsapp_settings LIMIT 1");
+        } catch (e) {
+            console.log("Migrating: Adding special number status notification columns");
+            await runSafe(connection, 'alter_wa_settings_type', "ALTER TABLE whatsapp_settings ADD COLUMN special_number_status_recipient_type ENUM('personal', 'group') DEFAULT 'personal'");
+            await runSafe(connection, 'alter_wa_settings_id', "ALTER TABLE whatsapp_settings ADD COLUMN special_number_status_recipient_id VARCHAR(100)");
+        }
 
-        // 13. DigiPos Data (Master Data)
         await runSafe(connection, 'digipos_data', `
             CREATE TABLE IF NOT EXISTS digipos_data (
                 id_digipos VARCHAR(50) PRIMARY KEY,
@@ -283,8 +205,6 @@ const setupDatabase = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
-        console.log('--- Database Schema Initialized Successfully ---');
-
     } catch (err) {
         console.error('Database setup FATAL ERROR:', err);
     } finally {
@@ -292,63 +212,7 @@ const setupDatabase = async () => {
     }
 };
 
-
-// --- Function to backfill names in historical redemption data ---
-const backfillRedemptionNames = async () => {
-    let connection;
-    try {
-        connection = await db.getConnection();
-        
-        // 1. Backfill Redemption Names
-        try {
-            const [columns] = await connection.execute("SHOW COLUMNS FROM redemptions LIKE 'user_name'");
-            if (columns.length > 0) {
-                const [recordsToUpdate] = await connection.execute(
-                    "SELECT id, user_id, reward_id FROM redemptions WHERE user_name IS NULL OR reward_name IS NULL"
-                );
-
-                if (recordsToUpdate.length > 0) {
-                    console.log(`Backfilling ${recordsToUpdate.length} redemption records...`);
-                    for (const record of recordsToUpdate) {
-                        const [userRows] = await connection.execute("SELECT nama FROM users WHERE id = ?", [record.user_id]);
-                        const [rewardRows] = await connection.execute("SELECT name FROM rewards WHERE id = ?", [record.reward_id]);
-
-                        if (userRows[0] || rewardRows[0]) {
-                             await connection.execute(
-                                "UPDATE redemptions SET user_name = ?, reward_name = ? WHERE id = ?",
-                                [userRows[0]?.nama, rewardRows[0]?.name, record.id]
-                            );
-                        }
-                    }
-                }
-            }
-        } catch (e) { console.log("Skipping redemption backfill (table/col missing)"); }
-
-        // 2. Backfill Transaction Totals (Fixes the "0" issue)
-        try {
-             // Update total_pembelian = harga * kuantiti where total is 0 or NULL
-             const [result] = await connection.execute(
-                "UPDATE transactions SET total_pembelian = harga * kuantiti WHERE (total_pembelian IS NULL OR total_pembelian = 0) AND harga > 0"
-             );
-             if (result.affectedRows > 0) {
-                 console.log(`Fixed ${result.affectedRows} transactions with missing total_pembelian.`);
-             }
-        } catch (e) { console.error("Transaction backfill error:", e.message); }
-
-    } catch (err) {
-        console.error('Backfill Error:', err);
-    } finally {
-        if (connection) connection.release();
-    }
-};
-
-
-// START THE SERVER
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    
-    // Run DB setup in the background
-    setupDatabase()
-        .then(() => backfillRedemptionNames())
-        .catch(err => console.error("Critical Background Setup Error:", err));
+    setupDatabase().catch(err => console.error(err));
 });

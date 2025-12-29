@@ -8,7 +8,7 @@ interface ManajemenNotifikasiProps {
     settings: WhatsAppSettings | null;
     onSave: (settings: WhatsAppSettings) => Promise<boolean>;
     isReadOnly?: boolean;
-    showToast: (message: string, type: 'success' | 'error') => void; // New prop
+    showToast: (message: string, type: 'success' | 'error') => void;
 }
 
 const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onSave, isReadOnly, showToast }) => {
@@ -19,7 +19,9 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
         recipientId: '',
         apiKey: '',
         sessionName: 'default',
-        specialNumberRecipient: ''
+        specialNumberRecipient: '',
+        specialNumberStatusRecipientType: 'personal',
+        specialNumberStatusRecipientId: ''
     });
     const [isSaving, setIsSaving] = useState(false);
 
@@ -31,24 +33,15 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        if (name === 'recipientType') {
-            setFormData(prev => ({
-                ...prev,
-                recipientType: value as 'personal' | 'group',
-                recipientId: '' 
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: value
-            }));
-        }
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
-        // Trim trailing slash if user adds one, to ensure consistency
         const cleanedUrl = formData.webhookUrl.endsWith('/') ? formData.webhookUrl.slice(0, -1) : formData.webhookUrl;
         const success = await onSave({ ...formData, webhookUrl: cleanedUrl });
         
@@ -66,119 +59,70 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
             <h1 className="text-2xl md:text-3xl font-bold text-gray-700 mb-6">Pengaturan Notifikasi WhatsApp</h1>
             <div className="neu-card p-8 max-w-2xl mx-auto">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-gray-600 text-sm font-semibold mb-2 flex items-center gap-2">
-                            <Icon path={ICONS.link} className="w-5 h-5" /> Webhook URL (WAHA)
-                        </label>
-                        <input 
-                            type="url"
-                            name="webhookUrl"
-                            value={formData.webhookUrl}
-                            onChange={handleChange}
-                            placeholder="https://waha.abkciraya.cloud"
-                            className="input-field"
-                            required
-                            disabled={isReadOnly}
-                        />
-                         <p className="text-xs text-gray-500 mt-1">URL dasar dari server WAHA Anda (tanpa /api/... di belakangnya).</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-gray-600 text-sm font-semibold mb-2 flex items-center gap-2">
-                           <Icon path={ICONS.lock} className="w-5 h-5" /> WAHA API Key
-                        </label>
-                        <input 
-                            type="password"
-                            name="apiKey"
-                            value={formData.apiKey}
-                            onChange={handleChange}
-                            placeholder="Masukkan API Key dari WAHA"
-                            className="input-field"
-                            required
-                            disabled={isReadOnly}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">API Key yang Anda atur saat instalasi WAHA (Header: X-Api-Key).</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-gray-600 text-sm font-semibold mb-2 flex items-center gap-2">
-                           <Icon path={ICONS.idCard} className="w-5 h-5" /> Nama Sesi (Session Name)
-                        </label>
-                        <input 
-                            type="text"
-                            name="sessionName"
-                            value={formData.sessionName || ''}
-                            onChange={handleChange}
-                            placeholder="Contoh: default"
-                            className="input-field"
-                            required
-                            disabled={isReadOnly}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Nama sesi yang Anda gunakan saat memulai WAHA (biasanya 'default').</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-gray-600 text-sm font-semibold mb-2 flex items-center gap-2">
-                           <Icon path={ICONS.whatsapp} className="w-5 h-5" /> Nomor Pengirim
-                        </label>
-                        <input 
-                            type="tel"
-                            name="senderNumber"
-                            value={formData.senderNumber}
-                            onChange={handleChange}
-                            placeholder="Contoh: 6281234567890"
-                            className="input-field"
-                            required
-                            disabled={isReadOnly}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Nomor WhatsApp yang terhubung ke sesi WAHA sebagai pengirim.</p>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
+                        <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-4">
+                            <Icon path={ICONS.store} className="w-5 h-5" /> Server WAHA
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-gray-600 text-sm font-semibold mb-2">Webhook URL (WAHA)</label>
+                                <input type="url" name="webhookUrl" value={formData.webhookUrl} onChange={handleChange} placeholder="https://waha.abkciraya.cloud" className="input-field" required disabled={isReadOnly} />
+                            </div>
+                            <div>
+                                <label className="block text-gray-600 text-sm font-semibold mb-2">WAHA API Key</label>
+                                <input type="password" name="apiKey" value={formData.apiKey} onChange={handleChange} placeholder="X-Api-Key" className="input-field" required disabled={isReadOnly} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-gray-600 text-sm font-semibold mb-2">Sesi (Session)</label>
+                                    <input type="text" name="sessionName" value={formData.sessionName || ''} onChange={handleChange} placeholder="default" className="input-field" required disabled={isReadOnly} />
+                                </div>
+                                <div>
+                                    <label className="block text-gray-600 text-sm font-semibold mb-2">Nomor Pengirim</label>
+                                    <input type="tel" name="senderNumber" value={formData.senderNumber} onChange={handleChange} placeholder="6281234567890" className="input-field" required disabled={isReadOnly} />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="pt-4 border-t">
-                         <h3 className="text-lg font-bold text-gray-700">Tujuan Notifikasi</h3>
+                         <h3 className="text-lg font-bold text-gray-700 mb-4">Konfigurasi Tujuan Notifikasi</h3>
                     </div>
 
-                    <div>
-                        <label className="block text-gray-600 text-sm font-semibold mb-2">Tujuan Notifikasi Penukaran Poin</label>
-                        <select 
-                            name="recipientType"
-                            value={formData.recipientType}
-                            onChange={handleChange}
-                            className="input-field"
-                            disabled={isReadOnly}
-                        >
-                            <option value="personal">Nomor Personal</option>
-                            <option value="group">Grup WhatsApp</option>
-                        </select>
-                         <input 
-                            type="text"
-                            name="recipientId"
-                            value={formData.recipientId}
-                            onChange={handleChange}
-                            placeholder={formData.recipientType === 'personal' ? 'Contoh: 6289876543210' : 'Contoh: 12036304@g.us'}
-                            className="input-field mt-2"
-                            required
-                            disabled={isReadOnly}
-                        />
+                    {/* SECTION 1: Redemption */}
+                    <div className="p-4 neu-inset rounded-xl">
+                        <label className="block text-gray-700 font-bold mb-2">Tujuan Notifikasi Penukaran Poin</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <select name="recipientType" value={formData.recipientType} onChange={handleChange} className="input-field sm:col-span-1" disabled={isReadOnly}>
+                                <option value="personal">Personal</option>
+                                <option value="group">Grup WA</option>
+                            </select>
+                            <input type="text" name="recipientId" value={formData.recipientId} onChange={handleChange} placeholder={formData.recipientType === 'personal' ? '628xxx' : '1203xxx@g.us'} className="input-field sm:col-span-2" required disabled={isReadOnly} />
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-2 italic">Notifikasi dikirim saat mitra melakukan penukaran poin di katalog.</p>
                     </div>
-                    
-                    <div>
-                        <label className="block text-gray-600 text-sm font-semibold mb-2">
-                           Nomor Penerima Pesanan Nomor Spesial
+
+                    {/* SECTION 2: Special Number Purchase (Tombol Beli Mitra) */}
+                    <div className="p-4 neu-inset rounded-xl">
+                        <label className="block text-gray-700 font-bold mb-2">Tujuan Pesanan Nomor Spesial (Mitra)</label>
+                        <input type="text" name="specialNumberRecipient" value={formData.specialNumberRecipient} onChange={handleChange} placeholder="628xxx" className="input-field" required disabled={isReadOnly} />
+                        <p className="text-[10px] text-gray-400 mt-2 italic">Nomor ini akan dihubungi oleh Mitra via WA saat mereka mengklik tombol "Beli via WhatsApp".</p>
+                    </div>
+
+                    {/* SECTION 3: Special Number Status Auto Notification (Group/Personal) */}
+                    <div className="p-4 neu-inset rounded-xl border border-yellow-200 bg-yellow-50/30">
+                        <label className="block text-yellow-800 font-bold mb-2 flex items-center gap-2">
+                             <Icon path={ICONS.simCard} className="w-4 h-4" /> 
+                             Notifikasi Otomatis Status Terjual
                         </label>
-                        <input 
-                            type="text"
-                            name="specialNumberRecipient"
-                            value={formData.specialNumberRecipient}
-                            onChange={handleChange}
-                            placeholder="Contoh: 628123456789 (tanpa + atau 0 di depan)"
-                            className="input-field"
-                            required
-                            disabled={isReadOnly}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            Nomor yang akan menerima pesanan nomor spesial dari mitra. Awali dengan kode negara (62).
-                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <select name="specialNumberStatusRecipientType" value={formData.specialNumberStatusRecipientType} onChange={handleChange} className="input-field sm:col-span-1" disabled={isReadOnly}>
+                                <option value="personal">Personal</option>
+                                <option value="group">Grup WA</option>
+                            </select>
+                            <input type="text" name="specialNumberStatusRecipientId" value={formData.specialNumberStatusRecipientId} onChange={handleChange} placeholder={formData.specialNumberStatusRecipientType === 'personal' ? '628xxx' : '1203xxx@g.us'} className="input-field sm:col-span-2" required disabled={isReadOnly} />
+                        </div>
+                        <p className="text-[10px] text-yellow-600 mt-2 italic font-medium">Notifikasi dikirim otomatis oleh sistem ke Group/Personal terpilih saat admin merubah status nomor menjadi "Terjual".</p>
                     </div>
                     
                     {!isReadOnly && (
