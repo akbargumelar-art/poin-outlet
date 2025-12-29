@@ -120,15 +120,8 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
 
     }, [transactionsWithUserData, filter, searchTerm, produkFilter, sortConfig]);
     
-    // Explicitly typed return to avoid 'unknown' type errors in JSX
-    const summaryStats = useMemo<{
-        totalRevenue: number;
-        totalTransactions: number;
-        uniquePartners: number;
-        totalPoints: number;
-        bestSeller: string;
-        bestSellerQty: number;
-    }>(() => {
+    // Explicitly type-cast the result of useMemo to avoid unknown type issues in JSX
+    const summaryStats = useMemo(() => {
         let totalRevenue = 0;
         let totalPoints = 0;
         const uniquePartners = new Set<string>();
@@ -164,7 +157,14 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
             bestSeller,
             bestSellerQty: maxQty
         };
-    }, [filteredTransactions]);
+    }, [filteredTransactions]) as {
+        totalRevenue: number;
+        totalTransactions: number;
+        uniquePartners: number;
+        totalPoints: number;
+        bestSeller: string;
+        bestSellerQty: number;
+    };
 
     const chartData = useMemo(() => {
         if (filteredTransactions.length === 0) return null;
@@ -361,24 +361,24 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-                    {/* Explicitly cast summaryStats properties to numbers for format() calls to avoid 'unknown' type errors */}
+                    {/* FIX: Ensure format argument is typed as number by removing redundant Number constructor call which sometimes causes unknown inference errors */}
                     <SummaryCard 
                         title="Total Omzet" 
-                        value={`Rp ${new Intl.NumberFormat('id-ID', { compactDisplay: "short", notation: "compact" }).format(Number(summaryStats.totalRevenue))}`} 
+                        value={`Rp ${new Intl.NumberFormat('id-ID', { compactDisplay: "short", notation: "compact" }).format(summaryStats.totalRevenue)}`} 
                         subtext="Dari data difilter"
                         colorClass="text-green-600" 
                         icon={ICONS.history} 
                     />
                     <SummaryCard 
                         title="Total Transaksi" 
-                        value={new Intl.NumberFormat('id-ID').format(Number(summaryStats.totalTransactions))} 
+                        value={new Intl.NumberFormat('id-ID').format(summaryStats.totalTransactions)} 
                         subtext="Frekuensi"
                         colorClass="text-blue-600" 
                         icon={ICONS.dashboard} 
                     />
                     <SummaryCard 
                         title="Mitra Berbelanja" 
-                        value={new Intl.NumberFormat('id-ID').format(Number(summaryStats.uniquePartners))} 
+                        value={new Intl.NumberFormat('id-ID').format(summaryStats.uniquePartners)} 
                         subtext="Mitra unik"
                         colorClass="text-purple-600" 
                         icon={ICONS.users} 
@@ -392,7 +392,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                     />
                     <SummaryCard 
                         title="Poin Diberikan" 
-                        value={new Intl.NumberFormat('id-ID', { compactDisplay: "short", notation: "compact" }).format(Number(summaryStats.totalPoints))} 
+                        value={new Intl.NumberFormat('id-ID', { compactDisplay: "short", notation: "compact" }).format(summaryStats.totalPoints)} 
                         subtext="Total Reward"
                         colorClass="text-red-600" 
                         icon={ICONS.gift} 
@@ -434,7 +434,7 @@ const ManajemenTransaksi: React.FC<ManajemenTransaksiProps> = ({ transactions, u
                                                             {Object.entries(day.breakdown).sort((a,b)=>Number(b[1])-Number(a[1])).map(([prod, val]) => (
                                                                 <div key={prod} className="flex justify-between gap-4">
                                                                     <span className="opacity-80">{prod}:</span>
-                                                                    <span>{new Intl.NumberFormat('id-ID').format(val)}</span>
+                                                                    <span>{new Intl.NumberFormat('id-ID').format(val as number)}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
