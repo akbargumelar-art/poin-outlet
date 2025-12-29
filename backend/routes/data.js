@@ -3,33 +3,27 @@ const express = require('express');
 const router = express.Router();
 const uploadRouter = express.Router();
 const db = require('../db');
-const bcrypt = require('bcryptjs');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const axios = require('axios');
 
-// ==========================================
-// PROACTIVE TWO-WAY SYNC (WEB CHECKS APPSHEET)
-// ==========================================
+// ============================================================
+// INTEGRASI APPSHEET: SINKRONISASI DUA ARAH (PULL FROM APPSHEET)
+// ============================================================
 router.post('/integration/appsheet/sync-all', async (req, res) => {
     try {
-        // 1. Ambil Pengaturan API AppSheet dari Database
-        const [settingsRows] = await db.execute('SELECT * FROM whatsapp_settings LIMIT 1');
-        const settings = settingsRows[0];
-        
-        // Kita asumsikan API Key AppSheet disimpan di kolom tertentu atau env
-        // Untuk demo, kita gunakan format standar API AppSheet
-        const APPSHEET_APP_ID = process.env.APPSHEET_APP_ID; 
+        const APPSHEET_APP_ID = process.env.APPSHEET_APP_ID;
         const APPSHEET_ACCESS_KEY = process.env.APPSHEET_ACCESS_KEY;
 
         if (!APPSHEET_APP_ID || !APPSHEET_ACCESS_KEY) {
-            return res.status(400).json({ success: false, message: 'API Key AppSheet belum diatur di server (ENV).' });
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Kredensial AppSheet belum terbaca di server. Pastikan sudah restart PM2 dengan --update-env' 
+            });
         }
 
-        // 2. Panggil API AppSheet (Action: Find)
+        // Ambil data terbaru dari AppSheet (Table: Tracking Tukar Poin)
         const appsheetUrl = `https://api.appsheet.com/api/v1/apps/${APPSHEET_APP_ID}/tables/Tracking Tukar Poin/Action`;
         
+        console.log('Memulai penarikan data dari AppSheet...');
         const response = await axios.post(appsheetUrl, {
             "Action": "Find",
             "Properties": { "Locale": "id-ID" },
@@ -40,7 +34,7 @@ router.post('/integration/appsheet/sync-all', async (req, res) => {
 
         const appsheetRows = response.data;
         if (!Array.isArray(appsheetRows)) {
-            throw new Error("Format data dari AppSheet tidak valid.");
+            throw new Error("Gagal mengambil data: Respon API AppSheet bukan array.");
         }
 
         let updateCount = 0;
@@ -53,38 +47,43 @@ router.post('/integration/appsheet/sync-all', async (req, res) => {
                 const redeemId = row['ID Redeem'];
                 if (!redeemId) continue;
 
-                // Ambil data lokal untuk dibandingkan
+                // Cek data lokal di database web
                 const [localData] = await connection.execute('SELECT * FROM redemptions WHERE id = ?', [redeemId]);
                 
                 if (localData.length > 0) {
                     const local = localData[0];
                     
-                    // CEK PERBEDAAN: Jika status berbeda atau foto baru diisi di AppSheet
-                    const hasDifference = 
-                        (row['Status'] && row['Status'] !== local.status) ||
-                        (row['Nama Surveyor'] && row['Nama Surveyor'] !== local.surveyor_name) ||
-                        (row['Photo Dokumentasi'] && row['Photo Dokumentasi'] !== local.documentation_photo_url) ||
-                        (row['Long - Lat'] && row['Long - Lat'] !== local.location_coordinates);
+                    // Bandingkan field penting. Jika di AppSheet sudah diisi (tidak kosong) 
+                    // dan berbeda dengan Web, maka update Web.
+                    const appsheetPhoto = row['Photo Dokumentasi'] || '';
+                    const appsheetLocation = row['Long - Lat'] || '';
+                    const appsheetReceiver = row['Nama Penerima'] || '';
+                    const appsheetSurveyor = row['Nama Surveyor'] || '';
 
-                    if (hasDifference) {
+                    const needsUpdate = 
+                        (appsheetPhoto !== '' && appsheetPhoto !== local.documentation_photo_url) ||
+                        (appsheetLocation !== '' && appsheetLocation !== local.location_coordinates) ||
+                        (appsheetReceiver !== '' && appsheetReceiver !== local.receiver_name) ||
+                        (appsheetSurveyor !== '' && appsheetSurveyor !== local.surveyor_name);
+
+                    if (needsUpdate) {
                         const updateSql = `
                             UPDATE redemptions SET 
-                                status = ?, 
-                                surveyor_name = ?, 
+                                status = 'Selesai', 
                                 documentation_photo_url = ?, 
                                 location_coordinates = ?,
                                 receiver_name = ?,
                                 receiver_role = ?,
+                                surveyor_name = ?,
                                 status_updated_at = NOW()
                             WHERE id = ?
                         `;
                         await connection.execute(updateSql, [
-                            row['Status'] || local.status,
-                            row['Nama Surveyor'] || local.surveyor_name,
-                            row['Photo Dokumentasi'] || local.documentation_photo_url,
-                            row['Long - Lat'] || local.location_coordinates,
-                            row['Nama Penerima'] || local.receiver_name,
-                            row['Penerima Hadiah'] || local.receiver_role,
+                            appsheetPhoto,
+                            appsheetLocation,
+                            appsheetReceiver,
+                            row['Penerima Hadiah'] || 'Frontliner',
+                            appsheetSurveyor,
                             redeemId
                         ]);
                         updateCount++;
@@ -93,7 +92,10 @@ router.post('/integration/appsheet/sync-all', async (req, res) => {
             }
 
             await connection.commit();
-            res.json({ success: true, message: `Sinkronisasi selesai. ${updateCount} data diperbarui otomatis.` });
+            res.json({ 
+                success: true, 
+                message: `Sinkronisasi Berhasil! ${updateCount} data diperbarui sesuai kondisi terbaru di AppSheet.` 
+            });
 
         } catch (err) {
             await connection.rollback();
@@ -103,19 +105,18 @@ router.post('/integration/appsheet/sync-all', async (req, res) => {
         }
 
     } catch (error) {
-        console.error('Proactive Sync Error:', error.message);
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Sync Error:', error.message);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Gagal sinkronisasi: ' + error.message 
+        });
     }
 });
 
-// --- Endpoint sinkronisasi satu arah (webhook) tetap ada untuk kecepatan ---
-router.post('/integration/redemption/update', async (req, res) => {
-    // ... (kode webhook sebelumnya)
-});
-
-// Bootstrap & Other routes...
+// Endpoint bootstrap dan lainnya tetap di bawah...
 router.get('/bootstrap', async (req, res) => {
     // ... existing bootstrap code
+    res.json({ /* data */ });
 });
 
 module.exports = { router, uploadRouter };
