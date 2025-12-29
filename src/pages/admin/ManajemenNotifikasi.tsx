@@ -26,8 +26,12 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        if (settings) {
-            setFormData(settings);
+        if (settings && typeof settings === 'object') {
+            // Gunakan spread untuk memastikan nilai default tetap ada jika data dari backend tidak lengkap
+            setFormData(prev => ({
+                ...prev,
+                ...settings
+            }));
         }
     }, [settings]);
 
@@ -42,6 +46,7 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
+        // Trim trailing slash
         const cleanedUrl = formData.webhookUrl.endsWith('/') ? formData.webhookUrl.slice(0, -1) : formData.webhookUrl;
         const success = await onSave({ ...formData, webhookUrl: cleanedUrl });
         
@@ -102,14 +107,14 @@ const ManajemenNotifikasi: React.FC<ManajemenNotifikasiProps> = ({ settings, onS
                         <p className="text-[10px] text-gray-400 mt-2 italic">Notifikasi dikirim saat mitra melakukan penukaran poin di katalog.</p>
                     </div>
 
-                    {/* SECTION 2: Special Number Purchase (Tombol Beli Mitra) */}
+                    {/* SECTION 2: Special Number Purchase */}
                     <div className="p-4 neu-inset rounded-xl">
                         <label className="block text-gray-700 font-bold mb-2">Tujuan Pesanan Nomor Spesial (Mitra)</label>
                         <input type="text" name="specialNumberRecipient" value={formData.specialNumberRecipient} onChange={handleChange} placeholder="628xxx" className="input-field" required disabled={isReadOnly} />
                         <p className="text-[10px] text-gray-400 mt-2 italic">Nomor ini akan dihubungi oleh Mitra via WA saat mereka mengklik tombol "Beli via WhatsApp".</p>
                     </div>
 
-                    {/* SECTION 3: Special Number Status Auto Notification (Group/Personal) */}
+                    {/* SECTION 3: Special Number Status Auto Notification */}
                     <div className="p-4 neu-inset rounded-xl border border-yellow-200 bg-yellow-50/30">
                         <label className="block text-yellow-800 font-bold mb-2 flex items-center gap-2">
                              <Icon path={ICONS.simCard} className="w-4 h-4" /> 

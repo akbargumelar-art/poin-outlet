@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// Fix: Menggunakan casing yang konsisten dengan file src/App.tsx
+// Fix: Menggunakan casing yang konsisten dengan file src/App.tsx untuk menghindari duplikasi casing di lingkungan case-insensitive
 import App from './src/App';
 
 const rootElement = document.getElementById('root');
