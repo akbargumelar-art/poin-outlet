@@ -4,39 +4,37 @@ import {
     User, Page, Transaction, LoyaltyProgram, RunningProgram, 
     Reward, RaffleProgram, RaffleWinner, Redemption, 
     SpecialNumber, WhatsAppSettings, UserProfile, CouponRedemption, UserRole
-} from '../types'; 
-import { ICONS } from '../constants';
+} from './types'; 
+import { ICONS } from './constants';
 
 // Components
-/* Fix: Corrected import paths from ./ to ../ to properly resolve root-level directories from src/App.tsx */
-import MainLayout from '../components/layout/MainLayout';
-import LoadingOverlay from '../components/common/LoadingOverlay';
-import Modal from '../components/common/Modal';
-import Toast from '../components/common/Toast';
+import MainLayout from './components/layout/MainLayout';
+import LoadingOverlay from './components/common/LoadingOverlay';
+import Modal from './components/common/Modal';
+import Toast from './components/common/Toast';
 
 // Pages
-/* Fix: Corrected import paths from ./ to ../ to properly resolve root-level directories from src/App.tsx */
-import LandingPage from '../pages/landing/LandingPage';
-import LoginPage from '../pages/auth/LoginPage';
-import RegisterPage from '../pages/auth/RegisterPage';
-import PelangganDashboard from '../pages/pelanggan/PelangganDashboard';
-import HistoryPembelian from '../pages/pelanggan/HistoryPembelian';
-import PencapaianProgram from '../pages/pelanggan/PencapaianProgram';
-import TukarPoin from '../pages/pelanggan/TukarPoin';
-import EditProfilePage from '../pages/shared/EditProfilePage';
-import AdminDashboard from '../pages/admin/AdminDashboard';
-import ManajemenPelanggan from '../pages/admin/ManajemenPelanggan';
-import TambahUserPage from '../pages/admin/TambahUserPage';
-import ManajemenProgram from '../pages/admin/ManajemenProgram';
-import ManajemenPoin from '../pages/admin/ManajemenPoin';
-import ManajemenHadiah from '../pages/admin/ManajemenHadiah';
-import ManajemenUndian from '../pages/admin/ManajemenUndian';
-import ManajemenPenukaran from '../pages/admin/ManajemenPenukaran';
-import ManajemenTransaksi from '../pages/admin/ManajemenTransaksi';
-import ManajemenNotifikasi from '../pages/admin/ManajemenNotifikasi';
-import NomorSpesialPage from '../pages/shared/NomorSpesialPage';
-import ManajemenNomor from '../pages/admin/ManajemenNomorSpesial';
-import ManajemenAktivitas from '../pages/admin/ManajemenAktivitas';
+import LandingPage from './pages/landing/LandingPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import PelangganDashboard from './pages/pelanggan/PelangganDashboard';
+import HistoryPembelian from './pages/pelanggan/HistoryPembelian';
+import PencapaianProgram from './pages/pelanggan/PencapaianProgram';
+import TukarPoin from './pages/pelanggan/TukarPoin';
+import EditProfilePage from './pages/shared/EditProfilePage';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ManajemenPelanggan from './pages/admin/ManajemenPelanggan';
+import TambahUserPage from './pages/admin/TambahUserPage';
+import ManajemenProgram from './pages/admin/ManajemenProgram';
+import ManajemenPoin from './pages/admin/ManajemenPoin';
+import ManajemenHadiah from './pages/admin/ManajemenHadiah';
+import ManajemenUndian from './pages/admin/ManajemenUndian';
+import ManajemenPenukaran from './pages/admin/ManajemenPenukaran';
+import ManajemenTransaksi from './pages/admin/ManajemenTransaksi';
+import ManajemenNotifikasi from './pages/admin/ManajemenNotifikasi';
+import NomorSpesialPage from './pages/shared/NomorSpesialPage';
+import ManajemenNomor from './pages/admin/ManajemenNomorSpesial';
+import ManajemenAktivitas from './pages/admin/ManajemenAktivitas';
 
 const App: React.FC = () => {
     // --- Session Persistence Helper ---
@@ -73,6 +71,7 @@ const App: React.FC = () => {
     const [loyaltyPrograms, setLoyaltyPrograms] = useState<LoyaltyProgram[]>([]);
     const [runningPrograms, setRunningPrograms] = useState<RunningProgram[]>([]);
     const [rewards, setRewards] = useState<Reward[]>([]);
+    // Fix: Added missing rafflePrograms state to address errors at lines 583 and 591
     const [rafflePrograms, setRafflePrograms] = useState<RaffleProgram[]>([]);
     const [raffleWinners, setRaffleWinners] = useState<RaffleWinner[]>([]);
     const [redemptionHistory, setRedemptionHistory] = useState<Redemption[]>([]);
@@ -84,7 +83,6 @@ const App: React.FC = () => {
 
     // Helper: Determine roles
     const isSupervisor = currentUser?.role === 'supervisor';
-    const isOperator = currentUser?.role === 'operator';
 
     // --- Toast Helper ---
     const showToast = (message: string, type: 'success' | 'error') => {
@@ -104,6 +102,7 @@ const App: React.FC = () => {
             setLoyaltyPrograms(data.loyaltyPrograms || []);
             setRunningPrograms(data.runningPrograms || []);
             setRewards(data.rewards || []);
+            // Fix: Added rafflePrograms to fetch logic
             setRafflePrograms(data.rafflePrograms || []);
             setRaffleWinners(data.raffleWinners || []);
             setRedemptionHistory(data.redemptions || []);
