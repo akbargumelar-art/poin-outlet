@@ -1,7 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './src/App';
+import App from './src/App'; // Ensured casing consistency with src/App.tsx
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

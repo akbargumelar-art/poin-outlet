@@ -20,7 +20,8 @@ export type Page =
     | 'manajemenNotifikasi'
     | 'nomorSpesial'
     | 'manajemenNomor'
-    | 'manajemenTransaksi';
+    | 'manajemenTransaksi'
+    | 'manajemenAktivitas';
 
 export interface UserProfile {
     nama: string;
