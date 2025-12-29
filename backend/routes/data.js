@@ -129,7 +129,60 @@ router.get('/bootstrap', async (req, res) => {
 });
 
 // ============================================================
-// 2. APPSHEET SYNC (SINKRONISASI DUA ARAH)
+// 2. SETTINGS: WHATSAPP
+// ============================================================
+router.put('/settings/whatsapp', async (req, res) => {
+    const { 
+        webhookUrl, senderNumber, recipientType, recipientId, 
+        apiKey, sessionName, specialNumberRecipient,
+        specialNumberStatusRecipientType, specialNumberStatusRecipientId
+    } = req.body;
+
+    try {
+        const [rows] = await db.execute('SELECT id FROM whatsapp_settings LIMIT 1');
+        
+        if (rows.length > 0) {
+            // Update existing
+            await db.execute(`
+                UPDATE whatsapp_settings SET 
+                    webhook_url = ?, 
+                    sender_number = ?, 
+                    recipient_type = ?, 
+                    recipient_id = ?, 
+                    api_key = ?, 
+                    session_name = ?, 
+                    special_number_recipient = ?,
+                    special_number_status_recipient_type = ?,
+                    special_number_status_recipient_id = ?
+                WHERE id = ?
+            `, [
+                webhookUrl, senderNumber, recipientType, recipientId, 
+                apiKey, sessionName, specialNumberRecipient, 
+                specialNumberStatusRecipientType, specialNumberStatusRecipientId,
+                rows[0].id
+            ]);
+        } else {
+            // Insert new
+            await db.execute(`
+                INSERT INTO whatsapp_settings 
+                (webhook_url, sender_number, recipient_type, recipient_id, api_key, session_name, special_number_recipient, special_number_status_recipient_type, special_number_status_recipient_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                webhookUrl, senderNumber, recipientType, recipientId, 
+                apiKey, sessionName, specialNumberRecipient,
+                specialNumberStatusRecipientType, specialNumberStatusRecipientId
+            ]);
+        }
+        
+        res.json({ success: true, message: 'Pengaturan WhatsApp berhasil disimpan.' });
+    } catch (error) {
+        console.error('Save WhatsApp settings error:', error);
+        res.status(500).json({ success: false, message: 'Gagal menyimpan ke database: ' + error.message });
+    }
+});
+
+// ============================================================
+// 3. APPSHEET SYNC (SINKRONISASI DUA ARAH)
 // ============================================================
 router.post('/integration/appsheet/sync-all', async (req, res) => {
     const APPSHEET_APP_ID = process.env.APPSHEET_APP_ID;
