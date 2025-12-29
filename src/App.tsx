@@ -5,8 +5,8 @@ import {
     User, Page, Transaction, LoyaltyProgram, RunningProgram, 
     Reward, RaffleProgram, RaffleWinner, Redemption, 
     SpecialNumber, WhatsAppSettings, UserProfile, CouponRedemption, UserRole
-} from './types'; // Fixed: pointing to local src/types.ts which has manajemenAktivitas
-import { ICONS } from '../constants';
+} from '../types'; // Diperbaiki: Mengarah ke root types.ts
+import { ICONS } from '../constants'; // Diperbaiki: Mengarah ke root constants.ts
 
 // Components
 import MainLayout from './components/layout/MainLayout';

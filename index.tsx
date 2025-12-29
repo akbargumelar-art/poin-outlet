@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// Fix: Match the import casing with the file 'src/app.tsx' to resolve the TypeScript casing conflict error
-import App from './src/app';
+// Fix: Menggunakan casing yang konsisten dengan file src/App.tsx
+import App from './src/App';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
